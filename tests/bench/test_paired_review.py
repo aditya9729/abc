@@ -30,6 +30,11 @@ def test_comparison_forwards_task_and_does_not_invent_single_seed(
     monkeypatch.setattr(
         runner.subprocess, "check_output", lambda *a, **kw: "synthetic-revision"
     )
+    monkeypatch.setattr(
+        runner,
+        "inspect_reserved_gpu",
+        lambda ordinal: {"ordinal": 0, "uuid": "GPU-fixture"},
+    )
     published = []
     monkeypatch.setattr(
         runner,
@@ -37,7 +42,8 @@ def test_comparison_forwards_task_and_does_not_invent_single_seed(
         lambda receipt, results: published.append(copy.deepcopy(receipt)),
     )
 
-    def synthetic_worker(command, log_path, timeout):
+    def synthetic_worker(command, log_path, timeout, *, gpu_uuid):
+        assert gpu_uuid == "GPU-fixture"
         assert command[command.index("--task") + 1] == "custom-task"
         assert int(command[command.index("--horizon") + 1]) == horizon
         destination = command[command.index("--output") + 1]
@@ -137,9 +143,12 @@ def test_paired_video_failure_closes_env_and_uses_selected_campaign(
         },
     }
     monkeypatch.setattr(torch, "load", lambda path, **kwargs: snapshots[path.name])
+    actor = nn.Identity()
+    monkeypatch.setattr(actor, "to", lambda device: actor)
     monkeypatch.setattr(
-        paired_eval, "make_residual_actor", lambda snapshot, device: nn.Identity()
+        paired_eval, "make_residual_actor", lambda snapshot, device: actor
     )
+    monkeypatch.setattr(paired_eval, "require_campaign_lease", lambda device: None)
     model = nn.Module()
     model.final_layer = nn.Module()
     model.final_layer.linear = base
@@ -166,7 +175,7 @@ def test_paired_video_failure_closes_env_and_uses_selected_campaign(
 
     monkeypatch.setattr(imageio, "get_writer", failed_writer)
     args = Namespace(
-        device="cpu",
+        device="cuda:0",
         checkpoint=checkpoint,
         qf3_state=tmp_path / "q.pt",
         resfit_state=tmp_path / "r.pt",

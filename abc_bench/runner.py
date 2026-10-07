@@ -15,6 +15,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from abc_bench.resources import inspect_reserved_gpu
+
 ROOT = (
     Path(os.environ.get("ABC_BENCH_REPO", str(Path(__file__).resolve().parents[1])))
     .expanduser()
@@ -47,7 +49,9 @@ class RunCancelled(RuntimeError):
     """The coordinator cancelled a bounded experiment."""
 
 
-def execute_command(command: list[str], log_path: Path, timeout: float) -> int:
+def execute_command(
+    command: list[str], log_path: Path, timeout: float, *, gpu_uuid: str | None = None
+) -> int:
     """Reap the job's process group on timeout, SIGTERM or keyboard cancellation."""
 
     def cancelled(signum: int, frame: Any) -> None:
@@ -64,8 +68,11 @@ def execute_command(command: list[str], log_path: Path, timeout: float) -> int:
                 stderr=subprocess.STDOUT,
                 env={
                     **os.environ,
-                    "CUDA_VISIBLE_DEVICES": "0",
-                    "MUJOCO_GL": "egl",
+                    "CUDA_VISIBLE_DEVICES": gpu_uuid or "",
+                    "MUJOCO_GL": "disable",
+                    "OMP_NUM_THREADS": "1",
+                    "MKL_NUM_THREADS": "1",
+                    "OPENBLAS_NUM_THREADS": "1",
                     "PYTHONUNBUFFERED": "1",
                 },
                 start_new_session=True,
@@ -263,6 +270,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         timeout = min(args.timeout_seconds, remaining)
         if timeout <= 0:
             raise ValueError("Authorized two-hour GPU budget exhausted")
+        gpu_binding = inspect_reserved_gpu(0)
         algorithm = getattr(args, "algorithm", "baseline")
         plan = comparison_plan(getattr(args, "eval_horizon", 1000))
         run_id = (
@@ -292,6 +300,12 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             "--no-fast-inference",
             "--no-rtc",
             "--log-every-chunk",
+            "--device",
+            "cuda:0",
+            "--gpu-id",
+            "0",
+            "--camera-backend",
+            "mjwarp",
         ]
         if algorithm == "comparison":
             if args.qf3_state is None or args.resfit_state is None:
@@ -316,6 +330,41 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 "101,102,103",
                 "--device",
                 "cuda:0",
+            ]
+        elif algorithm == "sustained-resfit":
+            if args.training_config is None:
+                raise ValueError("Sustained ResFiT requires --training-config")
+            training = json.loads(args.training_config.read_text())
+            if training.get("schema_version") != 1 or training.get("stage") not in {
+                "collect",
+                "train",
+            }:
+                raise ValueError(
+                    "Training config requires schema 1 and collect/train stage"
+                )
+            if training.get("device") != "cuda:0":
+                raise ValueError("Training config must use cuda:0")
+            maximum = training.get("max_wall_s")
+            if (
+                isinstance(maximum, bool)
+                or not isinstance(maximum, (int, float))
+                or not 0 < maximum < float("inf")
+            ):
+                raise ValueError(
+                    "Training config requires a finite positive max_wall_s"
+                )
+            # The outer deadline includes imports, hashing, model load, and cleanup.
+            training["max_wall_s"] = min(maximum, max(1, timeout - 60))
+            child_config = out / "training_config.json"
+            write_json(child_config, training)
+            command = [
+                str(ROOT / ".venv/bin/python"),
+                "-m",
+                "nrh.abc_training",
+                "--config",
+                str(child_config),
+                "--out",
+                str(out / "training"),
             ]
         elif algorithm != "baseline":
             timeout = min(timeout, 600.0)
@@ -355,6 +404,14 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             "phase": phase,
             "status": "running",
             "created_at": datetime.now(timezone.utc).isoformat(),
+            "gpu_binding": gpu_binding,
+            "process_profile": {
+                "CUDA_VISIBLE_DEVICES": gpu_binding["uuid"],
+                "MUJOCO_GL": "disable",
+                "camera_backend": "mjwarp",
+                "camera_gpu_id": 0,
+                "cpu_threads": 1,
+            },
             "checkpoint_path": str(args.checkpoint.resolve()),
             "metrics": {},
             "blockers": [],
@@ -380,6 +437,32 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             receipt["claim_scope"] = (
                 "frozen base and four-update adaptations; not full paper or transfer comparison"
             )
+        elif algorithm == "sustained-resfit":
+            stage = training["stage"]
+            receipt["algorithm"] = "ResFiT native simulation " + stage
+            receipt["method_fidelity"] = (
+                "Sadhana repeated-update trainer; frozen ABC feature adaptation"
+            )
+            receipt["claim_scope"] = (
+                "bounded integration check; replay collection requires independent admission; no convergence or transfer claim"
+            )
+            receipt["training_stage"] = stage
+            receipt["training_config_sha256"] = hashlib.sha256(
+                child_config.read_bytes()
+            ).hexdigest()
+            receipt["checkpoint_path"] = training["base"]["checkpoint_path"]
+            receipt["task"] = training["base"]["task_id"]
+            receipt["budget"]["steps"] = (
+                len(training["collect"]["seeds"]) * training["collect"]["episode_steps"]
+                if stage == "collect"
+                else training["train"]["target_steps"]
+            )
+            receipt["artifacts"].append(
+                {
+                    "label": "Resolved worker configuration",
+                    "path": str(child_config.relative_to(results)),
+                }
+            )
         elif algorithm != "baseline":
             receipt["algorithm"] = (
                 "QF3 output-adapter update smoke"
@@ -397,18 +480,28 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         # Reserve the full timeout before execution: interruption cannot overspend the shared ledger.
         ledger["charged_seconds"] += timeout
         ledger["active_parent_pid"] = os.getpid()
+        ledger["active_gpu_uuid"] = gpu_binding["uuid"]
         write_json(ledger_path, ledger)
         try:
-            code = execute_command(command, out / "run.log", timeout)
+            code = execute_command(
+                command, out / "run.log", timeout, gpu_uuid=gpu_binding["uuid"]
+            )
             if code:
                 raise RuntimeError(
                     f"ABC evaluation failed with exit code {code}; see run.log"
                 )
-            summary_path = out / (
-                "paired_eval.json"
-                if algorithm == "comparison"
-                else (
-                    "summary.json" if algorithm == "baseline" else "update_smoke.json"
+            summary_path = (
+                out / "training" / "receipt.json"
+                if algorithm == "sustained-resfit"
+                else out
+                / (
+                    "paired_eval.json"
+                    if algorithm == "comparison"
+                    else (
+                        "summary.json"
+                        if algorithm == "baseline"
+                        else "update_smoke.json"
+                    )
                 )
             )
             summary = json.loads(summary_path.read_text())
@@ -447,6 +540,18 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     publish(child, results)
             elif algorithm == "baseline":
                 receipt["metrics"] = summarize(summary, phase=phase)
+            elif algorithm == "sustained-resfit":
+                if summary["stage"] != stage or summary["status"] != "completed":
+                    raise RuntimeError(
+                        "Sustained worker did not complete its declared stage"
+                    )
+                receipt["metrics"] = summary["metrics"]
+                receipt["artifacts"].append(
+                    {
+                        "label": "Sadhana training evidence",
+                        "path": str(summary_path.relative_to(results)),
+                    }
+                )
             else:
                 receipt["metrics"] = {
                     "successes": None,
@@ -475,6 +580,8 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 {
                     "label": "Upstream summary"
                     if algorithm == "baseline"
+                    else "Sadhana stage evidence"
+                    if algorithm == "sustained-resfit"
                     else "Update smoke evidence",
                     "path": str(summary_path.relative_to(results)),
                 }
@@ -516,6 +623,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             elapsed = time.monotonic() - start
             ledger["charged_seconds"] += elapsed - timeout
             ledger.pop("active_parent_pid", None)
+            ledger.pop("active_gpu_uuid", None)
             write_json(ledger_path, ledger)
             receipt["metrics"]["elapsed_seconds"] = elapsed
             publish(receipt, results)
@@ -529,7 +637,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--algorithm",
-        choices=("baseline", "qf3", "resfit", "comparison"),
+        choices=("baseline", "qf3", "resfit", "comparison", "sustained-resfit"),
         default="baseline",
     )
     parser.add_argument(
@@ -540,6 +648,7 @@ def main() -> None:
     )
     parser.add_argument("--qf3-state", type=Path)
     parser.add_argument("--resfit-state", type=Path)
+    parser.add_argument("--training-config", type=Path)
     parser.add_argument("--task", default="put_plastic_bottles_in_bin")
     parser.add_argument("--worlds", type=int, default=1)
     parser.add_argument("--chunks", type=int, default=2)

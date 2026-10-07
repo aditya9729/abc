@@ -2,7 +2,11 @@
 
 Owner: Codex / Sadhana. All files remain under `~/aditya/RL/abc`.
 
-This campaign uses one GPU for at most two hours. The coordinator reserves GPU 0. The global lock and ledger live in `outputs/bench`. They apply even when a run has a different results directory. Job cancellation stops the complete subprocess group.
+This campaign uses one GPU for at most two hours. The coordinator reserves GPU 0. The global lock and ledger live in `outputs/bench`. They apply even when a run has a different results directory. Job cancellation stops the complete subprocess group. Before a new job, the runner checks GPU 0 occupancy. It refuses active compute or graphics memory, records the physical GPU UUID, and sets child visibility to that UUID. This read-only check does not stop other jobs. The shared lease and coordination reservation still apply; telemetry is a snapshot, not an atomic lock against other projects.
+
+New jobs use the CUDA MJWarp renderer on logical device 0. The child has `MUJOCO_GL=disable` and one CPU thread per numeric library. The worker refuses missing or mismatched physical UUIDs and classic OpenGL. Classic EGL can select devices independently of CUDA visibility. Historical receipts retain their original camera settings and scores. A fresh matched evaluation is required to compare results after a renderer change.
+
+The sustained ResFiT route uses the installed Sadhana package, `nirvana-rl-harness`. Its `nrh.abc_training` module connects the native binding to the existing repeated-update trainer. Install a reviewed harness wheel in this ABC environment with `uv pip install --python .venv/bin/python --no-deps /absolute/path/to/nirvana_rl_harness-0.4.0-py3-none-any.whl`. Run `python -m abc_bench.runner --algorithm sustained-resfit --training-config /absolute/pinned_config.json --timeout-seconds 300`. Configuration and admission are described in Sadhana's `harness/docs/ABC_SIM_TRAINING.md`. Collection exports unreviewed data. Training requires a separate accepted review bound to its exact data and execution evidence. The outer deadline includes model loading and rendering setup. The campaign ledger applies to both stages.
 
 ## Reproduce
 

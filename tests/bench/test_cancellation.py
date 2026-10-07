@@ -139,3 +139,89 @@ def test_cpu_guard_does_not_read_or_modify_campaign_ledger(monkeypatch):
 
     monkeypatch.setattr(Path, "read_text", unexpected_read)
     require_campaign_lease("cpu")
+
+
+def test_cuda_worker_refuses_another_logical_device(monkeypatch):
+    from abc_bench.update_smoke import require_campaign_lease
+
+    monkeypatch.setattr(os, "getppid", lambda: 123)
+    monkeypatch.setattr(Path, "read_text", lambda self: '{"active_parent_pid":123}')
+    with pytest.raises(RuntimeError, match="cuda:0 only"):
+        require_campaign_lease("cuda:1")
+
+
+def test_cuda_worker_refuses_visibility_outside_physical_reservation(monkeypatch):
+    from abc_bench.update_smoke import require_campaign_lease
+
+    monkeypatch.setattr(os, "getppid", lambda: 123)
+    monkeypatch.setattr(
+        Path,
+        "read_text",
+        lambda self: (
+            '{"active_parent_pid":123,"active_gpu_uuid":"GPU-00000000-0000-0000-0000-000000000000"}'
+        ),
+    )
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "GPU-other")
+    with pytest.raises(RuntimeError, match="physical reservation"):
+        require_campaign_lease("cuda:0")
+
+
+@pytest.mark.parametrize("reservation", [None, "GPU-invalid", "GPU-one,GPU-two"])
+def test_cuda_worker_requires_a_valid_physical_reservation(monkeypatch, reservation):
+    import json
+
+    from abc_bench.update_smoke import require_campaign_lease
+
+    monkeypatch.setattr(os, "getppid", lambda: 123)
+    monkeypatch.setattr(
+        Path,
+        "read_text",
+        lambda self: json.dumps(
+            {"active_parent_pid": 123, "active_gpu_uuid": reservation}
+        ),
+    )
+    with pytest.raises(RuntimeError, match="GPU UUID reservation"):
+        require_campaign_lease("cuda:0")
+
+
+def test_cuda_worker_refuses_gl_context_profile(monkeypatch):
+    from abc_bench.update_smoke import require_campaign_lease
+
+    gpu_uuid = "GPU-00000000-0000-0000-0000-000000000000"
+    monkeypatch.setattr(os, "getppid", lambda: 123)
+    monkeypatch.setattr(
+        Path,
+        "read_text",
+        lambda self: '{"active_parent_pid":123,"active_gpu_uuid":"' + gpu_uuid + '"}',
+    )
+    monkeypatch.setenv("CUDA_VISIBLE_DEVICES", gpu_uuid)
+    monkeypatch.setenv("MUJOCO_GL", "egl")
+    with pytest.raises(RuntimeError, match="MUJOCO_GL=disable"):
+        require_campaign_lease("cuda:0")
+
+
+def test_child_uses_reserved_uuid_disabled_gl_and_cpu_thread_caps(tmp_path):
+    import json
+
+    gpu_uuid = "GPU-00000000-0000-0000-0000-000000000000"
+    keys = [
+        "CUDA_VISIBLE_DEVICES",
+        "MUJOCO_GL",
+        "OMP_NUM_THREADS",
+        "MKL_NUM_THREADS",
+        "OPENBLAS_NUM_THREADS",
+    ]
+    code = (
+        "import os,json; print(json.dumps({k:os.environ[k] for k in "
+        + repr(keys)
+        + "}))"
+    )
+    log = tmp_path / "profile.json"
+    assert execute_command([sys.executable, "-c", code], log, 3, gpu_uuid=gpu_uuid) == 0
+    assert json.loads(log.read_text()) == {
+        "CUDA_VISIBLE_DEVICES": gpu_uuid,
+        "MUJOCO_GL": "disable",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+    }

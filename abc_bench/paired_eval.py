@@ -189,6 +189,8 @@ def validate_evaluation_config(horizon: int, seeds: list[int]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     validate_evaluation_config(args.horizon, args.seeds)
+    if args.device != "cuda:0":
+        raise RuntimeError("Rendered evaluation workers require leased cuda:0")
     # A worker cannot bypass the one-GPU campaign budget by direct invocation.
     require_campaign_lease(args.device)
     import imageio.v2 as imageio
@@ -309,6 +311,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 task=args.task,
                 prompt=config.prompt,
                 render_cameras=True,
+                camera_backend="mjwarp",
+                camera_gpu_id=0,
                 camera_height=224,
                 camera_width=224,
                 physics_dt=0.002,

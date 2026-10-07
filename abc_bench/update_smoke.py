@@ -15,6 +15,7 @@ import torch
 from torch import Tensor, nn
 
 from abc_bench.algorithms import ResFiTFeatureLearner, qf3_actor_loss
+from abc_bench.resources import GPU_UUID_PATTERN
 
 
 class OutputAdapter(nn.Module):
@@ -71,6 +72,20 @@ def require_campaign_lease(device: str) -> None:
         raise RuntimeError(
             "Use python -m abc_bench.runner --algorithm qf3|resfit for GPU smoke"
         )
+    if device != "cuda:0":
+        raise RuntimeError("Campaign workers may use cuda:0 only")
+    expected_uuid = ledger.get("active_gpu_uuid")
+    if (
+        not isinstance(expected_uuid, str)
+        or GPU_UUID_PATTERN.fullmatch(expected_uuid) is None
+    ):
+        raise RuntimeError("Worker requires a physical GPU UUID reservation")
+    if os.environ.get("CUDA_VISIBLE_DEVICES") != expected_uuid:
+        raise RuntimeError(
+            "Worker GPU visibility differs from its physical reservation"
+        )
+    if os.environ.get("MUJOCO_GL") != "disable":
+        raise RuntimeError("Campaign workers require MUJOCO_GL=disable")
     with (campaign / ".gpu-budget.lock").open("a") as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -80,6 +95,9 @@ def require_campaign_lease(device: str) -> None:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    if args.device != "cuda:0":
+        raise RuntimeError("Rendered update workers require leased cuda:0")
+    require_campaign_lease(args.device)
     from abc_minimal.config import SimEvalConfig
     from abc_minimal.eval_policy import resolve_prompt
     from abc_minimal.policy import DiTInferencePolicy
@@ -115,6 +133,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         task=args.task,
         prompt=prompt,
         render_cameras=True,
+        camera_backend="mjwarp",
+        camera_gpu_id=0,
         camera_height=224,
         camera_width=224,
         max_episode_steps=None,
