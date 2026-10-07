@@ -2,7 +2,9 @@
 
 Owner: Codex / Sadhana. All files remain under `~/aditya/RL/abc`.
 
-This campaign uses one GPU for at most two hours. The coordinator reserves GPU 0. The global lock and ledger live in `outputs/bench`. They apply even when a run has a different results directory. Job cancellation stops the complete subprocess group. Before a new job, the runner checks GPU 0 occupancy. It refuses active compute or graphics memory, records the physical GPU UUID, and sets child visibility to that UUID. This read-only check does not stop other jobs. The shared lease and coordination reservation still apply; telemetry is a snapshot, not an atomic lock against other projects.
+Use [QF3 native progress](QF3_NATIVE_PROGRESS.md) for the current ABC-VLA implementation and measured results. Use the [CPU comparison reader](vla_comparison.md) to validate retained 50-episode evidence. It requires a real selected checkpoint and a new complete learned evaluation before it reports a comparison. The ABC-DiT examples below describe the earlier smoke and adaptation pilots.
+
+This campaign uses one GPU with a cumulative 10,800-second allowance. The initial allowance was 7,200 seconds; the user added one hour. Preserve prior charges. The additional two-hour request remains pending. The coordinator reserves GPU 0. The global lock and ledger live in `outputs/bench`. They apply even when a run has a different results directory. Job cancellation stops the complete subprocess group. Before a new job, the runner checks GPU 0 occupancy. It refuses active compute or graphics memory, records the physical GPU UUID, and sets child visibility to that UUID. This read-only check does not stop other jobs. The shared lease and coordination reservation still apply; telemetry is a snapshot, not an atomic lock against other projects.
 
 New jobs use the CUDA MJWarp renderer on logical device 0. The child has `MUJOCO_GL=disable` and one CPU thread per numeric library. The worker refuses missing or mismatched physical UUIDs and classic OpenGL. Classic EGL can select devices independently of CUDA visibility. Historical receipts retain their original camera settings and scores. A fresh matched evaluation is required to compare results after a renderer change.
 
@@ -32,7 +34,7 @@ A short rollout has no published task-success result. A full-horizon pilot has a
 
 QF3 update smoke uses the actual pretrained ABC-DiT head. Its rank-four output adapter and fitted immediate-return critic are declared adaptations. ResFiT update smoke uses frozen features and an invertible action codec. Neither smoke establishes a faithful paper reproduction or convergence. Real-Time EXPO-FT still needs an ABC bridge. See `algorithms.md` and `update_smoke.md`. The matched evaluator loads their saved snapshots and compares them with the frozen policy. It creates a fresh environment for each method and seed, verifies initial joint and object positions, and uses the same noise and action cadence. See `paired_eval.md`.
 
-R1 Lite and R1 Pro have static asset inspection receipts. Neither has a verified ABC task adapter or compatible policy checkpoint. Missing metrics remain unavailable. See `embodiments.md`.
+R1 Lite is the active transfer target. It has a static asset inspection receipt. Its ABC task adapter and compatible learned policy remain unverified. Missing metrics remain unavailable. See `embodiments.md`.
 
 Large checkpoints, downloaded scenes, videos, and raw run receipts stay outside Git. Commit the source pin, dependency lock, verification notes, and compact campaign summary. Each run links its execution log and hashed summary.
 

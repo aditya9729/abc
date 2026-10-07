@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "kind": "qf3_vla_comparison_owner_software_validation",
+  "status": "owner_checks_passed",
+  "commit": "cf37c52a017511766350ff824b0dd1c1cb309d2b",
+  "branch": "vla-comparison-review",
+  "worktree_clean": true,
+  "files": [
+    {
+      "path": "/home/user/aditya/RL/abc-vla-comparison/abc_bench/vla_comparison.py",
+      "bytes": 51018,
+      "sha256": "54803360e8dfb0ba26834a47d295f46680c3006a31af39a3f0131258ead90206"
+    },
+    {
+      "path": "/home/user/aditya/RL/abc-vla-comparison/tests/bench/test_vla_comparison.py",
+      "bytes": 32360,
+      "sha256": "bb7ee46520f95cb00767b9e6074fa564400bdbf5a4b8a4445cd81478c1ac352b"
+    },
+    {
+      "path": "/home/user/aditya/RL/abc-vla-comparison/docs/bench/vla_comparison.md",
+      "bytes": 9417,
+      "sha256": "57d6ef530b031c68a7fbc4c86c915351a5b856eb9526a33d4f85149e91e253e8"
+    }
+  ],
+  "checks": [
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable PYTHONPATH=/home/user/aditya/RL/abc-vla-comparison OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -B -m pytest tests/bench/test_vla_comparison.py -q",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "passed": 60,
+      "pytest_elapsed_seconds": 10.17,
+      "scope": "Focused owner result before Ruff import sorting and formatting; final full-suite result below covers the committed source."
+    },
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable PYTHONPATH=/home/user/aditya/RL/abc-vla-comparison OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -B -m pytest tests/bench -q",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "passed": 203,
+      "pytest_elapsed_seconds": 12.87,
+      "retained_tool_stdout": "........................................................................ [ 35%]\n........................................................................ [ 70%]\n...........................................................              [100%]\n203 passed in 12.87s\n"
+    },
+    {
+      "command": "/home/user/aditya/RL/abc/.venv/bin/ruff check abc_bench/vla_comparison.py tests/bench/test_vla_comparison.py",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "retained_tool_stdout": "All checks passed!\n"
+    },
+    {
+      "command": "/home/user/aditya/RL/abc/.venv/bin/ruff format --check abc_bench/vla_comparison.py tests/bench/test_vla_comparison.py",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "retained_tool_stdout": "2 files already formatted\n"
+    },
+    {
+      "command": "git diff --cached --check",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "scope": "All three files were staged before isolated commit; no whitespace errors."
+    },
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable PYTHONPATH=/home/user/aditya/RL/abc-vla-comparison OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -B -m abc_bench.vla_comparison validate-baseline --baseline /home/user/aditya/RL/abc/outputs/bench/qf3-vla-20261007T212522-b8a040/training/receipt.json --baseline-sha256 1c51c0aa2b67729876dc987549818abf509d0b4818ff457197597ee5d82db7ba --output /home/user/aditya/RL/builds/qf3-vla-comparison/baseline_validation.final.json",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "report": {
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison/baseline_validation.final.json",
+        "bytes": 269407,
+        "sha256": "7df0b8b8188cefc22e24d0f012615df738f92e09dac92eed7fb2afa6343f35ed"
+      }
+    }
+  ],
+  "log_provenance": "Structured record of actual completed tool results; stdout is retained from tool responses, not a new test run.",
+  "native_evidence_recomputed": {
+    "episodes": 50,
+    "history_successes": 10,
+    "native_current_successes": 7,
+    "history_success_only_mean_control_steps": 935.9,
+    "failure_inclusive_mean_control_steps": 987.18,
+    "active_world_steps": 49359,
+    "physics_ticks": 1000,
+    "verified_artifacts": 1050
+  },
+  "limits": [
+    "No new experiment, GPU query/initialization, install, native import, budget mutation, or publication.",
+    "Learned result and real pre-outcome selection remain pending. Positive learned unit fixtures are synthetic software checks only.",
+    "Independent review packet is issued separately by the reviewer. Package and installed interface checks belong to the coordinator.",
+    "No task gain, held-out performance, author initializer, paper reproduction, tensor content, or native trajectory equality claim."
+  ]
+}

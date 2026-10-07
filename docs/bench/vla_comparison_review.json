@@ -1,0 +1,251 @@
+{
+  "accepted_contracts": [
+    "Exact parsed-byte JSON SHA checks and duplicate/nonfinite/type rejection; all binary references rehashed, no timestamp cache.",
+    "Rejects legacy ABC-DiT8prefix/parent-pilot schemas and admits only declared reviewed ABC-VLA producer profiles.",
+    "New complete learned final invocation, all50fixed paired worlds, exact protocol/noise/base/profile/capture/grouping and reported training-state preservation.",
+    "Full capacity recipe/counters/completed-boundary membership and all retained warmup/outer/fresh evidence; fresh +100000 fallback consistency.",
+    "Exact selected checkpoint input and parent requested-config/receipt hashes plus externally recorded chronology.",
+    "History/native success paired partitions, common-success lengths, changed success subset disclosure and null empty means."
+  ],
+  "actual_baseline": {
+    "active_world_steps": 49359,
+    "direct_event_recomputation_agrees": true,
+    "episodes": 50,
+    "failure_inclusive_mean_control_steps": 987.18,
+    "history_success_rate": 0.2,
+    "history_successes": 10,
+    "native_current_successes": 7,
+    "native_judge_or_physics_reexecution": false,
+    "physics_ticks": 1000,
+    "protocol_id": "sadhana.qf3-abc-first-placement/1",
+    "receipt": {
+      "bytes": 10628,
+      "path": "/home/user/aditya/RL/abc/outputs/bench/qf3-vla-20261007T212522-b8a040/training/receipt.json",
+      "sha256": "1c51c0aa2b67729876dc987549818abf509d0b4818ff457197597ee5d82db7ba"
+    },
+    "referenced_artifacts_verified": 1050,
+    "requested_actual_seed_end": 1000049,
+    "requested_actual_seed_start": 1000000,
+    "source_cli_report_byte_identical_to_owner": true,
+    "successful_only_mean_control_steps": 935.9
+  },
+  "author": "/root/benchmark_final_review",
+  "branch": "vla-comparison-review",
+  "commit": "cf37c52a017511766350ff824b0dd1c1cb309d2b",
+  "coordinator_installed_evidence": {
+    "artifact": {
+      "bytes": 34958,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-runtime/INSTALLED_VERIFICATION.json",
+      "sha256": "4b3764d51d1cd80c278688bf0a8fe92d0328b0cbb9ee7b767d4d6192964ab107"
+    },
+    "independently_exercised_by_this_reviewer": false,
+    "scope": "Reference to root-reported separate installed verification; no install or wheel/native test by this reviewer."
+  },
+  "evidence_artifacts": [
+    {
+      "bytes": 9223,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/ACTUAL_BASELINE_RECOMPUTATION.json",
+      "sha256": "d5091bc3085c611bf67c3e2063ef1cc485ae653a10a40f965883b690b94c5649"
+    },
+    {
+      "bytes": 269407,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/ACTUAL_BASELINE_READER.json",
+      "sha256": "7df0b8b8188cefc22e24d0f012615df738f92e09dac92eed7fb2afa6343f35ed"
+    },
+    {
+      "bytes": 7454,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/INDEPENDENT_READER_BOUNDARY_PROBES.json",
+      "sha256": "c492b428d255fa56f4a532c083169e8098242c8ae0255f009bceeeb0ecb4f995"
+    },
+    {
+      "bytes": 1912,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/INDEPENDENT_READER_EXTRA_PROBES.json",
+      "sha256": "498e6fa3b9db039964335861ee58bd7f9df986fb17cd49d57d0087f2509cf80f"
+    },
+    {
+      "bytes": 494,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/INDEPENDENT_SELECTED_RESUME_BINDING.json",
+      "sha256": "a6499a4d20b5e3fd4944a7c593dede47e36c413ce0aad7b53048f1833e40cbd2"
+    },
+    {
+      "bytes": 4538,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/recompute_baseline.py",
+      "sha256": "71bdc52b79454059b92cbb28b0925f1960180c2ad5d3136d18f2a6a7a506281c"
+    },
+    {
+      "bytes": 10547,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/probe_reader.py",
+      "sha256": "8945a01caa5eb1c84d2139b55d5a954a68c989fec31c9b8713009ccad44d2c25"
+    },
+    {
+      "bytes": 3669,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/probe_reader_extra.py",
+      "sha256": "b5c95cd4cd82b1c56ffd5a0001f45a8e831d54249eb1949522093508fd57ad82"
+    },
+    {
+      "bytes": 2300,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/probe_selected_resume.py",
+      "sha256": "50e8308a301d19919855e9c0e7e68d43ed26647db00c4290bc6db7cea7eea6bf"
+    }
+  ],
+  "gpu_execution_authorized_by_this_packet": false,
+  "independent_additional_boundary_cases": 43,
+  "independent_checks": [
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /home/user/aditya/RL/abc/.venv/bin/python -B -m pytest tests/bench/test_vla_comparison.py -q --basetemp=/home/user/aditya/RL/builds/qf3-vla-comparison-review/pytest-tmp",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "execution_scope": "CPU software fixtures; not native learned benchmark data",
+      "exit_code": 0,
+      "name": "independent_focused_pytest",
+      "passed": 60,
+      "pytest_elapsed_seconds": 6.43,
+      "retained_tool_stdout": "60 passed in 6.43s"
+    },
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -I -B /home/user/aditya/RL/builds/qf3-vla-comparison-review/recompute_baseline.py",
+      "cwd": "/home/user/aditya/RL",
+      "execution_scope": "Read retained public control/judge/tracker evidence; no native judge or physics reexecution",
+      "exit_code": 0,
+      "logged_events_checked": 49359,
+      "name": "independent_real_baseline_event_recomputation",
+      "report": {
+        "bytes": 9223,
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/ACTUAL_BASELINE_RECOMPUTATION.json",
+        "sha256": "d5091bc3085c611bf67c3e2063ef1cc485ae653a10a40f965883b690b94c5649"
+      }
+    },
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -B -m abc_bench.vla_comparison validate-baseline --baseline /home/user/aditya/RL/abc/outputs/bench/qf3-vla-20261007T212522-b8a040/training/receipt.json --baseline-sha256 1c51c0aa2b67729876dc987549818abf509d0b4818ff457197597ee5d82db7ba --output /home/user/aditya/RL/builds/qf3-vla-comparison-review/ACTUAL_BASELINE_READER.json",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "execution_scope": "Source-checkout CLI; coordinator installed-wheel proof is separate evidence.",
+      "exit_code": 0,
+      "name": "independent_real_baseline_reader_cli",
+      "report": {
+        "bytes": 269407,
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/ACTUAL_BASELINE_READER.json",
+        "sha256": "7df0b8b8188cefc22e24d0f012615df738f92e09dac92eed7fb2afa6343f35ed"
+      },
+      "verified_artifact_count": 1050
+    },
+    {
+      "cases": 35,
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -I -B /home/user/aditya/RL/builds/qf3-vla-comparison-review/probe_reader.py --source-sha256 54803360e8dfb0ba26834a47d295f46680c3006a31af39a3f0131258ead90206 --tests-sha256 bb7ee46520f95cb00767b9e6074fa564400bdbf5a4b8a4445cd81478c1ac352b",
+      "cwd": "/home/user/aditya/RL",
+      "exit_code": 0,
+      "name": "independent_boundary_probes",
+      "report": {
+        "bytes": 7454,
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/INDEPENDENT_READER_BOUNDARY_PROBES.json",
+        "sha256": "c492b428d255fa56f4a532c083169e8098242c8ae0255f009bceeeb0ecb4f995"
+      }
+    },
+    {
+      "cases": 7,
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -I -B /home/user/aditya/RL/builds/qf3-vla-comparison-review/probe_reader_extra.py",
+      "cwd": "/home/user/aditya/RL",
+      "exit_code": 0,
+      "name": "independent_extra_probes",
+      "report": {
+        "bytes": 1912,
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/INDEPENDENT_READER_EXTRA_PROBES.json",
+        "sha256": "498e6fa3b9db039964335861ee58bd7f9df986fb17cd49d57d0087f2509cf80f"
+      }
+    },
+    {
+      "cases": 1,
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -I -B /home/user/aditya/RL/builds/qf3-vla-comparison-review/probe_selected_resume.py",
+      "cwd": "/home/user/aditya/RL",
+      "exit_code": 0,
+      "name": "independent_valid_unselected_checkpoint_probe",
+      "report": {
+        "bytes": 494,
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/INDEPENDENT_SELECTED_RESUME_BINDING.json",
+        "sha256": "a6499a4d20b5e3fd4944a7c593dede47e36c413ce0aad7b53048f1833e40cbd2"
+      },
+      "result": "Rejected learned input with a separately valid different checkpoint byte pin, even with matching parent requested-config hash"
+    },
+    {
+      "command": "/home/user/aditya/RL/abc/.venv/bin/ruff check abc_bench/vla_comparison.py tests/bench/test_vla_comparison.py",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "name": "independent_ruff_lint",
+      "retained_tool_stdout": "All checks passed!"
+    },
+    {
+      "command": "/home/user/aditya/RL/abc/.venv/bin/ruff format --check abc_bench/vla_comparison.py tests/bench/test_vla_comparison.py",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "name": "independent_ruff_format",
+      "retained_tool_stdout": "2 files already formatted"
+    },
+    {
+      "command": "git status --short; git log -1 --format='%H %s'; sha256sum abc_bench/vla_comparison.py tests/bench/test_vla_comparison.py docs/bench/vla_comparison.md; git rev-parse HEAD^; git show --format= --name-status HEAD",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison",
+      "exit_code": 0,
+      "name": "independent_final_commit_scope_and_pins",
+      "note": "This record groups two read-only git/pin tool calls; no new broad suite run.",
+      "scope_exactly_three_added_owned_files": true,
+      "worktree_clean": true
+    }
+  ],
+  "independent_focused_tests": 60,
+  "installed_wheel_interface_verification": "Separately completed by coordinator; not an independent wheel check performed in this source review.",
+  "kind": "qf3_abc_vla_comparison_independent_source_review",
+  "limits": [
+    "Acceptance covers this reader software and retained-artifact provenance checks, not the reviewer-authored QF3 worker semantics, which have separate independent acceptance.",
+    "JSON SHA pins bind the exact bytes parsed; all referenced binary files are rehashed. Artifacts must remain immutable during validation. No authenticated filesystem snapshot is promised.",
+    "No checkpoint tensor deserialization, independent optimizer/reference validation, native judge reexecution, simulator replay, native physical resume, camera/geometry equality, or trajectory equality is performed.",
+    "Selection independent_review/status and timezone-aware timestamps are externally supplied assertions. The reader validates their field consistency and recorded chronology, not reviewer authentication or cryptographic proof that selection preceded knowledge of outcomes.",
+    "policy_state_sha256 identifies the full saved bridge policy state at the recorded capacity boundary; it is not a standalone learned adapter hash.",
+    "Only the actual frozen development baseline exists here. Synthetic learned/selection/capacity fixtures are ephemeral software diagnostics, never actual benchmark results, checkpoint selection, or dashboard publications.",
+    "A future real learned comparison still requires independent admission of capacity receipt/checkpoint/selection and a new complete fixed50 learned final invocation. The reader may then validate those actual bytes.",
+    "Paired counts and common-success length deltas are development diagnostics. Differing success subsets do not establish a speed improvement; paired seed/noise/protocol equality does not establish identical native geometry or physical trajectories.",
+    "The real frozen 20 percent result does not reproduce the paper: approximately 91.33 percent Figure 6 pooled and 86 percent Appendix A7 matched 50 are distinct author comparisons. Exact author initialization/reset/prefix/noise remains unconfirmed.",
+    "This review is not GPU authorization, resource availability confirmation, budget extension, full campaign readiness, or an installed-package proof."
+  ],
+  "no_gpu_or_native_initialization": true,
+  "no_install_or_runtime_edit": true,
+  "no_main_source_or_ledger_mutation": true,
+  "no_raw_native_artifact_mutation": true,
+  "no_real_learned_result_or_selection_created": true,
+  "owned_committed_files": [
+    {
+      "bytes": 51018,
+      "path": "/home/user/aditya/RL/abc-vla-comparison/abc_bench/vla_comparison.py",
+      "sha256": "54803360e8dfb0ba26834a47d295f46680c3006a31af39a3f0131258ead90206"
+    },
+    {
+      "bytes": 32360,
+      "path": "/home/user/aditya/RL/abc-vla-comparison/tests/bench/test_vla_comparison.py",
+      "sha256": "bb7ee46520f95cb00767b9e6074fa564400bdbf5a4b8a4445cd81478c1ac352b"
+    },
+    {
+      "bytes": 9417,
+      "path": "/home/user/aditya/RL/abc-vla-comparison/docs/bench/vla_comparison.md",
+      "sha256": "57d6ef530b031c68a7fbc4c86c915351a5b856eb9526a33d4f85149e91e253e8"
+    }
+  ],
+  "owner_validation": {
+    "artifact": {
+      "bytes": 4788,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison/OWNER_VALIDATION.json",
+      "sha256": "6f02c27c2300134636b058261c8394b459d72f85c32ddf4cdd34d486fa48a522"
+    },
+    "owner_full_abc_tests": 203,
+    "owner_pytest_elapsed_seconds": 12.87,
+    "scope": "Owner results separately recorded; not an independent 203-test claim."
+  },
+  "parent_commit": "938cb3816960bf4b051a5ea23f6404a68a1f6aaf",
+  "review_markdown": {
+    "bytes": 5030,
+    "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/INDEPENDENT_VLA_COMPARISON_REVIEW.md",
+    "sha256": "0a4924289a2a98cff9264647e105d8062445a218edc6f09e246931fafad887ba"
+  },
+  "reviewed_utc": "2026-10-07T23:55:14.583486+00:00",
+  "reviewer": "/root/training_harness_audit",
+  "schema_version": 1,
+  "source_integration_blockers": [],
+  "status": "accepted_for_cpu_software_integration",
+  "worktree": "/home/user/aditya/RL/abc-vla-comparison",
+  "worktree_clean": true
+}

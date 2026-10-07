@@ -30,6 +30,8 @@ The reference also restarted. Repeated trajectories and final weights differ. Pa
 Current installed 0.4.9 repairs standalone evaluation reporting and phase accounting. In 0.4.8, inherited validation summaries could appear without a new evaluation, and checkpoint time overlapped evaluation time. The repair passed 908 full CPU tests in both builder and independent runs. All 39 installed files match the reviewed wheel. No native GPU experiment has run under 0.4.9. Parent wall charge is authoritative.
 Full-ring replay/checkpoint storage and combined environment memory need measurement before a long campaign.
 
+The [ABC-VLA comparison reader](vla_comparison.md) now validates retained evidence on the CPU. It passed 203 owner tests, 60 independent focused tests and 43 independent boundary probes. The built package passed outside-checkout checks without native dependencies. All 179 Python members match source and installation. Its real baseline report matches the owner and reviewer reports byte for byte and verifies 1,050 referenced artifacts. This is posthoc validation of the existing frozen measurement. No learned comparison or checkpoint selection exists yet. The reader requires the full capacity recipe, a recorded accepted selection, and a new complete fixed50 learned final invocation. See [source acceptance](vla_comparison_review.md) and [installed verification](vla_comparison_installed.json).
+
 Source and review documents are under `/home/user/aditya/RL/sadhana-resfit/harness/docs/`.
 Use `QF3_ABC_REPRODUCTION.md` for the architecture and team explanation.
 Use `QF3_CORRECTED_BASELINE_REVIEW.md` for current metrics and their limits.
