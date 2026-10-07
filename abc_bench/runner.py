@@ -23,6 +23,26 @@ ROOT = (
 RESULTS = ROOT / "outputs" / "bench"
 
 
+MAX_EVAL_HORIZON = 3540
+
+
+def comparison_plan(horizon: int) -> dict[str, Any]:
+    """One resolved horizon controls command, step reservation, and claim label."""
+    if (
+        isinstance(horizon, bool)
+        or not isinstance(horizon, int)
+        or not 1 <= horizon <= MAX_EVAL_HORIZON
+    ):
+        raise ValueError(
+            f"Evaluation horizon must be an integer in [1, {MAX_EVAL_HORIZON}]"
+        )
+    return {
+        "horizon": horizon,
+        "maximum_steps": 3 * 3 * horizon,
+        "method_fidelity": f"matched {horizon}-step, three-seed adaptation pilot",
+    }
+
+
 class RunCancelled(RuntimeError):
     """The coordinator cancelled a bounded experiment."""
 
@@ -198,6 +218,33 @@ def _publish_unlocked(receipt: dict[str, Any], results: Path) -> None:
     )
 
 
+def execution_provenance() -> dict[str, Any]:
+    """Separate the accepted upstream pin from the local benchmark checkout."""
+    manifest_path = RESULTS / "runtime_manifest.json"
+    manifest_bytes = manifest_path.read_bytes()
+    upstream = json.loads(manifest_bytes).get("upstream_commit")
+    if not isinstance(upstream, str) or re.fullmatch(r"[0-9a-f]{40}", upstream) is None:
+        raise ValueError("Campaign manifest requires a pinned upstream commit")
+    return {
+        "upstream_commit": upstream,
+        "runtime_manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest(),
+        "harness_commit": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip(),
+        "harness_dirty": bool(
+            subprocess.check_output(
+                ["git", "status", "--porcelain", "--untracked-files=normal"],
+                cwd=ROOT,
+                text=True,
+            ).strip()
+        ),
+        "source_sha256": {
+            str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+            for path in sorted((ROOT / "abc_bench").glob("*.py"))
+        },
+    }
+
+
 def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
     import fcntl
 
@@ -217,6 +264,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         if timeout <= 0:
             raise ValueError("Authorized two-hour GPU budget exhausted")
         algorithm = getattr(args, "algorithm", "baseline")
+        plan = comparison_plan(getattr(args, "eval_horizon", 1000))
         run_id = (
             algorithm
             + "-"
@@ -245,7 +293,31 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             "--no-rtc",
             "--log-every-chunk",
         ]
-        if algorithm != "baseline":
+        if algorithm == "comparison":
+            if args.qf3_state is None or args.resfit_state is None:
+                raise ValueError("Comparison requires --qf3-state and --resfit-state")
+            command = [
+                str(ROOT / ".venv/bin/python"),
+                "-m",
+                "abc_bench.paired_eval",
+                "--checkpoint",
+                str(args.checkpoint.resolve()),
+                "--qf3-state",
+                str(args.qf3_state.resolve()),
+                "--resfit-state",
+                str(args.resfit_state.resolve()),
+                "--output",
+                str(out / "paired_eval.json"),
+                "--task",
+                args.task,
+                "--horizon",
+                str(plan["horizon"]),
+                "--seeds",
+                "101,102,103",
+                "--device",
+                "cuda:0",
+            ]
+        elif algorithm != "baseline":
             timeout = min(timeout, 600.0)
             command = [
                 str(ROOT / ".venv/bin/python"),
@@ -269,7 +341,10 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         if args.video and algorithm == "baseline":
             command += ["--save-video", "--video-every-n-actions", "15"]
         phase = (
-            "benchmark" if algorithm == "baseline" and args.chunks >= 236 else "smoke"
+            "benchmark"
+            if algorithm == "comparison"
+            or (algorithm == "baseline" and args.chunks >= 236)
+            else "smoke"
         )
         receipt: dict[str, Any] = {
             "run_id": run_id,
@@ -297,7 +372,15 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 }
             ],
         }
-        if algorithm != "baseline":
+        if algorithm == "comparison":
+            receipt["algorithm"] = "Matched native adaptation evaluation"
+            receipt["method_fidelity"] = plan["method_fidelity"]
+            receipt["budget"]["steps"] = plan["maximum_steps"]
+            receipt["evaluation_horizon_steps"] = plan["horizon"]
+            receipt["claim_scope"] = (
+                "frozen base and four-update adaptations; not full paper or transfer comparison"
+            )
+        elif algorithm != "baseline":
             receipt["algorithm"] = (
                 "QF3 output-adapter update smoke"
                 if algorithm == "qf3"
@@ -308,9 +391,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             receipt["claim_scope"] = (
                 "actual pretrained policy and simulation; no converged method-performance comparison"
             )
-        receipt["upstream_commit"] = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-        ).strip()
+        receipt.update(execution_provenance())
         publish(receipt, results)
         start = time.monotonic()
         # Reserve the full timeout before execution: interruption cannot overspend the shared ledger.
@@ -324,10 +405,47 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     f"ABC evaluation failed with exit code {code}; see run.log"
                 )
             summary_path = out / (
-                "summary.json" if algorithm == "baseline" else "update_smoke.json"
+                "paired_eval.json"
+                if algorithm == "comparison"
+                else (
+                    "summary.json" if algorithm == "baseline" else "update_smoke.json"
+                )
             )
             summary = json.loads(summary_path.read_text())
-            if algorithm == "baseline":
+            if algorithm == "comparison":
+                receipt["metrics"] = {
+                    "simulation_steps": sum(
+                        r["metrics"]["simulation_steps"] for r in summary["runs"]
+                    )
+                }
+                for index, record in enumerate(summary["runs"]):
+                    child = {
+                        **receipt,
+                        **record,
+                        "run_id": run_id + "-method-" + str(index),
+                        "phase": "benchmark",
+                        "status": "completed",
+                        "seed": None,
+                        "evaluation_seeds": [101, 102, 103],
+                        "method_fidelity": plan["method_fidelity"]
+                        + "; four-update adaptation; not full paper reproduction",
+                        "evaluation_horizon_steps": plan["horizon"],
+                    }
+                    child["artifacts"] = [
+                        {
+                            "label": item["label"],
+                            "path": str(out.relative_to(results) / item["path"]),
+                        }
+                        for item in record.get("artifacts", [])
+                    ]
+                    child["artifacts"].append(
+                        {
+                            "label": "Matched evaluation receipt",
+                            "path": str(summary_path.relative_to(results)),
+                        }
+                    )
+                    publish(child, results)
+            elif algorithm == "baseline":
                 receipt["metrics"] = summarize(summary, phase=phase)
             else:
                 receipt["metrics"] = {
@@ -410,8 +528,18 @@ def main() -> None:
         "--checkpoint", type=Path, default=ROOT / "cache/bottles_75k.pt"
     )
     parser.add_argument(
-        "--algorithm", choices=("baseline", "qf3", "resfit"), default="baseline"
+        "--algorithm",
+        choices=("baseline", "qf3", "resfit", "comparison"),
+        default="baseline",
     )
+    parser.add_argument(
+        "--eval-horizon",
+        type=int,
+        default=1000,
+        help="Matched comparison action horizon, maximum 3540",
+    )
+    parser.add_argument("--qf3-state", type=Path)
+    parser.add_argument("--resfit-state", type=Path)
     parser.add_argument("--task", default="put_plastic_bottles_in_bin")
     parser.add_argument("--worlds", type=int, default=1)
     parser.add_argument("--chunks", type=int, default=2)
@@ -422,6 +550,10 @@ def main() -> None:
     args = parser.parse_args()
     if args.worlds < 1 or args.chunks < 1 or args.timeout_seconds <= 0:
         parser.error("worlds, chunks and timeout must be positive")
+    try:
+        comparison_plan(args.eval_horizon)
+    except ValueError as error:
+        parser.error(str(error))
     if not args.checkpoint.is_file():
         parser.error("checkpoint missing; run prepare.py --checkpoint first")
     receipt = run_baseline(args)

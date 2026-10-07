@@ -1,0 +1,40 @@
+{
+  "scope": "advisory review only; independent tests remain acceptance evidence",
+  "request_sha256": "07f8fa243724af0d36466776ac64f3c9f3217a95ced87ef3c2096be818507ae7",
+  "rubric_sha256": "c120e83acdb9a1be66b7b757f884ffdaeb19c3e06865e45859cc75a6582dce47",
+  "source_sha256": {
+    "abc_bench/algorithms.py": "4649b0ba67255c3283f4e9de1a616adaed0e1745481f4ad8c271ba87135d6fb2",
+    "abc_bench/runner.py": "c86a46ac3cedcf8709b39c79430b0e29adb12ba0942c65955df0caead265da78",
+    "abc_bench/update_smoke.py": "960f0ef256c525d1b014982773643aa70a1fcd7c7d04fc662931fdc54c6b3501"
+  },
+  "model": "jev-1.13.0",
+  "answers": {
+    "partial_counts_supported": {
+      "type": "noul",
+      "noul": 0.89
+    },
+    "method_superiority_supported": {
+      "type": "noul",
+      "noul": 0.02
+    },
+    "r1_performance_supported": {
+      "type": "noul",
+      "noul": 0.03
+    },
+    "priority": {
+      "type": "choice",
+      "choice": "method_integration",
+      "confidence": 1.0,
+      "probabilities": {
+        "ui": 0.0,
+        "none": 0.0,
+        "method_integration": 1.0
+      }
+    }
+  },
+  "usage": {
+    "input_tokens": 12172,
+    "output_tokens": 104
+  },
+  "elapsed_seconds": 0.383
+}

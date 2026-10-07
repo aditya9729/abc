@@ -7,11 +7,12 @@ This explanation uses STE guidance. A full ASD-STE100 compliance check was not p
 Run from the repository root:
 
 ```sh
-python -m abc_bench.dashboard --results-root outputs/bench --port 8765
+python -m abc_bench.dashboard --results-root outputs/bench --port 8766
+python -m abc_bench.dashboard --results-root outputs/bench --export outputs/bench/dashboard.html
 ```
 
-Open `http://127.0.0.1:8765`. The CLI binds to localhost. Use an SSH tunnel for remote viewing.
-No GPU, credentials, frontend packages, or simulator imports are required.
+Open `http://127.0.0.1:8766`. The CLI binds to localhost. Use an SSH tunnel for remote viewing.
+No GPU, credentials, frontend packages, or simulator imports are required. The exported HTML contains a fixed data snapshot. It works without a server. Artifact links refer to the original files; keep those files with the snapshot. Export again to include new results.
 
 ## Evidence contract
 

@@ -6,9 +6,10 @@ import argparse
 import hashlib
 import json
 import mimetypes
+import os
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import unquote, urlsplit
+from urllib.parse import quote, unquote, urlsplit
 
 DEFAULT_EMBODIMENTS = [
     {"id": "native_yam", "label": "Native YAM", "status": "unavailable"},
@@ -23,9 +24,9 @@ HTML = r"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="view
 <div class="scroll"><table><thead><tr><th>Method / scope</th><th>Embodiment / task</th><th>Run / seed</th><th>Success</th><th>Latency p50 / p95</th><th>Reward / completion</th><th>Budget / execution</th><th>Status / evidence</th></tr></thead><tbody id="runs"></tbody></table><div id="empty" hidden>No recorded runs match these filters.</div></div>
 <h2>Architecture and team</h2><div class="diagram"><svg viewBox="0 0 1000 165" role="img" aria-label="Runner writes measured receipts. Read-only dashboard presents receipts and approved artifacts. Independent reviewer checks the evidence."><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#70deba"/></marker></defs><g fill="#25364a" stroke="#597086"><rect x="10" y="30" width="210" height="80" rx="10"/><rect x="280" y="30" width="210" height="80" rx="10"/><rect x="550" y="30" width="210" height="80" rx="10"/><rect x="810" y="30" width="180" height="80" rx="10"/></g><g fill="#e8eef6" text-anchor="middle" font-family="system-ui" font-size="15"><text x="115" y="62">Gym + method runner</text><text x="115" y="85">Coordinator / algorithm team</text><text x="385" y="62">Measured run receipts</text><text x="385" y="85">Metrics + artifact paths</text><text x="655" y="62">Read-only dashboard</text><text x="655" y="85">UI agent</text><text x="900" y="62">Evidence review</text><text x="900" y="85">Independent reviewer</text></g><g stroke="#70deba" stroke-width="2" marker-end="url(#arrow)"><path d="M220 70 H275"/><path d="M490 70 H545"/><path d="M760 70 H805"/></g><text x="500" y="145" text-anchor="middle" fill="#aab9ca" font-size="13">Data flow → No dashboard control flow to training or robot hardware.</text></svg></div><footer id="updated"></footer>
 <script>
-let data={runs:[],embodiments:[]};const $=id=>document.getElementById(id);const present=v=>v!==null&&v!==undefined;const number=(v,suffix='')=>present(v)?String(v)+suffix:'Unavailable';function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}function badge(v){return el('span',v||'unavailable','status '+(['completed','passed','blocked','failed'].includes(v)?v:''))}function cell(row,text,sub){const c=el('td',text);if(sub)c.append(el('small',sub));row.append(c);return c}function options(id,key){const current=$(id).value;$(id).replaceChildren(el('option','All '+id+'s'));$(id).firstChild.value='';[...new Set(data.runs.map(r=>r[key]).filter(Boolean))].sort().forEach(v=>{const o=el('option',v);o.value=v;$(id).append(o)});$(id).value=current}
+let data={runs:[],embodiments:[]};const $=id=>document.getElementById(id);const present=v=>v!==null&&v!==undefined;const number=(v,suffix='')=>present(v)?(typeof v==='number'&&!Number.isInteger(v)?v.toFixed(2):String(v))+suffix:'Unavailable';function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}function badge(v){return el('span',v||'unavailable','status '+(['completed','passed','blocked','failed'].includes(v)?v:''))}function cell(row,text,sub){const c=el('td',text);if(sub)c.append(el('small',sub));row.append(c);return c}function options(id,key){const current=$(id).value;$(id).replaceChildren(el('option','All '+id+'s'));$(id).firstChild.value='';[...new Set(data.runs.map(r=>r[key]).filter(Boolean))].sort().forEach(v=>{const o=el('option',v);o.value=v;$(id).append(o)});$(id).value=current}
 function render(){const filtered=data.runs.filter(r=>['algorithm','embodiment','phase','status'].every(k=>!$(k).value||r[k]===$(k).value));$('runs').replaceChildren();$('empty').hidden=filtered.length>0;for(const r of filtered){const row=el('tr'),m=r.metrics||{},lat=m.latency_ms||{},b=r.budget||{};cell(row,r.algorithm||'Unavailable',r.method_fidelity||r.claim_scope||'Scope unavailable');cell(row,r.embodiment||'Unavailable',r.task);cell(row,r.run_id||'Unavailable',(r.phase||'phase unavailable')+' · seed '+number(r.seed));cell(row,present(m.successes)&&present(m.episodes)?`${m.successes} / ${m.episodes}`:'Unavailable');cell(row,number(lat.p50,' ms')+' / '+number(lat.p95,' ms'),m.latency_scope);cell(row,number(m.reward),number(m.completion_time_seconds,' s'));cell(row,number(b.wall_seconds,' s budget'),number(m.elapsed_seconds,' s elapsed')+' · '+number(m.simulation_steps??b.steps,' steps'));const c=cell(row);c.append(badge(r.status));for(const blocker of r.blockers||[])c.append(el('small',blocker));for(const a of r.artifacts||[]){if(!a.url)continue;const link=el('a',a.label||a.path);link.href=a.url;link.target='_blank';link.rel='noopener';c.append(el('br'),link)}if(r.checkpoint_path)c.append(el('small','Checkpoint: '+r.checkpoint_path));const details=el('details');details.append(el('summary','Run receipt'),el('pre',JSON.stringify(r,null,2)));c.append(details);$('runs').append(row)}}
-async function load(){try{const response=await fetch('/api/results',{cache:'no-store'});if(!response.ok)throw Error('Evidence request failed: '+response.status);data=await response.json();$('error').textContent=(data.errors||[]).join(' · ');$('embodiments').replaceChildren();for(const e of data.embodiments){const card=el('div',undefined,'card');card.append(el('h2',e.label||e.id),badge(e.status));for(const b of e.blockers||[])card.append(el('p',b));$('embodiments').append(card)}['algorithm','embodiment','status'].forEach(k=>options(k,k));render();$('updated').textContent='Read at '+new Date().toLocaleString()+'. Receipts remain the source of evidence. STE guidance used; full ASD-STE100 compliance was not checked.'}catch(e){$('error').textContent=String(e)}}['algorithm','embodiment','phase','status'].forEach(k=>$(k).onchange=render);$('refresh').onclick=load;load();
+async function load(){try{if(window.BENCHMARK_SNAPSHOT){data=window.BENCHMARK_SNAPSHOT}else{const response=await fetch('/api/results',{cache:'no-store'});if(!response.ok)throw Error('Evidence request failed: '+response.status);data=await response.json()}$('error').textContent=(data.errors||[]).join(' · ');$('embodiments').replaceChildren();for(const e of data.embodiments){const card=el('div',undefined,'card');card.append(el('h2',e.label||e.id),badge(e.status));for(const b of e.blockers||[])card.append(el('p',b));$('embodiments').append(card)}['algorithm','embodiment','status'].forEach(k=>options(k,k));render();$('updated').textContent='Read at '+new Date().toLocaleString()+'. Receipts remain the source of evidence. STE guidance used; full ASD-STE100 compliance was not checked.'}catch(e){$('error').textContent=String(e)}}['algorithm','embodiment','phase','status'].forEach(k=>$(k).onchange=render);$('refresh').onclick=load;load();
 </script></html>"""
 
 
@@ -165,16 +166,43 @@ def make_server(
     return ThreadingHTTPServer((host, port), Handler)
 
 
+def export_snapshot(root: Path, destination: Path) -> None:
+    """Write a portable interactive view of the current verified receipt data."""
+    data, _ = load_results(root)
+    for run in data["runs"]:
+        for artifact in run.get("artifacts", []):
+            if artifact.get("url"):
+                source = artifact_path(root, artifact["path"])
+                if source is None:
+                    artifact.pop("url", None)
+                    continue
+                artifact["url"] = quote(
+                    os.path.relpath(source, destination.parent.resolve())
+                )
+    encoded = json.dumps(data, allow_nan=False).replace("<", "\\u003c")
+    document = HTML.replace(
+        "<script>", "<script>window.BENCHMARK_SNAPSHOT=" + encoded + ";", 1
+    )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(document)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results-root", type=Path, default=Path("outputs/bench"))
     parser.add_argument(
         "--host", choices=("127.0.0.1", "localhost", "::1"), default="127.0.0.1"
     )
+    parser.add_argument(
+        "--export", type=Path, help="Write an offline interactive snapshot and exit"
+    )
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args()
     if args.host == "::1":
         parser.error("Use 127.0.0.1 or localhost; this server uses IPv4.")
+    if args.export is not None:
+        export_snapshot(args.results_root, args.export)
+        return
     server = make_server(args.results_root, args.host, args.port)
     print(f"Benchmark evidence: http://{args.host}:{server.server_port}", flush=True)
     try:

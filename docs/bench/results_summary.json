@@ -1,0 +1,597 @@
+{
+  "schema_version": 1,
+  "scope": "Bounded native simulator campaign; adaptation pilots only. No faithful full-paper comparison, EXPO-FT training, or R1 task performance.",
+  "runs": [
+    {
+      "run_id": "baseline-20261007T011301-d1fd2b",
+      "algorithm": "Frozen ABC-DiT baseline",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "smoke",
+      "status": "completed",
+      "metrics": {
+        "successes": null,
+        "episodes": null,
+        "reward": 0.0,
+        "simulation_steps": 30,
+        "latency_ms": {
+          "p50": 546.4191734790802,
+          "p95": 612.5381104066037
+        },
+        "latency_samples": 2,
+        "latency_scope": "upstream logged current-chunk inference; includes cold calls; terminal chunks may be omitted",
+        "completion_time_seconds": null,
+        "elapsed_seconds": 262.0351473260671
+      },
+      "method_fidelity": "upstream released checkpoint and evaluation entry point",
+      "claim_scope": "small pilot; not a converged method comparison or transfer result",
+      "blockers": [],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/baseline-20261007T011301-d1fd2b/run.log",
+          "sha256": "49d6bceab19f2916c2fef058e2d62ee37629c56de571a502a40e42c6a8995876"
+        },
+        {
+          "path": "outputs/bench/baseline-20261007T011301-d1fd2b/summary.json",
+          "sha256": "b0c9204d67e9590690013e9e791595468b5956cfbe1e3f6bab4983eb8fa4c33a"
+        },
+        {
+          "path": "outputs/bench/baseline-20261007T011301-d1fd2b/world_000.mp4",
+          "sha256": "54b74803c1bfde04281201ebf84db1b54bd78b29f3c6c4eb112259a26c2779ab"
+        }
+      ]
+    },
+    {
+      "run_id": "baseline-20261007T012959-40bb59",
+      "algorithm": "Frozen ABC-DiT baseline",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "successes": 3,
+        "episodes": 3,
+        "reward": 1.0,
+        "simulation_steps": 3162,
+        "latency_ms": {
+          "p50": 483.3532270276919,
+          "p95": 576.6507557826117
+        },
+        "latency_samples": 209,
+        "latency_scope": "upstream logged current-chunk inference; includes cold calls; terminal chunks may be omitted",
+        "completion_time_seconds": null,
+        "elapsed_seconds": 187.26751054101624
+      },
+      "method_fidelity": "upstream released checkpoint and evaluation entry point",
+      "claim_scope": "small pilot; not a converged method comparison or transfer result",
+      "blockers": [],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/baseline-20261007T012959-40bb59/run.log",
+          "sha256": "d0928c7fb17c77163bd26863cb0ae8f1f3b3e27d0bff198c012df9763b35dd37"
+        },
+        {
+          "path": "outputs/bench/baseline-20261007T012959-40bb59/summary.json",
+          "sha256": "92ac4cbbca44d33ae44f3eec8ae003d88aaf9c8ab5603f9e93b00288052060b6"
+        }
+      ]
+    },
+    {
+      "run_id": "baseline-20261007T022907-35e4cb",
+      "algorithm": "Frozen ABC-DiT baseline",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "partial",
+      "metrics": {
+        "successes": 35,
+        "episodes": 43,
+        "simulation_steps": 64319,
+        "reward": null,
+        "completion_time_seconds": null,
+        "latency_ms": {
+          "p50": 553.0,
+          "p95": 958.0
+        },
+        "latency_samples": 4269,
+        "latency_scope": "rounded upstream chunk stdout; completed worlds only; terminal chunks may be omitted",
+        "evidence_scope": "partial campaign; completed-world log records only; unfinished worlds excluded",
+        "elapsed_seconds": 3601.573591834982
+      },
+      "method_fidelity": "upstream released checkpoint and evaluation entry point",
+      "claim_scope": "one-hour capped campaign; completed-world stdout records only; planned 50-world cohort incomplete",
+      "blockers": [
+        "Command '['/home/user/aditya/RL/abc/.venv/bin/python', '/home/user/aditya/RL/abc/eval_policy.py', '--checkpoint', '/home/user/aditya/RL/abc/cache/bottles_75k.pt', '--output-dir', '/home/user/aditya/RL/abc/outputs/bench/baseline-20261007T022907-35e4cb', '--task', 'put_plastic_bottles_in_bin', '--num-worlds', '50', '--num-chunks', '236', '--seed', '20260521', '--no-fast-inference', '--no-rtc', '--log-every-chunk']' timed out after 3600.0 seconds"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/baseline-20261007T022907-35e4cb/run.log",
+          "sha256": "19b5f4c4cbcd776fdd4dfa436308a86a88fcbbdbf95afe61b5dfc0f06f6e4bd5"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T143415-3981a7",
+      "algorithm": "Matched native adaptation evaluation",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "failed",
+      "metrics": {
+        "elapsed_seconds": 497.5131622989429
+      },
+      "method_fidelity": "matched 1000-step, three-seed adaptation pilot",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [
+        "ABC evaluation failed with exit code 1; see run.log"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T143415-3981a7/run.log",
+          "sha256": "19fb7bcd190849e38b2a7310731ace1dc3d8659fd9745eeca4edf569d6c60729"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T150104-4ef245-method-0",
+      "algorithm": "Frozen ABC-DiT matched pilot",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "successes": 0,
+        "episodes": 3,
+        "simulation_steps": 3000,
+        "latency_ms": {
+          "p50": 420.56828003842384,
+          "p95": 481.258053437341
+        },
+        "latency_samples": 375,
+        "latency_scope": "whole action proposal, including ResFiT feature encoding; synchronized CUDA; cold calls included",
+        "completion_time_seconds": null,
+        "completion_time_scope": "mean simulation time of successful episodes only",
+        "episode_duration_seconds": {
+          "mean": 33.99999999999559,
+          "values": [
+            33.99999999999559,
+            33.99999999999559,
+            33.99999999999559
+          ],
+          "scope": "all episodes, including horizon failures"
+        },
+        "reward": 0.5555555621782938,
+        "reward_scope": "mean terminal task score, not summed training return",
+        "elapsed_seconds": 213.8262233050773
+      },
+      "method_fidelity": "matched four-update adaptation pilot; not full paper reproduction",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ],
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/baseline-seed-101.mp4",
+          "sha256": "a4e1c9c1546a978cb14688a7c785efa3895390b9e28ad3a5d9a3808209a3fb7d"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/paired_eval.json",
+          "sha256": "f985fa0e7343d8f28a603288865348db511b815a8d816a8f0d1cac95ae171384"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T150104-4ef245-method-1",
+      "algorithm": "QF3 output-adapter matched pilot",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "successes": 1,
+        "episodes": 3,
+        "simulation_steps": 2711,
+        "latency_ms": {
+          "p50": 418.3151329634711,
+          "p95": 473.4181809704751
+        },
+        "latency_samples": 339,
+        "latency_scope": "whole action proposal, including ResFiT feature encoding; synchronized CUDA; cold calls included",
+        "completion_time_seconds": 24.17399999999748,
+        "completion_time_scope": "mean simulation time of successful episodes only",
+        "episode_duration_seconds": {
+          "mean": 30.724666666662888,
+          "values": [
+            24.17399999999748,
+            33.99999999999559,
+            33.99999999999559
+          ],
+          "scope": "all episodes, including horizon failures"
+        },
+        "reward": 0.5,
+        "reward_scope": "mean terminal task score, not summed training return",
+        "elapsed_seconds": 187.44131742906757
+      },
+      "method_fidelity": "matched four-update adaptation pilot; not full paper reproduction",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ],
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/qf3-seed-101.mp4",
+          "sha256": "1d9b1501155100da47185cd60128c6a52dc9f47dc01165350ff3a33216fb7c71"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/paired_eval.json",
+          "sha256": "f985fa0e7343d8f28a603288865348db511b815a8d816a8f0d1cac95ae171384"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T150104-4ef245-method-2",
+      "algorithm": "ResFiT frozen-feature matched pilot",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "successes": 0,
+        "episodes": 3,
+        "simulation_steps": 3000,
+        "latency_ms": {
+          "p50": 537.0113119715825,
+          "p95": 622.6800392032601
+        },
+        "latency_samples": 375,
+        "latency_scope": "whole action proposal, including ResFiT feature encoding; synchronized CUDA; cold calls included",
+        "completion_time_seconds": null,
+        "completion_time_scope": "mean simulation time of successful episodes only",
+        "episode_duration_seconds": {
+          "mean": 33.99999999999559,
+          "values": [
+            33.99999999999559,
+            33.99999999999559,
+            33.99999999999559
+          ],
+          "scope": "all episodes, including horizon failures"
+        },
+        "reward": 0.5555555621782938,
+        "reward_scope": "mean terminal task score, not summed training return",
+        "elapsed_seconds": 257.91087493801024
+      },
+      "method_fidelity": "matched four-update adaptation pilot; not full paper reproduction",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ],
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/resfit-seed-101.mp4",
+          "sha256": "ff7e04d507940c7a123228387b82e382233b7e54b4fb49ec33a15fa0188e3d60"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/paired_eval.json",
+          "sha256": "f985fa0e7343d8f28a603288865348db511b815a8d816a8f0d1cac95ae171384"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T150104-4ef245",
+      "algorithm": "Matched native adaptation evaluation",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "simulation_steps": 8711,
+        "elapsed_seconds": 685.8922479510074
+      },
+      "method_fidelity": "matched 1000-step, three-seed adaptation pilot",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/run.log",
+          "sha256": "f985fa0e7343d8f28a603288865348db511b815a8d816a8f0d1cac95ae171384"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/paired_eval.json",
+          "sha256": "f985fa0e7343d8f28a603288865348db511b815a8d816a8f0d1cac95ae171384"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/resfit-seed-101.mp4",
+          "sha256": "ff7e04d507940c7a123228387b82e382233b7e54b4fb49ec33a15fa0188e3d60"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/baseline-seed-101.mp4",
+          "sha256": "a4e1c9c1546a978cb14688a7c785efa3895390b9e28ad3a5d9a3808209a3fb7d"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T150104-4ef245/qf3-seed-101.mp4",
+          "sha256": "1d9b1501155100da47185cd60128c6a52dc9f47dc01165350ff3a33216fb7c71"
+        }
+      ]
+    },
+    {
+      "run_id": "native-expoft",
+      "algorithm": "Real-Time EXPO-FT",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "blocked",
+      "metrics": {},
+      "method_fidelity": "not implemented",
+      "claim_scope": "candidate selection primitive is not the full method",
+      "blockers": [
+        "Official JAX/OpenPI learner has no ABC policy bridge; delayed replay, fast edit policy and learned noise-Q filter remain required"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": []
+    },
+    {
+      "run_id": "qf3-20261007T122826-8a157c",
+      "algorithm": "QF3 output-adapter update smoke",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "smoke",
+      "status": "completed",
+      "metrics": {
+        "successes": null,
+        "episodes": null,
+        "latency_ms": {
+          "p50": 415.31360102817416,
+          "p95": 520.8596562268211
+        },
+        "latency_scope": "frozen nominal full-chunk inference; cold calls included",
+        "simulation_steps": 48,
+        "gradient_finite": true,
+        "zero_adapter_equivalence": true,
+        "parameter_delta_l2": 0.0019065260421484709,
+        "updates": 4,
+        "completion_time_seconds": null,
+        "elapsed_seconds": 27.137705013970844
+      },
+      "method_fidelity": "declared adaptation; optimizer smoke only",
+      "claim_scope": "actual pretrained policy and simulation; no converged method-performance comparison",
+      "blockers": [],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/qf3-20261007T122826-8a157c/run.log",
+          "sha256": "f0d99b54518486412e27e7d01c24107bde1dfd05fb8c29aa77233a07bf564691"
+        },
+        {
+          "path": "outputs/bench/qf3-20261007T122826-8a157c/adaptation.pt",
+          "sha256": "5f9ebf32d4703605d9d852600e477a0bb237b2d64a6585ad4295d8e038f1da56"
+        },
+        {
+          "path": "outputs/bench/qf3-20261007T122826-8a157c/update_smoke.json",
+          "sha256": "f0d99b54518486412e27e7d01c24107bde1dfd05fb8c29aa77233a07bf564691"
+        }
+      ]
+    },
+    {
+      "run_id": "r1lite-qf3",
+      "algorithm": "QF3",
+      "embodiment": "r1lite",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "blocked",
+      "metrics": {},
+      "method_fidelity": "not run",
+      "claim_scope": "asset inspection only; no transferred policy performance",
+      "blockers": [
+        "No validated ABC embodiment adapter or compatible checkpoint; joint names, controller, cameras, reset and task calibration required"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/r1lite_asset_inspection.json",
+          "sha256": "7c27fa355c6589af567e3111b6ce07f37bbfda0ceee542a5207335bf05158835"
+        }
+      ]
+    },
+    {
+      "run_id": "r1lite-real-time-expo-ft",
+      "algorithm": "Real-Time EXPO-FT",
+      "embodiment": "r1lite",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "blocked",
+      "metrics": {},
+      "method_fidelity": "not run",
+      "claim_scope": "asset inspection only; no transferred policy performance",
+      "blockers": [
+        "No validated ABC embodiment adapter or compatible checkpoint; joint names, controller, cameras, reset and task calibration required"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/r1lite_asset_inspection.json",
+          "sha256": "7c27fa355c6589af567e3111b6ce07f37bbfda0ceee542a5207335bf05158835"
+        }
+      ]
+    },
+    {
+      "run_id": "r1lite-resfit",
+      "algorithm": "ResFiT",
+      "embodiment": "r1lite",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "blocked",
+      "metrics": {},
+      "method_fidelity": "not run",
+      "claim_scope": "asset inspection only; no transferred policy performance",
+      "blockers": [
+        "No validated ABC embodiment adapter or compatible checkpoint; joint names, controller, cameras, reset and task calibration required"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/r1lite_asset_inspection.json",
+          "sha256": "7c27fa355c6589af567e3111b6ce07f37bbfda0ceee542a5207335bf05158835"
+        }
+      ]
+    },
+    {
+      "run_id": "r1pro-qf3",
+      "algorithm": "QF3",
+      "embodiment": "r1pro",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "blocked",
+      "metrics": {},
+      "method_fidelity": "not run",
+      "claim_scope": "asset inspection only; no transferred policy performance",
+      "blockers": [
+        "No validated ABC embodiment adapter or compatible checkpoint; joint names, controller, cameras, reset and task calibration required"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/r1pro_asset_inspection.json",
+          "sha256": "e99bcd9c0487467b068fd5263b8fc224cca946184f6650405dea9cd188d30bca"
+        }
+      ]
+    },
+    {
+      "run_id": "r1pro-real-time-expo-ft",
+      "algorithm": "Real-Time EXPO-FT",
+      "embodiment": "r1pro",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "blocked",
+      "metrics": {},
+      "method_fidelity": "not run",
+      "claim_scope": "asset inspection only; no transferred policy performance",
+      "blockers": [
+        "No validated ABC embodiment adapter or compatible checkpoint; joint names, controller, cameras, reset and task calibration required"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/r1pro_asset_inspection.json",
+          "sha256": "e99bcd9c0487467b068fd5263b8fc224cca946184f6650405dea9cd188d30bca"
+        }
+      ]
+    },
+    {
+      "run_id": "r1pro-resfit",
+      "algorithm": "ResFiT",
+      "embodiment": "r1pro",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "blocked",
+      "metrics": {},
+      "method_fidelity": "not run",
+      "claim_scope": "asset inspection only; no transferred policy performance",
+      "blockers": [
+        "No validated ABC embodiment adapter or compatible checkpoint; joint names, controller, cameras, reset and task calibration required"
+      ],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/r1pro_asset_inspection.json",
+          "sha256": "e99bcd9c0487467b068fd5263b8fc224cca946184f6650405dea9cd188d30bca"
+        }
+      ]
+    },
+    {
+      "run_id": "resfit-20261007T122854-265cfb",
+      "algorithm": "ResFiT frozen-feature update smoke",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "smoke",
+      "status": "completed",
+      "metrics": {
+        "successes": null,
+        "episodes": null,
+        "latency_ms": {
+          "p50": 419.0098689869046,
+          "p95": 547.3991565988398
+        },
+        "latency_scope": "frozen nominal full-chunk inference; cold calls included",
+        "simulation_steps": 48,
+        "gradient_finite": true,
+        "zero_adapter_equivalence": true,
+        "parameter_delta_l2": 0.012314346618950367,
+        "updates": 4,
+        "completion_time_seconds": null,
+        "elapsed_seconds": 27.59240021603182
+      },
+      "method_fidelity": "declared adaptation; optimizer smoke only",
+      "claim_scope": "actual pretrained policy and simulation; no converged method-performance comparison",
+      "blockers": [],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/resfit-20261007T122854-265cfb/run.log",
+          "sha256": "d7b54fdddbf9962061eb9390dbe2958b2c593d2e2e8d8fc4798ff708d1e9d3da"
+        },
+        {
+          "path": "outputs/bench/resfit-20261007T122854-265cfb/adaptation.pt",
+          "sha256": "6bb9d9be21642175912fc905c31c2510be505ac3f15754a790363bc69e5bdd4b"
+        },
+        {
+          "path": "outputs/bench/resfit-20261007T122854-265cfb/update_smoke.json",
+          "sha256": "d7b54fdddbf9962061eb9390dbe2958b2c593d2e2e8d8fc4798ff708d1e9d3da"
+        }
+      ]
+    }
+  ],
+  "runtime_manifest": {
+    "upstream_url": "https://github.com/amazon-far/abc",
+    "upstream_commit": "d0832d12651d1b260a652861a14648dc5f3660c7",
+    "checkpoint": {
+      "path": "/home/user/aditya/RL/abc/cache/bottles_75k.pt",
+      "bytes": 8063019342,
+      "sha256": "c1da365f220ca8482b1dcd35675cdb77c5d1fd1a7e07025d0835e1f3c4556e26"
+    },
+    "runtime": {
+      "torch": "2.11.0+cu128",
+      "mujoco": "3.8.1",
+      "mujoco-warp": "3.8.0.3",
+      "warp-lang": "1.13.0",
+      "gymnasium": "1.4.0"
+    },
+    "lock_sha256": "d0ac9008ba34515bb2a6e81097f613652fbfa04594073899e6979032271a38b1",
+    "gpu_campaign": {
+      "gpu": 0,
+      "limit_seconds": 7200
+    }
+  },
+  "gpu_budget": {
+    "limit_seconds": 7200,
+    "charged_seconds": 5289.011765182018,
+    "gpu": 0
+  },
+  "verification": {
+    "cpu_tests": 47,
+    "build": "wheel and source distribution passed",
+    "browser_receipt": {
+      "status": "passed",
+      "url": "file:///home/user/aditya/RL/abc/outputs/bench/dashboard.html",
+      "rows": 13,
+      "benchmark_rows": 10,
+      "smoke_rows": 3,
+      "javascript_errors": []
+    }
+  },
+  "ui": "outputs/bench/dashboard.html",
+  "provenance_note": "Older run receipts label harness HEAD as upstream_commit. The true upstream pin is runtime_manifest.upstream_commit. Future receipts separate upstream_commit, harness_commit, and source hashes."
+}

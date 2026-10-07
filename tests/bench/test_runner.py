@@ -65,3 +65,16 @@ def test_partial_log_requires_completed_world(tmp_path):
     log = tmp_path / "run.log"
     log.write_text("world=000 chunk=00 infer=100ms steps=5ms\n")
     assert partial_log_metrics(log) is None
+
+
+def test_comparison_horizon_resolves_step_budget_and_label():
+    from abc_bench.runner import comparison_plan
+
+    plan = comparison_plan(2000)
+    assert plan["horizon"] == 2000
+    assert plan["maximum_steps"] == 18000
+    assert "2000-step" in plan["method_fidelity"]
+    assert comparison_plan(3540)["maximum_steps"] == 31860
+    for invalid in (0, -1, 3541, 1.5, True):
+        with pytest.raises(ValueError, match="horizon"):
+            comparison_plan(invalid)
