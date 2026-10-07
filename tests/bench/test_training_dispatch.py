@@ -109,3 +109,101 @@ def test_sadhana_worker_uses_shared_budget_and_resolved_config(
     assert 7100 <= ledger["charged_seconds"] < 7101
     assert "active_gpu_uuid" not in ledger
     assert publications[-1]["status"] == receipt["status"]
+
+
+@pytest.mark.parametrize(
+    "stage,status",
+    [
+        ("native_check", "completed"),
+        ("train", "budget_stopped"),
+        ("evaluate", "completed"),
+    ],
+)
+def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
+    monkeypatch, tmp_path, stage, status
+):
+    campaign = tmp_path / "campaign"
+    monkeypatch.setattr(runner, "RESULTS", campaign)
+    runner.write_json(
+        campaign / "gpu_budget.json",
+        {"limit_seconds": 7200, "charged_seconds": 7100, "gpu": 0},
+    )
+    gpu_uuid = "GPU-00000000-0000-0000-0000-000000000000"
+    monkeypatch.setattr(
+        runner, "inspect_reserved_gpu", lambda ordinal: {"uuid": gpu_uuid}
+    )
+    monkeypatch.setattr(runner, "execution_provenance", lambda: {"evidence": "fixture"})
+    publications = []
+    monkeypatch.setattr(
+        runner,
+        "publish",
+        lambda receipt, results: publications.append(copy.deepcopy(receipt)),
+    )
+    config = {
+        "schema_version": 1,
+        "stage": stage,
+        "device": "cuda:0",
+        "max_wall_s": 500,
+        "base": {"checkpoint_path": "/fixture/vla.pt", "task_id": "fixture-bottles"},
+        "target_control_steps": 400000,
+        "training": {
+            "train_worlds": 16,
+            "critic_updates_per_iteration": 1600,
+            "actor_updates_per_iteration": 200,
+        },
+    }
+    path = tmp_path / "qf3.json"
+    runner.write_json(path, config)
+
+    def worker(command, log_path, timeout, *, gpu_uuid):
+        assert command[1:3] == ["-m", "nrh.qf3_training"]
+        assert timeout == 100
+        child = json.loads(Path(command[command.index("--config") + 1]).read_text())
+        assert child["campaign_directory"] == str(campaign.resolve())
+        assert child["max_wall_s"] == 40
+        assert child["training"] == config["training"]
+        ledger = json.loads((campaign / "gpu_budget.json").read_text())
+        assert (
+            ledger["charged_seconds"] == 7200 and ledger["active_gpu_uuid"] == gpu_uuid
+        )
+        out = Path(command[command.index("--out") + 1])
+        runner.write_json(
+            out / "receipt.json",
+            {
+                "stage": stage,
+                "status": status,
+                "metrics": {"sim_steps": 30, "critic_updates": 2, "actor_updates": 1},
+            },
+        )
+        return 0
+
+    monkeypatch.setattr(runner, "execute_command", worker)
+    args = Namespace(
+        results=tmp_path / "results",
+        timeout_seconds=500,
+        algorithm="qf3-vla",
+        training_config=path,
+        checkpoint=tmp_path / "unused.pt",
+        task="unused",
+        worlds=1,
+        chunks=2,
+        seed=0,
+        video=False,
+    )
+    receipt = runner.run_baseline(args)
+    assert receipt["status"] == (
+        "partial" if status == "budget_stopped" else "completed"
+    )
+    assert receipt["phase"] == "smoke"
+    assert receipt["metrics"]["simulation_steps"] == 30
+    assert receipt["metrics"]["updates"] == 2
+    assert receipt["metrics"]["successes"] is receipt["metrics"]["episodes"] is None
+    assert (
+        receipt["task"] == "fixture-bottles"
+        and receipt["checkpoint_path"] == "/fixture/vla.pt"
+    )
+    assert json.loads(path.read_text()) == config
+    ledger = json.loads((campaign / "gpu_budget.json").read_text())
+    assert 7100 <= ledger["charged_seconds"] < 7101
+    assert "active_parent_pid" not in ledger and "active_gpu_uuid" not in ledger
+    assert publications[-1]["status"] == receipt["status"]

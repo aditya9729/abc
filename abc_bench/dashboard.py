@@ -14,7 +14,6 @@ from urllib.parse import quote, unquote, urlsplit
 DEFAULT_EMBODIMENTS = [
     {"id": "native_yam", "label": "Native YAM", "status": "unavailable"},
     {"id": "r1lite", "label": "R1 Lite", "status": "unavailable"},
-    {"id": "r1pro", "label": "R1 Pro", "status": "unavailable"},
 ]
 HTML = r"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ABC · Benchmark evidence</title>
 <style>

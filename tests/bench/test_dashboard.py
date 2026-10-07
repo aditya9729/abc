@@ -24,7 +24,7 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(result["runs"], [])
         self.assertEqual(artifacts, {})
         self.assertEqual(
-            [e["id"] for e in result["embodiments"]], ["native_yam", "r1lite", "r1pro"]
+            [e["id"] for e in result["embodiments"]], ["native_yam", "r1lite"]
         )
         self.assertTrue(
             all(e["status"] == "unavailable" for e in result["embodiments"])

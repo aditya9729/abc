@@ -209,15 +209,7 @@ def _publish_unlocked(receipt: dict[str, Any], results: Path) -> None:
                     "label": "Galaxea R1 Lite",
                     "status": "requires_adapter",
                     "blockers": [
-                        "Controller, action, camera and task calibration required"
-                    ],
-                },
-                {
-                    "id": "r1pro",
-                    "label": "Galaxea R1 Pro",
-                    "status": "requires_adapter",
-                    "blockers": [
-                        "16-D dual-arm contract differs from the 14-D native policy"
+                        "14 public Leela CPU interface checks passed; learned-policy and task calibration remain pending"
                     ],
                 },
             ],
@@ -366,6 +358,40 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 "--out",
                 str(out / "training"),
             ]
+        elif algorithm == "qf3-vla":
+            if args.training_config is None:
+                raise ValueError("QF3 VLA requires --training-config")
+            training = json.loads(args.training_config.read_text())
+            if training.get("schema_version") != 1 or training.get("stage") not in {
+                "native_check",
+                "train",
+                "evaluate",
+            }:
+                raise ValueError(
+                    "QF3 config requires schema1 and native_check/train/evaluate stage"
+                )
+            if training.get("device") != "cuda:0":
+                raise ValueError("QF3 config must use cuda:0")
+            maximum = training.get("max_wall_s")
+            if (
+                isinstance(maximum, bool)
+                or not isinstance(maximum, (int, float))
+                or not 0 < maximum < float("inf")
+            ):
+                raise ValueError("QF3 config requires finite positive max_wall_s")
+            training["max_wall_s"] = min(maximum, max(1, timeout - 60))
+            training["campaign_directory"] = str(RESULTS.resolve())
+            child_config = out / "training_config.json"
+            write_json(child_config, training)
+            command = [
+                str(ROOT / ".venv/bin/python"),
+                "-m",
+                "nrh.qf3_training",
+                "--config",
+                str(child_config),
+                "--out",
+                str(out / "training"),
+            ]
         elif algorithm != "baseline":
             timeout = min(timeout, 600.0)
             command = [
@@ -463,6 +489,28 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     "path": str(child_config.relative_to(results)),
                 }
             )
+        elif algorithm == "qf3-vla":
+            stage = training["stage"]
+            receipt["algorithm"] = "QF3 ABC-VLA " + stage
+            receipt["method_fidelity"] = (
+                "paper actor mathematics and head LoRA; explicit ABC recipe deviations"
+            )
+            receipt["claim_scope"] = (
+                "bounded execution; exact paper initializer unconfirmed; paper performance not established"
+            )
+            receipt["training_stage"] = stage
+            receipt["training_config_sha256"] = hashlib.sha256(
+                child_config.read_bytes()
+            ).hexdigest()
+            receipt["checkpoint_path"] = training["base"]["checkpoint_path"]
+            receipt["task"] = training["base"]["task_id"]
+            receipt["budget"]["steps"] = training.get("target_control_steps")
+            receipt["artifacts"].append(
+                {
+                    "label": "Resolved QF3 configuration",
+                    "path": str(child_config.relative_to(results)),
+                }
+            )
         elif algorithm != "baseline":
             receipt["algorithm"] = (
                 "QF3 output-adapter update smoke"
@@ -492,7 +540,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             summary_path = (
                 out / "training" / "receipt.json"
-                if algorithm == "sustained-resfit"
+                if algorithm in {"sustained-resfit", "qf3-vla"}
                 else out
                 / (
                     "paired_eval.json"
@@ -579,6 +627,29 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                         "path": str(summary_path.relative_to(results)),
                     }
                 )
+            elif algorithm == "qf3-vla":
+                if summary.get("stage") != stage or summary.get("status") not in {
+                    "completed",
+                    "budget_stopped",
+                }:
+                    raise RuntimeError("QF3 worker did not complete its declared stage")
+                receipt["worker_status"] = summary["status"]
+                receipt["training_target_reached"] = summary.get(
+                    "training_target_reached", False
+                )
+                receipt["metrics"] = {
+                    **summary["metrics"],
+                    "simulation_steps": summary["metrics"].get("sim_steps"),
+                    "updates": summary["metrics"].get("critic_updates"),
+                    "successes": None,
+                    "episodes": None,
+                }
+                receipt["artifacts"].append(
+                    {
+                        "label": "QF3 native evidence",
+                        "path": str(summary_path.relative_to(results)),
+                    }
+                )
             else:
                 receipt["metrics"] = {
                     "successes": None,
@@ -601,7 +672,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             receipt["status"] = (
                 "partial"
-                if algorithm == "sustained-resfit"
+                if algorithm in {"sustained-resfit", "qf3-vla"}
                 and summary["status"] == "budget_stopped"
                 else "completed"
             )
@@ -613,7 +684,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     "label": "Upstream summary"
                     if algorithm == "baseline"
                     else "Sadhana stage evidence"
-                    if algorithm == "sustained-resfit"
+                    if algorithm in {"sustained-resfit", "qf3-vla"}
                     else "Update smoke evidence",
                     "path": str(summary_path.relative_to(results)),
                 }
@@ -669,7 +740,14 @@ def main() -> None:
     )
     parser.add_argument(
         "--algorithm",
-        choices=("baseline", "qf3", "resfit", "comparison", "sustained-resfit"),
+        choices=(
+            "baseline",
+            "qf3",
+            "resfit",
+            "comparison",
+            "sustained-resfit",
+            "qf3-vla",
+        ),
         default="baseline",
     )
     parser.add_argument(
