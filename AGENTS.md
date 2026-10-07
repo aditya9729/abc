@@ -6,7 +6,7 @@ This checkout is the Sadhana-owned ABC benchmark. Use branch `staging_attempt1`.
 
 Use `uv sync --frozen --extra dev`. Run `CUDA_VISIBLE_DEVICES= uv run python -m pytest tests/bench -q`. Run Ruff on benchmark files. Build the package and check its installed entry points.
 
-The authorized campaign uses GPU 0 only. Its total budget is 7,200 seconds. Run GPU jobs through `python -m abc_bench.runner`. The update worker must hold a coordinator lease. Do not start simultaneous jobs or reset the ledger to bypass the budget.
+The authorized campaign uses GPU 0 only. The initial budget was 7,200 seconds. On 2026-10-07, the user approved one additional GPU hour for timing profiles and a complete frozen-baseline attempt. The cumulative limit is 10,800 seconds. Preserve all earlier charges. This extension does not authorize a full three-seed training campaign. Run GPU jobs through `python -m abc_bench.runner`. The update worker must hold a coordinator lease. Do not start simultaneous jobs or reset the ledger to bypass the budget.
 
 Show only executed measurements. Separate smoke tests, method adaptations, benchmarks, and embodiment preflight. Keep missing measurements unavailable. Native YAM results are not R1 results. Do not label candidate selection alone as Real-Time EXPO-FT.
 
