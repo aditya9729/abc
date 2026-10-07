@@ -15,3 +15,8 @@ wandb/
 # Robot recordings, review videos, and exports (deploy/).
 data/
 .python-version
+
+# Local benchmark build and test artifacts.
+build/
+dist/
+.pytest_cache/

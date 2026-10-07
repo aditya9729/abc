@@ -56,10 +56,15 @@ override-dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["abc_minimal*", "abc_sim*", "deploy*"]
+include = ["abc_minimal*", "abc_sim*", "deploy*", "abc_bench*"]
 
 [tool.setuptools.package-data]
 abc_sim = ["models/*.xml", "models/assets_manifest.json"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
 
 [tool.uv.sources]
 torch = { index = "pytorch-cu128" }
