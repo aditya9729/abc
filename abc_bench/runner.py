@@ -504,9 +504,29 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             ).hexdigest()
             receipt["checkpoint_path"] = training["base"]["checkpoint_path"]
             receipt["task"] = training["base"]["task_id"]
+            receipt["seed"] = None if stage == "evaluate" else training.get("seed")
+            receipt["policy_seed"] = training["base"].get("seed")
+            receipt["training_target_control_steps"] = training["training"].get(
+                "target_control_steps"
+            )
             receipt["budget"]["steps"] = training["training"].get(
                 "target_control_steps"
             )
+            if stage == "evaluate":
+                evaluation = training["evaluation"]
+                horizon = evaluation["max_control_steps_per_world"]
+                if horizon is None:
+                    horizon = {
+                        "put_plastic_bottles_in_bin": 1000,
+                        "load_plates_into_dish_rack": 3300,
+                    }[receipt["task"]]
+                receipt["evaluation_horizon_steps"] = horizon
+                receipt["evaluation_seeds"] = evaluation["seeds"]
+                receipt["evaluation_heads"] = evaluation["heads"]
+                receipt["evaluation_sampler_seed"] = evaluation.get("sampler_seed")
+                receipt["budget"]["steps"] = (
+                    horizon * len(evaluation["seeds"]) * len(evaluation["heads"])
+                )
             receipt["artifacts"].append(
                 {
                     "label": "Resolved QF3 configuration",

@@ -145,12 +145,23 @@ def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
         "stage": stage,
         "device": "cuda:0",
         "max_wall_s": 500,
-        "base": {"checkpoint_path": "/fixture/vla.pt", "task_id": "fixture-bottles"},
+        "base": {
+            "checkpoint_path": "/fixture/vla.pt",
+            "task_id": "put_plastic_bottles_in_bin",
+            "seed": 901,
+        },
+        "seed": 903,
         "training": {
             "target_control_steps": 400000,
             "train_worlds": 16,
             "critic_updates_per_iteration": 1600,
             "actor_updates_per_iteration": 200,
+        },
+        "evaluation": {
+            "seeds": [10001, 10002],
+            "sampler_seed": 91001,
+            "heads": ["frozen"],
+            "max_control_steps_per_world": None,
         },
     }
     path = tmp_path / "qf3.json"
@@ -221,12 +232,20 @@ def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
         "partial" if status == "budget_stopped" else "completed"
     )
     assert receipt["phase"] == "smoke"
-    assert receipt["budget"]["steps"] == 400000
+    assert receipt["budget"]["steps"] == (2000 if stage == "evaluate" else 400000)
+    assert receipt["training_target_control_steps"] == 400000
+    assert receipt["seed"] == (None if stage == "evaluate" else 903)
+    assert receipt["policy_seed"] == 901
+    if stage == "evaluate":
+        assert receipt["evaluation_horizon_steps"] == 1000
+        assert receipt["evaluation_seeds"] == [10001, 10002]
+        assert receipt["evaluation_heads"] == ["frozen"]
+        assert receipt["evaluation_sampler_seed"] == 91001
     assert receipt["metrics"]["simulation_steps"] == 30
     assert receipt["metrics"]["updates"] == 2
     assert receipt["metrics"]["successes"] is receipt["metrics"]["episodes"] is None
     assert (
-        receipt["task"] == "fixture-bottles"
+        receipt["task"] == "put_plastic_bottles_in_bin"
         and receipt["checkpoint_path"] == "/fixture/vla.pt"
     )
     assert json.loads(path.read_text()) == config
