@@ -328,6 +328,197 @@
       ]
     },
     {
+      "run_id": "comparison-20261007T151738-27b439-method-0",
+      "algorithm": "Frozen ABC-DiT matched pilot",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "successes": 1,
+        "episodes": 3,
+        "simulation_steps": 4696,
+        "latency_ms": {
+          "p50": 418.30732801463455,
+          "p95": 478.1811550841667
+        },
+        "latency_samples": 587,
+        "latency_scope": "whole action proposal, including ResFiT feature encoding; synchronized CUDA; cold calls included",
+        "completion_time_seconds": 23.663999999997763,
+        "completion_time_scope": "mean simulation time of successful episodes only",
+        "episode_duration_seconds": {
+          "mean": 53.221333333347864,
+          "values": [
+            23.663999999997763,
+            68.00000000002292,
+            68.00000000002292
+          ],
+          "scope": "all episodes, including horizon failures"
+        },
+        "reward": 0.75,
+        "reward_scope": "mean terminal task score, not summed training return",
+        "elapsed_seconds": 314.50219088897575
+      },
+      "method_fidelity": "matched 2000-step, three-seed adaptation pilot; four-update adaptation; not full paper reproduction",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ],
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/baseline-seed-101.mp4",
+          "sha256": "b9f021b84edb234d5d14dcad9585b0984979b9c7d7cf35387b51952765390b40"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/paired_eval.json",
+          "sha256": "33cb103135c9c852de6d8cdc07d2a386fcf59fb43cf55fe976852c84ab40f046"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T151738-27b439-method-1",
+      "algorithm": "QF3 output-adapter matched pilot",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "successes": 0,
+        "episodes": 3,
+        "simulation_steps": 6000,
+        "latency_ms": {
+          "p50": 423.47635445185006,
+          "p95": 484.04735177755356
+        },
+        "latency_samples": 750,
+        "latency_scope": "whole action proposal, including ResFiT feature encoding; synchronized CUDA; cold calls included",
+        "completion_time_seconds": null,
+        "completion_time_scope": "mean simulation time of successful episodes only",
+        "episode_duration_seconds": {
+          "mean": 68.00000000002292,
+          "values": [
+            68.00000000002292,
+            68.00000000002292,
+            68.00000000002292
+          ],
+          "scope": "all episodes, including horizon failures"
+        },
+        "reward": 0.6388888955116272,
+        "reward_scope": "mean terminal task score, not summed training return",
+        "elapsed_seconds": 420.47632748505566
+      },
+      "method_fidelity": "matched 2000-step, three-seed adaptation pilot; four-update adaptation; not full paper reproduction",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ],
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/qf3-seed-101.mp4",
+          "sha256": "4cb0542c0265f160afdc8b65101e7363f490c6f1c8c525d2d43e7581a4e0a630"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/paired_eval.json",
+          "sha256": "33cb103135c9c852de6d8cdc07d2a386fcf59fb43cf55fe976852c84ab40f046"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T151738-27b439-method-2",
+      "algorithm": "ResFiT frozen-feature matched pilot",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "successes": 1,
+        "episodes": 3,
+        "simulation_steps": 5016,
+        "latency_ms": {
+          "p50": 533.4344080183655,
+          "p95": 611.3925789482892
+        },
+        "latency_samples": 627,
+        "latency_scope": "whole action proposal, including ResFiT feature encoding; synchronized CUDA; cold calls included",
+        "completion_time_seconds": 34.54399999999625,
+        "completion_time_scope": "mean simulation time of successful episodes only",
+        "episode_duration_seconds": {
+          "mean": 56.84800000001403,
+          "values": [
+            34.54399999999625,
+            68.00000000002292,
+            68.00000000002292
+          ],
+          "scope": "all episodes, including horizon failures"
+        },
+        "reward": 0.6666666666666666,
+        "reward_scope": "mean terminal task score, not summed training return",
+        "elapsed_seconds": 413.00959165394306
+      },
+      "method_fidelity": "matched 2000-step, three-seed adaptation pilot; four-update adaptation; not full paper reproduction",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ],
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/resfit-seed-101.mp4",
+          "sha256": "bee62a73c8701af31dd8b3894f4b6153796894b9bf92e171bec8a32a4ed36454"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/paired_eval.json",
+          "sha256": "33cb103135c9c852de6d8cdc07d2a386fcf59fb43cf55fe976852c84ab40f046"
+        }
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T151738-27b439",
+      "algorithm": "Matched native adaptation evaluation",
+      "embodiment": "native_yam",
+      "task": "put_plastic_bottles_in_bin",
+      "phase": "benchmark",
+      "status": "completed",
+      "metrics": {
+        "simulation_steps": 15712,
+        "elapsed_seconds": 1174.3995392859215
+      },
+      "method_fidelity": "matched 2000-step, three-seed adaptation pilot",
+      "claim_scope": "frozen base and four-update adaptations; not full paper or transfer comparison",
+      "blockers": [],
+      "evaluation_seeds": null,
+      "artifact_pins": [
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/run.log",
+          "sha256": "33cb103135c9c852de6d8cdc07d2a386fcf59fb43cf55fe976852c84ab40f046"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/paired_eval.json",
+          "sha256": "33cb103135c9c852de6d8cdc07d2a386fcf59fb43cf55fe976852c84ab40f046"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/resfit-seed-101.mp4",
+          "sha256": "bee62a73c8701af31dd8b3894f4b6153796894b9bf92e171bec8a32a4ed36454"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/baseline-seed-101.mp4",
+          "sha256": "b9f021b84edb234d5d14dcad9585b0984979b9c7d7cf35387b51952765390b40"
+        },
+        {
+          "path": "outputs/bench/comparison-20261007T151738-27b439/qf3-seed-101.mp4",
+          "sha256": "4cb0542c0265f160afdc8b65101e7363f490c6f1c8c525d2d43e7581a4e0a630"
+        }
+      ]
+    },
+    {
       "run_id": "native-expoft",
       "algorithm": "Real-Time EXPO-FT",
       "embodiment": "native_yam",
@@ -577,7 +768,7 @@
   },
   "gpu_budget": {
     "limit_seconds": 7200,
-    "charged_seconds": 5289.011765182018,
+    "charged_seconds": 6463.41130446794,
     "gpu": 0
   },
   "verification": {
@@ -586,12 +777,19 @@
     "browser_receipt": {
       "status": "passed",
       "url": "file:///home/user/aditya/RL/abc/outputs/bench/dashboard.html",
-      "rows": 13,
-      "benchmark_rows": 10,
+      "rows": 21,
+      "benchmark_rows": 18,
       "smoke_rows": 3,
+      "resfit_matched_rows": 2,
+      "r1pro_missing_metrics": "confirmed",
       "javascript_errors": []
     }
   },
   "ui": "outputs/bench/dashboard.html",
-  "provenance_note": "Older run receipts label harness HEAD as upstream_commit. The true upstream pin is runtime_manifest.upstream_commit. Future receipts separate upstream_commit, harness_commit, and source hashes."
+  "provenance_note": "Older receipts label harness HEAD as upstream_commit. The true upstream pin is runtime_manifest.upstream_commit. The 2000-step receipts separate upstream, harness revision, dirty state, and source hashes.",
+  "reproducibility_scope": "Paired-state verification checks float32 qpos only. Seeded CPU model-array checks found no obvious mismatch, but full initial GPU observations and action traces were not recorded. Cross-run closed-loop outcomes vary; cause unresolved. No causal horizon effect or method gain is established.",
+  "supplemental_postrun_inventory": {
+    "native_asset_manifest.json": "58c76a493cde59f69c6d4bc7ed1d906d776e246573a6521ad23b1b99ea005776",
+    "hardware_observation.json": "f0ba3ec5bc11b88bd35dc593cb3f74aac318a57da2785cead9eacd3e842d786f"
+  }
 }

@@ -26,11 +26,13 @@ Native policy evaluation uses the released bottles checkpoint and the upstream e
 
 A short rollout has no published task-success result. A full-horizon pilot has an episode count and success count. The count remains visible. Three episodes do not establish a reliable population success rate. Compare only runs with matched conditions.
 
-QF3 update smoke uses the actual pretrained ABC-DiT head. Its rank-four output adapter and fitted immediate-return critic are declared adaptations. ResFiT update smoke uses frozen features and an invertible action codec. Neither smoke establishes a faithful paper reproduction or convergence. Real-Time EXPO-FT still needs an ABC bridge. See `algorithms.md` and `update_smoke.md`. The matched evaluator loads their saved snapshots and compares them with the frozen policy. It creates a fresh environment for each method and seed, verifies initial states, and uses the same noise and action cadence. See `paired_eval.md`.
+QF3 update smoke uses the actual pretrained ABC-DiT head. Its rank-four output adapter and fitted immediate-return critic are declared adaptations. ResFiT update smoke uses frozen features and an invertible action codec. Neither smoke establishes a faithful paper reproduction or convergence. Real-Time EXPO-FT still needs an ABC bridge. See `algorithms.md` and `update_smoke.md`. The matched evaluator loads their saved snapshots and compares them with the frozen policy. It creates a fresh environment for each method and seed, verifies initial joint and object positions, and uses the same noise and action cadence. See `paired_eval.md`.
 
 R1 Lite and R1 Pro have static asset inspection receipts. Neither has a verified ABC task adapter or compatible policy checkpoint. Missing metrics remain unavailable. See `embodiments.md`.
 
 Large checkpoints, downloaded scenes, videos, and raw run receipts stay outside Git. Commit the source pin, dependency lock, verification notes, and compact campaign summary. Each run links its execution log and hashed summary.
+
+A standalone architecture diagram is in [architecture.svg](architecture.svg).
 
 ## Architecture
 

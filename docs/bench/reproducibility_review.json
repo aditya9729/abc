@@ -1,0 +1,415 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-07T16:34:19.956407+00:00",
+  "reviewer": "benchmark-final-review",
+  "acceptance": {
+    "benchmark_milestone": "accepted_with_limits",
+    "full_training_goal": "active",
+    "convergence": "not_established",
+    "exact_gpu_replay": "not_established",
+    "horizon_causality": "not_established",
+    "reliable_method_gain": "not_established"
+  },
+  "scope": "Independent CPU software checks, artifact content checks and arithmetic review of executed native YAM adaptation pilots",
+  "gpu_jobs_launched_by_reviewer": 0,
+  "external_requests_by_reviewer": 0,
+  "source": {
+    "branch": "staging_attempt1",
+    "current_harness_commit": "c05afcdaf915dea7d009e2b82f313faac462da4e",
+    "abc_upstream_commit": "d0832d12651d1b260a652861a14648dc5f3660c7",
+    "current_source_sha256": {
+      "abc_bench/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "abc_bench/algorithms.py": "4649b0ba67255c3283f4e9de1a616adaed0e1745481f4ad8c271ba87135d6fb2",
+      "abc_bench/dashboard.py": "8aa394c60c6cd2321432757ae0fc49c25a63e946f570789adec667c80a5240e8",
+      "abc_bench/embodiments.py": "f844ab18c7c18afd9af7d5db52411d6082dd6d9f7c12674068ac7332ad43bdb2",
+      "abc_bench/paired_eval.py": "f467136601cb73d2ecc2eb042e941bb171d640b8d26107289478a708e662a3fe",
+      "abc_bench/runner.py": "68cacdc7e3af38baa187921602b23337e33e5a5e91288e0e8ad20e100c5f9cd3",
+      "abc_bench/update_smoke.py": "960f0ef256c525d1b014982773643aa70a1fcd7c7d04fc662931fdc54c6b3501"
+    },
+    "current_source_matches_2000_action_run": true,
+    "1000_action_provenance_note": "Older upstream_commit is local HEAD 2af1f80fe9d879efd144b187ebc6d50cc149eba8. That commit contains no paired_eval.py. The executed evaluator was uncommitted and is bound by its raw source hash."
+  },
+  "inputs": {
+    "base_checkpoint": {
+      "path": "/home/user/aditya/RL/abc/cache/bottles_75k.pt",
+      "bytes": 8063019342,
+      "sha256": "c1da365f220ca8482b1dcd35675cdb77c5d1fd1a7e07025d0835e1f3c4556e26",
+      "full_file_sha256_independently_recomputed": true
+    },
+    "adaptation_artifacts": {
+      "qf3": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/qf3-20261007T122826-8a157c/adaptation.pt",
+        "sha256": "5f9ebf32d4703605d9d852600e477a0bb237b2d64a6585ad4295d8e038f1da56"
+      },
+      "resfit": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/resfit-20261007T122854-265cfb/adaptation.pt",
+        "sha256": "6bb9d9be21642175912fc905c31c2510be505ac3f15754a790363bc69e5bdd4b"
+      }
+    },
+    "snapshot_binding": "Historical snapshots lack embedded base hash; accepted file hashes and external campaign manifest bind them. CPU weights_only inspection confirms model and nonempty actor/critic optimizer state. Replay/environment state is absent.",
+    "updates_per_snapshot": 4,
+    "actions_per_update_smoke": 48,
+    "runtime_manifest_path": "outputs/bench/runtime_manifest.json",
+    "runtime_manifest_sha256": "4b0cbb10dc5984cf9bbdd0eb16a17e23e460d2db5bb099e31b9b90e0c58c76d7",
+    "lock_sha256": "d0ac9008ba34515bb2a6e81097f613652fbfa04594073899e6979032271a38b1",
+    "installed_runtime_matches_manifest": true,
+    "runtime": {
+      "torch": "2.11.0+cu128",
+      "mujoco": "3.8.1",
+      "mujoco-warp": "3.8.0.3",
+      "warp-lang": "1.13.0",
+      "gymnasium": "1.4.0"
+    },
+    "gpu_pin": {
+      "ordinal": 0,
+      "comparison_worker_device": "cuda:0",
+      "gpu_model": null,
+      "gpu_uuid": null,
+      "driver_version": null
+    },
+    "downloaded_scene_member_manifest": null
+  },
+  "comparisons": [
+    {
+      "run_id": "comparison-20261007T150104-4ef245",
+      "receipt_path": "outputs/bench/comparison-20261007T150104-4ef245/paired_eval.json",
+      "receipt_sha256": "f985fa0e7343d8f28a603288865348db511b815a8d816a8f0d1cac95ae171384",
+      "status": "completed",
+      "horizon_actions": 1000,
+      "horizon_selection_scope": "initial matched adaptation pilot",
+      "worker_elapsed_seconds": 683.1372272319859,
+      "coordinator_elapsed_seconds": 685.8922479510074,
+      "total_actions": 8711,
+      "evaluator_sha256": "f78df76a0cd3a51bb02d05b38566b0e10d302ba93aed401e5778556123be2be3",
+      "recorded_parent_harness_commit": "2af1f80fe9d879efd144b187ebc6d50cc149eba8",
+      "recorded_parent_dirty": null,
+      "command_from_executed_receipt": [
+        "/home/user/aditya/RL/abc/.venv/bin/python",
+        "-m",
+        "abc_bench.paired_eval",
+        "--checkpoint",
+        "/home/user/aditya/RL/abc/cache/bottles_75k.pt",
+        "--qf3-state",
+        "/home/user/aditya/RL/abc/outputs/bench/qf3-20261007T122826-8a157c/adaptation.pt",
+        "--resfit-state",
+        "/home/user/aditya/RL/abc/outputs/bench/resfit-20261007T122854-265cfb/adaptation.pt",
+        "--output",
+        "/home/user/aditya/RL/abc/outputs/bench/comparison-20261007T150104-4ef245/paired_eval.json",
+        "--task",
+        "put_plastic_bottles_in_bin",
+        "--horizon",
+        "1000",
+        "--seeds",
+        "101,102,103",
+        "--device",
+        "cuda:0"
+      ],
+      "metrics": [
+        {
+          "method": "baseline",
+          "successes": 0,
+          "episodes": 3,
+          "actions": 3000,
+          "proposal_latency_ms": {
+            "p50": 420.56828003842384,
+            "p95": 481.258053437341
+          },
+          "proposal_latency_samples": 375,
+          "completion_time_seconds": null,
+          "mean_terminal_task_score": 0.5555555621782938,
+          "saturated_coordinates": 0,
+          "maximum_numeric_physical_deviation": 0.0,
+          "actions_by_seed": [
+            1000,
+            1000,
+            1000
+          ],
+          "success_by_seed": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "method": "qf3",
+          "successes": 1,
+          "episodes": 3,
+          "actions": 2711,
+          "proposal_latency_ms": {
+            "p50": 418.3151329634711,
+            "p95": 473.4181809704751
+          },
+          "proposal_latency_samples": 339,
+          "completion_time_seconds": 24.17399999999748,
+          "mean_terminal_task_score": 0.5,
+          "saturated_coordinates": 0,
+          "maximum_numeric_physical_deviation": 0.0,
+          "actions_by_seed": [
+            711,
+            1000,
+            1000
+          ],
+          "success_by_seed": [
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "method": "resfit",
+          "successes": 0,
+          "episodes": 3,
+          "actions": 3000,
+          "proposal_latency_ms": {
+            "p50": 537.0113119715825,
+            "p95": 622.6800392032601
+          },
+          "proposal_latency_samples": 375,
+          "completion_time_seconds": null,
+          "mean_terminal_task_score": 0.5555555621782938,
+          "saturated_coordinates": 59,
+          "maximum_numeric_physical_deviation": 0.551612377166748,
+          "actions_by_seed": [
+            1000,
+            1000,
+            1000
+          ],
+          "success_by_seed": [
+            false,
+            false,
+            false
+          ]
+        }
+      ],
+      "media_and_log_hashes": {
+        "baseline-seed-101.mp4": "a4e1c9c1546a978cb14688a7c785efa3895390b9e28ad3a5d9a3808209a3fb7d",
+        "qf3-seed-101.mp4": "1d9b1501155100da47185cd60128c6a52dc9f47dc01165350ff3a33216fb7c71",
+        "resfit-seed-101.mp4": "ff7e04d507940c7a123228387b82e382233b7e54b4fb49ec33a15fa0188e3d60",
+        "run.log": "f985fa0e7343d8f28a603288865348db511b815a8d816a8f0d1cac95ae171384"
+      },
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ]
+    },
+    {
+      "run_id": "comparison-20261007T151738-27b439",
+      "receipt_path": "outputs/bench/comparison-20261007T151738-27b439/paired_eval.json",
+      "receipt_sha256": "33cb103135c9c852de6d8cdc07d2a386fcf59fb43cf55fe976852c84ab40f046",
+      "status": "completed",
+      "horizon_actions": 2000,
+      "horizon_selection_scope": "exploratory longer-horizon diagnostic after the initial 1000-action pilot; not an untouched held-out evaluation",
+      "worker_elapsed_seconds": 1171.601046959986,
+      "coordinator_elapsed_seconds": 1174.3995392859215,
+      "total_actions": 15712,
+      "evaluator_sha256": "f467136601cb73d2ecc2eb042e941bb171d640b8d26107289478a708e662a3fe",
+      "recorded_parent_harness_commit": "c05afcdaf915dea7d009e2b82f313faac462da4e",
+      "recorded_parent_dirty": false,
+      "command_from_executed_receipt": [
+        "/home/user/aditya/RL/abc/.venv/bin/python",
+        "-m",
+        "abc_bench.paired_eval",
+        "--checkpoint",
+        "/home/user/aditya/RL/abc/cache/bottles_75k.pt",
+        "--qf3-state",
+        "/home/user/aditya/RL/abc/outputs/bench/qf3-20261007T122826-8a157c/adaptation.pt",
+        "--resfit-state",
+        "/home/user/aditya/RL/abc/outputs/bench/resfit-20261007T122854-265cfb/adaptation.pt",
+        "--output",
+        "/home/user/aditya/RL/abc/outputs/bench/comparison-20261007T151738-27b439/paired_eval.json",
+        "--task",
+        "put_plastic_bottles_in_bin",
+        "--horizon",
+        "2000",
+        "--seeds",
+        "101,102,103",
+        "--device",
+        "cuda:0"
+      ],
+      "metrics": [
+        {
+          "method": "baseline",
+          "successes": 1,
+          "episodes": 3,
+          "actions": 4696,
+          "proposal_latency_ms": {
+            "p50": 418.30732801463455,
+            "p95": 478.1811550841667
+          },
+          "proposal_latency_samples": 587,
+          "completion_time_seconds": 23.663999999997763,
+          "mean_terminal_task_score": 0.75,
+          "saturated_coordinates": 0,
+          "maximum_numeric_physical_deviation": 0.0,
+          "actions_by_seed": [
+            696,
+            2000,
+            2000
+          ],
+          "success_by_seed": [
+            true,
+            false,
+            false
+          ]
+        },
+        {
+          "method": "qf3",
+          "successes": 0,
+          "episodes": 3,
+          "actions": 6000,
+          "proposal_latency_ms": {
+            "p50": 423.47635445185006,
+            "p95": 484.04735177755356
+          },
+          "proposal_latency_samples": 750,
+          "completion_time_seconds": null,
+          "mean_terminal_task_score": 0.6388888955116272,
+          "saturated_coordinates": 0,
+          "maximum_numeric_physical_deviation": 0.0,
+          "actions_by_seed": [
+            2000,
+            2000,
+            2000
+          ],
+          "success_by_seed": [
+            false,
+            false,
+            false
+          ]
+        },
+        {
+          "method": "resfit",
+          "successes": 1,
+          "episodes": 3,
+          "actions": 5016,
+          "proposal_latency_ms": {
+            "p50": 533.4344080183655,
+            "p95": 611.3925789482892
+          },
+          "proposal_latency_samples": 627,
+          "completion_time_seconds": 34.54399999999625,
+          "mean_terminal_task_score": 0.6666666666666666,
+          "saturated_coordinates": 212,
+          "maximum_numeric_physical_deviation": 0.5580742359161377,
+          "actions_by_seed": [
+            1016,
+            2000,
+            2000
+          ],
+          "success_by_seed": [
+            true,
+            false,
+            false
+          ]
+        }
+      ],
+      "media_and_log_hashes": {
+        "baseline-seed-101.mp4": "b9f021b84edb234d5d14dcad9585b0984979b9c7d7cf35387b51952765390b40",
+        "qf3-seed-101.mp4": "4cb0542c0265f160afdc8b65101e7363f490c6f1c8c525d2d43e7581a4e0a630",
+        "resfit-seed-101.mp4": "bee62a73c8701af31dd8b3894f4b6153796894b9bf92e171bec8a32a4ed36454",
+        "run.log": "33cb103135c9c852de6d8cdc07d2a386fcf59fb43cf55fe976852c84ab40f046"
+      },
+      "evaluation_seeds": [
+        101,
+        102,
+        103
+      ]
+    }
+  ],
+  "cpu_reset_review": {
+    "status": "passed",
+    "camera_rendering": false,
+    "observed_model_difference": false,
+    "scope": "Fresh CPU resets compare recorded float32 qpos, every exposed NumPy model array, policy state, and selected native data arrays. No camera observation or rollout replay.",
+    "checked_data_arrays": [
+      "qpos",
+      "qvel",
+      "ctrl",
+      "act",
+      "mocap_pos",
+      "mocap_quat"
+    ],
+    "checks": [
+      {
+        "seed": 101,
+        "horizons": [
+          1000,
+          2000
+        ],
+        "qpos_sha256": "5b0cbb621f989fe291a6ea35b6a4b84169d14015aac7ffa0f28230574456451b",
+        "exposed_model_array_count": 470,
+        "model_array_manifest_sha256": "7f22f059210bdbdc80e8a6d0c499ab00420db92ebb19308c7917305458a98807",
+        "all_checked_values_equal_between_horizons": true,
+        "checked_data_array_manifest_sha256": "43fbe628f6a111776177fc7aae93da6f20c86bf61fabfd05e6ff7da34279bd99"
+      },
+      {
+        "seed": 102,
+        "horizons": [
+          1000,
+          2000
+        ],
+        "qpos_sha256": "a4e12cd55d5c8940ec6f34af0f55b3c5e00aa7624ab24bfb78f767099eea274a",
+        "exposed_model_array_count": 470,
+        "model_array_manifest_sha256": "c38baac28473df3b964352731125cca158223508eb77b78d9cfd0dba74a15ed2",
+        "all_checked_values_equal_between_horizons": true,
+        "checked_data_array_manifest_sha256": "e3c14c4c1b28bb650380a32f7b4bff621fb00213679c19ee0ee8d43fb4033ed5"
+      },
+      {
+        "seed": 103,
+        "horizons": [
+          1000,
+          2000
+        ],
+        "qpos_sha256": "5f1b9cc3d805a96551725e9e99b1f54f3f867ac48ec7c5e0b1de899d7c5bbedb",
+        "exposed_model_array_count": 470,
+        "model_array_manifest_sha256": "751d704f137e744073aa97452e3d481099a2f53d9957a944b0f69377cbfd8cd7",
+        "all_checked_values_equal_between_horizons": true,
+        "checked_data_array_manifest_sha256": "ee52904f2a0fd1d700f07cec7e9f19ae7728245f310be8e1786e92161951e72d"
+      }
+    ]
+  },
+  "verification": {
+    "pytest": {
+      "command": "CUDA_VISIBLE_DEVICES='' .venv/bin/python -m pytest tests/bench -q",
+      "passed": 47,
+      "duration_seconds": 7.35,
+      "exit_code": 0
+    },
+    "ruff_check": {
+      "command": "CUDA_VISIBLE_DEVICES='' .venv/bin/python -m ruff check abc_bench tests/bench",
+      "exit_code": 0
+    },
+    "ruff_format": {
+      "command": "CUDA_VISIBLE_DEVICES='' .venv/bin/python -m ruff format --check abc_bench tests/bench",
+      "files": 15,
+      "exit_code": 0
+    },
+    "metric_recomputation": "All 18 worlds, counts, action totals, terminal-score means, duration means, completion-time scope and raw-sample p50/p95 pass.",
+    "parent_child_receipts": "Metric/world equality, three evaluation seeds, null child seed, resolved horizon budgets, artifact links and cuda:0 commands pass.",
+    "build_and_browser_checks": "Prior evidence retained; not rerun by this reviewer."
+  },
+  "gpu_ledger": {
+    "limit_seconds": 7200,
+    "charged_seconds": 6463.41130446794,
+    "gpu": 0,
+    "sha256": "c3332a57284eb16576d7b682a15a457c34f4f57dbc806a893a7f19c1e8b8d5a7",
+    "remaining_seconds": 736.5886955320602,
+    "equals_sum_of_non_method_parent_elapsed_times": true,
+    "modified_by_reviewer": false,
+    "cooperative_lease_is_not_os_enforcement": true
+  },
+  "limitations": [
+    "paired_initial_states_verified checks float32 qpos bytes only. It does not check all initial model properties, velocities or GPU camera observations.",
+    "Seed 101 outcomes differ across runs before 1000 actions despite equal qpos hashes. Baseline succeeds at 696 actions only in the 2000-action run; QF3 succeeds at 711 actions only in the 1000-action run. Cause unresolved.",
+    "The 2000-action horizon was selected after inspecting 1000-action results. It is exploratory, not untouched held-out evaluation.",
+    "There are three evaluation seeds per method and only four training updates. No convergence, full-paper reproduction or reliable policy gain is established.",
+    "GPU observation/action traces, explicit GPU model/UUID/driver pins and downloaded scene member manifest are absent. Bitwise replay is not established.",
+    "The ResFiT 1e-4 interior codec projection changes boundary commands, including possible zero-residual commands. Numeric mixed-unit physical deviations are not actuator safety measurements.",
+    "Historical snapshots lack replay and environment state. Optimizer tensors do not establish exact training continuation.",
+    "Latency includes cold proposals and ResFiT feature encoding. Eight actions span 272 ms. Deployed deadlines, queue timing and observation age are unmeasured.",
+    "Real-Time EXPO-FT ABC training was not run. R1 Lite and R1 Pro need verified task adapters and compatible checkpoints. Native YAM results are not R1 results."
+  ],
+  "architecture_source": "docs/bench/review.md#review-workflow",
+  "team_explanation": "ASD-STE100 guidance used; full dictionary and grammar compliance check unavailable."
+}
