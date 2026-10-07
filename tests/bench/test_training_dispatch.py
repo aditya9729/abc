@@ -10,9 +10,16 @@ import pytest
 from abc_bench import runner
 
 
-@pytest.mark.parametrize("stage", ["collect", "train"])
+@pytest.mark.parametrize(
+    "stage,worker_status",
+    [
+        ("collect", "collected_unreviewed"),
+        ("train", "completed"),
+        ("train", "budget_stopped"),
+    ],
+)
 def test_sadhana_worker_uses_shared_budget_and_resolved_config(
-    monkeypatch, tmp_path, stage
+    monkeypatch, tmp_path, stage, worker_status
 ):
     campaign = tmp_path / "campaign"
     monkeypatch.setattr(runner, "RESULTS", campaign)
@@ -63,8 +70,9 @@ def test_sadhana_worker_uses_shared_budget_and_resolved_config(
             destination / "receipt.json",
             {
                 "stage": stage,
-                "status": "completed",
-                "metrics": {"simulation_steps": 32},
+                "status": worker_status,
+                "independent_admission_required": stage == "collect",
+                "metrics": {"sim_steps": 32, "critic_updates": 0, "actor_updates": 0},
             },
         )
         return 0
@@ -83,7 +91,14 @@ def test_sadhana_worker_uses_shared_budget_and_resolved_config(
         video=False,
     )
     receipt = runner.run_baseline(args)
-    assert receipt["status"] == "completed"
+    assert receipt["status"] == (
+        "partial" if worker_status == "budget_stopped" else "completed"
+    )
+    assert receipt["worker_status"] == worker_status
+    assert receipt["independent_admission_required"] == (stage == "collect")
+    assert receipt["training_target_reached"] == (
+        stage == "train" and worker_status == "completed"
+    )
     assert receipt["training_stage"] == stage
     assert receipt["task"] == "fixture-task"
     assert receipt["checkpoint_path"] == "/fixture/base.pt"
@@ -93,4 +108,4 @@ def test_sadhana_worker_uses_shared_budget_and_resolved_config(
     ledger = json.loads((campaign / "gpu_budget.json").read_text())
     assert 7100 <= ledger["charged_seconds"] < 7101
     assert "active_gpu_uuid" not in ledger
-    assert publications[-1]["status"] == "completed"
+    assert publications[-1]["status"] == receipt["status"]

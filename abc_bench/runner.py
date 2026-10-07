@@ -541,11 +541,38 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             elif algorithm == "baseline":
                 receipt["metrics"] = summarize(summary, phase=phase)
             elif algorithm == "sustained-resfit":
-                if summary["stage"] != stage or summary["status"] != "completed":
+                accepted_statuses = (
+                    {"collected_unreviewed"}
+                    if stage == "collect"
+                    else {"completed", "budget_stopped"}
+                )
+                if (
+                    summary["stage"] != stage
+                    or summary["status"] not in accepted_statuses
+                ):
                     raise RuntimeError(
                         "Sustained worker did not complete its declared stage"
                     )
-                receipt["metrics"] = summary["metrics"]
+                if (
+                    stage == "collect"
+                    and summary.get("independent_admission_required") is not True
+                ):
+                    raise RuntimeError(
+                        "Collected replay must remain pending independent admission"
+                    )
+                receipt["worker_status"] = summary["status"]
+                receipt["independent_admission_required"] = stage == "collect"
+                receipt["training_target_reached"] = (
+                    stage == "train" and summary["status"] == "completed"
+                )
+                receipt["metrics"] = {
+                    **summary["metrics"],
+                    "simulation_steps": summary["metrics"]["sim_steps"],
+                    "updates": summary["metrics"]["critic_updates"],
+                    "counters_scope": "collection rows"
+                    if stage == "collect"
+                    else "cumulative training counters, including resumed steps",
+                }
                 receipt["artifacts"].append(
                     {
                         "label": "Sadhana training evidence",
@@ -572,7 +599,12 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                         "path": str((out / "adaptation.pt").relative_to(results)),
                     }
                 )
-            receipt["status"] = "completed"
+            receipt["status"] = (
+                "partial"
+                if algorithm == "sustained-resfit"
+                and summary["status"] == "budget_stopped"
+                else "completed"
+            )
             receipt["summary_sha256"] = hashlib.sha256(
                 summary_path.read_bytes()
             ).hexdigest()
