@@ -504,7 +504,9 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             ).hexdigest()
             receipt["checkpoint_path"] = training["base"]["checkpoint_path"]
             receipt["task"] = training["base"]["task_id"]
-            receipt["budget"]["steps"] = training.get("target_control_steps")
+            receipt["budget"]["steps"] = training["training"].get(
+                "target_control_steps"
+            )
             receipt["artifacts"].append(
                 {
                     "label": "Resolved QF3 configuration",
@@ -628,10 +630,13 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     }
                 )
             elif algorithm == "qf3-vla":
-                if summary.get("stage") != stage or summary.get("status") not in {
-                    "completed",
-                    "budget_stopped",
-                }:
+                accepted = {"completed", "budget_stopped"}
+                if stage == "native_check":
+                    accepted.add("native_check_completed")
+                if (
+                    summary.get("stage") != stage
+                    or summary.get("status") not in accepted
+                ):
                     raise RuntimeError("QF3 worker did not complete its declared stage")
                 receipt["worker_status"] = summary["status"]
                 receipt["training_target_reached"] = summary.get(
@@ -639,7 +644,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
                 receipt["metrics"] = {
                     **summary["metrics"],
-                    "simulation_steps": summary["metrics"].get("sim_steps"),
+                    "simulation_steps": summary["metrics"].get("simulation_steps"),
                     "updates": summary["metrics"].get("critic_updates"),
                     "successes": None,
                     "episodes": None,
@@ -707,6 +712,33 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 else "failed"
             )
             receipt["blockers"] = [str(error)]
+            worker_receipt = out / "training" / "receipt.json"
+            if (
+                algorithm in {"sustained-resfit", "qf3-vla"}
+                and worker_receipt.is_file()
+            ):
+                receipt["artifacts"].append(
+                    {
+                        "label": "Preserved worker failure evidence",
+                        "path": str(worker_receipt.relative_to(results)),
+                    }
+                )
+                receipt["worker_receipt_sha256"] = hashlib.sha256(
+                    worker_receipt.read_bytes()
+                ).hexdigest()
+                try:
+                    failed_worker = json.loads(worker_receipt.read_text())
+                except (OSError, ValueError):
+                    failed_worker = None
+                if (
+                    isinstance(failed_worker, dict)
+                    and failed_worker.get("stage") == stage
+                    and failed_worker.get("status") == "failed"
+                    and isinstance(failed_worker.get("error"), dict)
+                ):
+                    receipt["worker_error"] = failed_worker["error"]
+                    if isinstance(failed_worker["error"].get("message"), str):
+                        receipt["blockers"].append(failed_worker["error"]["message"])
             if (
                 algorithm == "baseline"
                 and phase == "benchmark"

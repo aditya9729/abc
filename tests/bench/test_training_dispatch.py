@@ -114,9 +114,10 @@ def test_sadhana_worker_uses_shared_budget_and_resolved_config(
 @pytest.mark.parametrize(
     "stage,status",
     [
-        ("native_check", "completed"),
+        ("native_check", "native_check_completed"),
         ("train", "budget_stopped"),
         ("evaluate", "completed"),
+        ("native_check", "failed"),
     ],
 )
 def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
@@ -145,8 +146,8 @@ def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
         "device": "cuda:0",
         "max_wall_s": 500,
         "base": {"checkpoint_path": "/fixture/vla.pt", "task_id": "fixture-bottles"},
-        "target_control_steps": 400000,
         "training": {
+            "target_control_steps": 400000,
             "train_worlds": 16,
             "critic_updates_per_iteration": 1600,
             "actor_updates_per_iteration": 200,
@@ -172,10 +173,19 @@ def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
             {
                 "stage": stage,
                 "status": status,
-                "metrics": {"sim_steps": 30, "critic_updates": 2, "actor_updates": 1},
+                "metrics": {
+                    "simulation_steps": 30,
+                    "critic_updates": 2,
+                    "actor_updates": 1,
+                },
+                **(
+                    {"error": {"type": "ContractError", "message": "metadata differs"}}
+                    if status == "failed"
+                    else {}
+                ),
             },
         )
-        return 0
+        return 1 if status == "failed" else 0
 
     monkeypatch.setattr(runner, "execute_command", worker)
     args = Namespace(
@@ -191,10 +201,27 @@ def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
         video=False,
     )
     receipt = runner.run_baseline(args)
+    if status == "failed":
+        assert receipt["status"] == "failed"
+        assert receipt["worker_error"]["message"] == "metadata differs"
+        assert "metadata differs" in receipt["blockers"]
+        artifact = next(
+            a
+            for a in receipt["artifacts"]
+            if a["label"] == "Preserved worker failure evidence"
+        )
+        assert artifact["path"].endswith("training/receipt.json")
+        assert len(receipt["worker_receipt_sha256"]) == 64
+        ledger = json.loads((campaign / "gpu_budget.json").read_text())
+        assert 7100 <= ledger["charged_seconds"] < 7101
+        assert "active_parent_pid" not in ledger
+        assert publications[-1]["status"] == "failed"
+        return
     assert receipt["status"] == (
         "partial" if status == "budget_stopped" else "completed"
     )
     assert receipt["phase"] == "smoke"
+    assert receipt["budget"]["steps"] == 400000
     assert receipt["metrics"]["simulation_steps"] == 30
     assert receipt["metrics"]["updates"] == 2
     assert receipt["metrics"]["successes"] is receipt["metrics"]["episodes"] is None
