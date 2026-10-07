@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "review_date": "2026-10-07",
+  "reviewer": "benchmark_final_review",
+  "independent_review": true,
+  "status": "accepted_cpu_source_and_saved_telemetry_review",
+  "scope": "Read-only resource availability guard. This accepts the narrow one-MiB telemetry rule, not current GPU availability, a lease, a native experiment, or paper performance.",
+  "sources": [
+    {
+      "path": "/home/user/aditya/RL/abc/abc_bench/resources.py",
+      "bytes": 7195,
+      "sha256": "c0e4d9bdc2f772fa1d393f1e4bfe51c62b989105149e654aa9a7e5b46204f446"
+    },
+    {
+      "path": "/home/user/aditya/RL/abc/tests/bench/test_resources.py",
+      "bytes": 10481,
+      "sha256": "895d592b93deb3693349890b9a7ccc7a2e8ac2c2073508cee0799b45e4f8ed1a"
+    }
+  ],
+  "commands": [
+    {
+      "cwd": "/home/user/aditya/RL/abc",
+      "command": "CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 .venv/bin/python -m pytest tests/bench/test_resources.py -q",
+      "exit_code": 0,
+      "passed": 82,
+      "elapsed_s": 0.16
+    },
+    {
+      "cwd": "/home/user/aditya/RL/abc",
+      "command": "CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 .venv/bin/python -m pytest tests/bench -q",
+      "exit_code": 0,
+      "passed": 143,
+      "elapsed_s": 8.17
+    },
+    {
+      "cwd": "/home/user/aditya/RL/abc",
+      "command": ".venv/bin/ruff check abc_bench/resources.py tests/bench/test_resources.py",
+      "exit_code": 0
+    },
+    {
+      "cwd": "/home/user/aditya/RL/abc",
+      "command": ".venv/bin/ruff format --check abc_bench/resources.py tests/bench/test_resources.py",
+      "exit_code": 0,
+      "formatted_files": 2
+    },
+    {
+      "cwd": "/home/user/aditya/RL/abc",
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "cwd": "/home/user/aditya/RL/abc",
+      "command": "CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -I /home/user/aditya/RL/builds/qf3-resource-review/independent_saved_telemetry_replay.py",
+      "exit_code": 0,
+      "mocked_xml_replays": 2,
+      "real_gpu_queries": 0
+    }
+  ],
+  "saved_telemetry_review": {
+    "path": "/home/user/aditya/RL/builds/qf3-resource-review/independent_saved_telemetry_replay.json",
+    "bytes": 4686,
+    "sha256": "0dc72cd4b09f21a9455a2f7f07385bd0844a962f62023a3775dc36dbe80c167c"
+  },
+  "saved_diagnostic_sha256": "48e82d114ca49844608c757f2de9e666ab33e9b4b7c0f4666fbf716aaff10a29",
+  "saved_xml_pins": [
+    {
+      "path": "/home/user/aditya/RL/builds/qf3-stock-parity/gpu0-diagnostic-20261007T210428Z/gpu0_xml.xml",
+      "sha256": "591d67d4ba3c7842b0a7d5a3dd4263b83994263ab154edf407a91a38b03dc867",
+      "bytes": 17679
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/qf3-stock-parity/gpu0-diagnostic-20261007T210428Z/gpu0_xml_recheck.xml",
+      "sha256": "67399fcd7a0eb390b6e28f8dbeb78046b2ef13ed443c3dccbe2c2ac3745fe74b",
+      "bytes": 17679
+    }
+  ],
+  "acceptance_checks": {
+    "zero_memory_path_retains_two_queries": true,
+    "more_than_one_mib_or_selected_compute_pid_refuses_before_xml": true,
+    "all_global_csv_pid_uuid_rows_validated": true,
+    "xml_query_uses_exact_selected_uuid_and_five_second_timeout": true,
+    "one_mib_requires_unique_matching_gpu_xml": true,
+    "combined_compute_graphics_other_process_table_present_and_empty": true,
+    "xml_and_csv_memory_exactly_one_mib": true,
+    "gpu_and_memory_utilization_zero": true,
+    "display_inactive": true,
+    "missing_duplicate_malformed_unknown_or_failed_telemetry_refuses": true,
+    "utf8_xml_hash_and_cause_unproven_recorded": true,
+    "two_retained_xml_snapshots_replayed_with_all_subprocesses_mocked": true
+  },
+  "limitations": [
+    "The cause of the one-MiB allocation is unproven. This review does not attribute it to peer-to-peer communication or the driver.",
+    "Telemetry snapshots are non-atomic. The existing campaign lease and worker GPU identity checks remain required.",
+    "The saved XML is historical evidence. No fresh GPU query or CUDA initialization was performed by this reviewer.",
+    "Availability on foreign GPUs is outside the lease; their jobs remain untouched.",
+    "Source and CPU acceptance do not prove native inference, simulator behavior, performance, or full paper reproduction."
+  ],
+  "reviewer_actions": {
+    "gpu_initializations": 0,
+    "real_gpu_queries": 0,
+    "installs": 0,
+    "process_control_calls": 0,
+    "ledger_changes": 0,
+    "production_source_changes": 0
+  },
+  "ownership": {
+    "builder": "training_harness_audit",
+    "independent_reviewer": "benchmark_final_review",
+    "coordinator_and_gpu_execution": "root"
+  },
+  "team_explanation": "Uses STE guidance. A full ASD-STE100 vocabulary and grammar check was not performed.",
+  "goal_complete": false
+}
