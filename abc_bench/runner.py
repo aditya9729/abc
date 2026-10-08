@@ -15,6 +15,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from abc_bench.expoft_dispatch import (
+    read_json as read_expoft_json,
+)
+from abc_bench.expoft_dispatch import (
+    summarize_worker as summarize_expoft_worker,
+)
+from abc_bench.expoft_dispatch import (
+    training_input as expoft_training_input,
+)
 from abc_bench.resources import inspect_reserved_gpu
 
 ROOT = (
@@ -392,6 +401,26 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 "--out",
                 str(out / "training"),
             ]
+        elif algorithm == "realtime-expoft-abc":
+            if args.training_config is None:
+                raise ValueError("Real-Time EXPO-FT requires --training-config")
+            training = expoft_training_input(args.training_config)
+            training["max_wall_s"] = min(training["max_wall_s"], max(1, timeout - 60))
+            child_config = out / "training_config.json"
+            write_json(child_config, training)
+            command = [
+                str(ROOT / ".venv/bin/python"),
+                "-m",
+                "nrh.realtime_expoft_run",
+                "--config",
+                str(child_config),
+                "--out",
+                str(out / "training"),
+                "--campaign-directory",
+                str(RESULTS.resolve()),
+            ]
+            if getattr(args, "expoft_resume_pin", None) is not None:
+                command += ["--resume-pin", str(args.expoft_resume_pin.resolve())]
         elif algorithm != "baseline":
             timeout = min(timeout, 600.0)
             command = [
@@ -455,7 +484,31 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 }
             ],
         }
-        if algorithm == "comparison":
+        if algorithm == "realtime-expoft-abc":
+            receipt.update(
+                algorithm="Real-Time EXPO-FT ABC/Torch train",
+                method_fidelity="released-config ABC/Torch port; prefix queue and dense RGB learner",
+                claim_scope="training evidence; independent native, matched evaluation and wall-time admission required",
+                training_stage="train",
+                phase="training",
+                checkpoint_path=training["artifacts"]["checkpoint_path"],
+                task="put_plastic_bottles_in_bin",
+                seed=training.get("seed"),
+                policy_seed=training.get("sampler_seed"),
+                clock_mode=training["mode"],
+                independent_admission_required=True,
+                training_config_sha256=hashlib.sha256(
+                    child_config.read_bytes()
+                ).hexdigest(),
+            )
+            receipt["budget"]["steps"] = training["episodes"] * 1000
+            receipt["artifacts"].append(
+                {
+                    "label": "Resolved EXPO-FT configuration",
+                    "path": str(child_config.relative_to(results)),
+                }
+            )
+        elif algorithm == "comparison":
             receipt["algorithm"] = "Matched native adaptation evaluation"
             receipt["method_fidelity"] = plan["method_fidelity"]
             receipt["budget"]["steps"] = plan["maximum_steps"]
@@ -562,7 +615,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             summary_path = (
                 out / "training" / "receipt.json"
-                if algorithm in {"sustained-resfit", "qf3-vla"}
+                if algorithm in {"sustained-resfit", "qf3-vla", "realtime-expoft-abc"}
                 else out
                 / (
                     "paired_eval.json"
@@ -574,7 +627,11 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     )
                 )
             )
-            summary = json.loads(summary_path.read_text())
+            summary = (
+                read_expoft_json(summary_path)
+                if algorithm == "realtime-expoft-abc"
+                else json.loads(summary_path.read_text())
+            )
             if algorithm == "comparison":
                 receipt["metrics"] = {
                     "simulation_steps": sum(
@@ -608,6 +665,12 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                         }
                     )
                     publish(child, results)
+            elif algorithm == "realtime-expoft-abc":
+                receipt.update(summarize_expoft_worker(summary, training))
+                if summary["status"] == "failed":
+                    raise RuntimeError(
+                        "EXPO worker failed; see preserved worker evidence"
+                    )
             elif algorithm == "baseline":
                 receipt["metrics"] = summarize(summary, phase=phase)
             elif algorithm == "sustained-resfit":
@@ -697,7 +760,9 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             receipt["status"] = (
                 "partial"
-                if algorithm in {"sustained-resfit", "qf3-vla"}
+                if algorithm == "realtime-expoft-abc"
+                and summary["status"] in {"budget_stopped", "deadline_missed_partial"}
+                or algorithm in {"sustained-resfit", "qf3-vla"}
                 and summary["status"] == "budget_stopped"
                 else "completed"
             )
@@ -709,7 +774,8 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     "label": "Upstream summary"
                     if algorithm == "baseline"
                     else "Sadhana stage evidence"
-                    if algorithm in {"sustained-resfit", "qf3-vla"}
+                    if algorithm
+                    in {"sustained-resfit", "qf3-vla", "realtime-expoft-abc"}
                     else "Update smoke evidence",
                     "path": str(summary_path.relative_to(results)),
                 }
@@ -734,7 +800,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             receipt["blockers"] = [str(error)]
             worker_receipt = out / "training" / "receipt.json"
             if (
-                algorithm in {"sustained-resfit", "qf3-vla"}
+                algorithm in {"sustained-resfit", "qf3-vla", "realtime-expoft-abc"}
                 and worker_receipt.is_file()
             ):
                 receipt["artifacts"].append(
@@ -747,10 +813,26 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     worker_receipt.read_bytes()
                 ).hexdigest()
                 try:
-                    failed_worker = json.loads(worker_receipt.read_text())
+                    failed_worker = (
+                        read_expoft_json(worker_receipt)
+                        if algorithm == "realtime-expoft-abc"
+                        else json.loads(worker_receipt.read_text())
+                    )
                 except (OSError, ValueError):
                     failed_worker = None
-                if (
+                if algorithm == "realtime-expoft-abc" and isinstance(
+                    failed_worker, dict
+                ):
+                    try:
+                        receipt.update(summarize_expoft_worker(failed_worker, training))
+                    except (ValueError, KeyError) as invalid:
+                        receipt["blockers"].append(
+                            "Invalid EXPO worker counters: " + str(invalid)
+                        )
+                    if isinstance(failed_worker.get("error"), str):
+                        receipt["worker_error"] = failed_worker["error"]
+                        receipt["blockers"].append(failed_worker["error"])
+                elif (
                     isinstance(failed_worker, dict)
                     and failed_worker.get("stage") == stage
                     and failed_worker.get("status") == "failed"
@@ -799,6 +881,7 @@ def main() -> None:
             "comparison",
             "sustained-resfit",
             "qf3-vla",
+            "realtime-expoft-abc",
         ),
         default="baseline",
     )
@@ -811,6 +894,7 @@ def main() -> None:
     parser.add_argument("--qf3-state", type=Path)
     parser.add_argument("--resfit-state", type=Path)
     parser.add_argument("--training-config", type=Path)
+    parser.add_argument("--expoft-resume-pin", type=Path)
     parser.add_argument("--task", default="put_plastic_bottles_in_bin")
     parser.add_argument("--worlds", type=int, default=1)
     parser.add_argument("--chunks", type=int, default=2)
