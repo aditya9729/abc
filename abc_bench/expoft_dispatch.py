@@ -235,6 +235,36 @@ def summarize_worker(
         initial_episodes <= episodes <= config["episodes"] and initial_calls <= calls,
         "EXPO completed invocation counters regressed",
     )
+    new_episodes = episodes - initial_episodes
+    _require(
+        accepted >= new_episodes and (new_episodes > 0 or accepted == 0),
+        "EXPO accepted controls differ from completed episode prefix",
+    )
+    if initial_episodes <= 10:
+        _require(
+            initial_calls == 0 and initial["update_debt"] == 0,
+            "EXPO warmup prefix contains learner update credit",
+        )
+    learned_delta = (
+        wrapper["update_debt"] - initial["update_debt"] + 30 * (calls - initial_calls)
+    )
+    if initial_episodes >= 10:
+        _require(
+            learned_delta == accepted,
+            "EXPO post-warmup update debt differs from accepted controls",
+        )
+    elif episodes <= 10:
+        _require(
+            calls == 0 and wrapper["update_debt"] == 0,
+            "EXPO warmup boundary contains learner update credit",
+        )
+    else:
+        # Revision1 does not publish a warmup/learning control partition. The
+        # independently audited tapes must supply that missing exact boundary.
+        _require(
+            0 <= learned_delta <= accepted - (10 - initial_episodes),
+            "EXPO crossing-warmup update credit exceeds accepted controls",
+        )
     before = _learner_counts(
         invocation.get("initial_learner_counters"), initial_calls, failed=False
     )

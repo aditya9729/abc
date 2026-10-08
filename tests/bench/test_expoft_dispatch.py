@@ -237,6 +237,8 @@ def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
         "initial_schema",
         "fixture_clock",
         "clock_bool",
+        "extra_coherent_group",
+        "unchanged_episode_prefix",
     ],
 )
 def test_invalid_worker_evidence_has_no_counter_admission(fault):
@@ -291,6 +293,14 @@ def test_invalid_worker_evidence_has_no_counter_admission(fault):
         )
     elif fault == "clock_bool":
         worker["identity"]["step_interval"] = True
+    elif fault == "extra_coherent_group":
+        worker["wrapper"]["accepted_update_calls"] = 4
+        worker.update(learner_counters=learner_counts(4), skipped_base_updates=4)
+        worker["accepted_update_groups"].append(
+            {"ordinal": 3, "pin": {"fixture": True}}
+        )
+    elif fault == "unchanged_episode_prefix":
+        worker["invocation"]["initial_wrapper"]["completed_episodes"] = 13
     with pytest.raises(ValueError):
         expoft_dispatch.summarize_worker(worker, config)
 
@@ -359,6 +369,54 @@ def test_completed_group_with_actual_successful_imitation_is_supported():
     assert result["learning_status"] == "components_exercised_no_gain_claim"
     assert result["metrics"]["updates"] == 2
     assert result["metrics"]["successes"] is None
+
+
+def test_pending_update_only_resume_credits_no_new_controls():
+    config = input_config()
+    worker = worker_record(config)
+    worker["invocation"]["initial_wrapper"].update(
+        completed_episodes=13, issued_steps=390, phase="pending_updates", update_debt=60
+    )
+    worker["invocation"].update(
+        physical_control_steps=0,
+        accepted_completed_control_steps=0,
+        discarded_partial_control_steps=0,
+    )
+    result = expoft_dispatch.summarize_worker(worker, config, exit_code=0)
+    assert result["metrics"]["simulation_steps"] == 0
+    assert result["metrics"]["completed_training_episodes"] == 0
+    assert result["metrics"]["updates"] == 2
+
+
+def test_revision1_crossing_warmup_receipt_requires_later_tape_admission():
+    config = input_config()
+    worker = worker_record(config, "budget_stopped")
+    worker["wrapper"].update(
+        completed_episodes=11, issued_steps=330, accepted_update_calls=1, phase="ready"
+    )
+    worker["invocation"].update(
+        initial_wrapper={
+            "completed_episodes": 0,
+            "issued_steps": 0,
+            "accepted_update_calls": 0,
+            "update_debt": 0,
+            "checkpoint_serial": 0,
+            "phase": "ready",
+        },
+        initial_learner_counters=learner_counts(0),
+        physical_control_steps=330,
+        accepted_completed_control_steps=330,
+        discarded_partial_control_steps=0,
+    )
+    worker.update(
+        accepted_update_groups=[{"ordinal": 0, "pin": {"fixture": True}}],
+        learner_counters=learner_counts(1),
+        skipped_base_updates=1,
+    )
+    result = expoft_dispatch.summarize_worker(worker, config, exit_code=2)
+    assert result["metrics"]["updates"] == 1
+    assert result["metrics"]["accepted_completed_control_steps"] == 330
+    assert result["independent_admission_required"] is True
 
 
 @pytest.mark.parametrize("content", ['{"x":1,"x":2}', '{"x":NaN}', '{"x":1e999}', "[]"])
