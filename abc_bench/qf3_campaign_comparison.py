@@ -101,6 +101,7 @@ TRAINING = {
     "critic_target_every_updates": 1,
 }
 CADENCE = {"unit": "outer_iterations", "every": 1, "phase": "after_outer_updates"}
+FINAL_CADENCE = {"unit": "final", "every": None, "phase": "after_outer_updates"}
 CONTINUATION_KEYS = (
     "base",
     "source_artifacts",
@@ -293,7 +294,7 @@ def _config(
         "worlds": 50,
         "max_control_steps_per_world": None,
         "sampler_seed": 2**45 + 17 + index * 1000000,
-        "cadence": CADENCE,
+        "cadence": FINAL_CADENCE if head == "frozen" else CADENCE,
     }
     if head != "frozen":
         expected["layout_sampling"] = {
@@ -836,6 +837,7 @@ def _admission(
         "policy_state_sha256",
         "canonical_replay_sha256",
         "exposed_state_sha256",
+        "evaluation_preservation_state_sha256",
         "ordered_record_selectors_sha256",
         "learner_state_sha256",
         "training_rng_sha256",
@@ -1285,6 +1287,8 @@ def _chain(reader: legacy._Reader, records: list[dict], index: int) -> dict:
         "completed_episodes": 0,
         "evaluation_steps": 0,
         "evaluation_physics_ticks": 0,
+        "discarded_evaluation_steps": 0,
+        "discarded_evaluation_physics_ticks": 0,
     }
     previous_counters, previous_admission = zero_counters, None
     history, geometry_seen, lineage = [], set(), []
@@ -1541,6 +1545,7 @@ def _chain(reader: legacy._Reader, records: list[dict], index: int) -> dict:
             0,
             0,
         )
+        discarded_evaluations = []
         for item in admission["discarded_tapes"]:
             parsed = _discarded(reader, item["artifact"], worker["base_id"])
             _same(
@@ -1559,10 +1564,54 @@ def _chain(reader: legacy._Reader, records: list[dict], index: int) -> dict:
             discarded["physics_ticks"] += parsed["physics_ticks"]
             if key == "evaluation_steps":
                 discarded_eval_ticks += parsed["physics_ticks"]
+                discarded_evaluations.append(
+                    (
+                        item["artifact"]["sha256"],
+                        parsed["simulation_steps"],
+                        parsed["physics_ticks"],
+                    )
+                )
             else:
                 discarded_training_episodes += parsed["completed_episodes"]
                 discarded_training_ticks += parsed["physics_ticks"]
             consumed.append(item["artifact"])
+        retained = admission.get("retained_discarded_evaluation_tape_sha256", [])
+        _need(
+            isinstance(retained, list)
+            and all(_sha(v) for v in retained)
+            and len(set(retained)) == len(retained),
+            "invalid retained discarded-evaluation tape prefix",
+        )
+        _same(
+            retained,
+            [v[0] for v in discarded_evaluations[: len(retained)]],
+            "retained discarded-evaluation tapes are not the pinned attempted prefix",
+        )
+        retained_steps = sum(v[1] for v in discarded_evaluations[: len(retained)])
+        retained_ticks = sum(v[2] for v in discarded_evaluations[: len(retained)])
+        for key, expected in (
+            (
+                "discarded_evaluation_steps",
+                previous["discarded_evaluation_steps"] + retained_steps,
+            ),
+            (
+                "discarded_evaluation_physics_ticks",
+                previous["discarded_evaluation_physics_ticks"] + retained_ticks,
+            ),
+            (
+                "evaluation_steps",
+                previous["evaluation_steps"] + fresh_steps + retained_steps,
+            ),
+            (
+                "evaluation_physics_ticks",
+                previous["evaluation_physics_ticks"] + fresh_ticks + retained_ticks,
+            ),
+        ):
+            _same(
+                boundary.get(key),
+                expected,
+                f"canonical {key} delta lacks retained tape evidence",
+            )
         raw_pins = worker["rollouts"]
         indexed = {(p["category"], p["ordinal"]): p["artifact"] for p in accepted_tapes}
         fresh_indexed = {p["event_index"]: p["artifact"] for p in new_fresh}
@@ -1747,6 +1796,7 @@ def _chain(reader: legacy._Reader, records: list[dict], index: int) -> dict:
                     if key != "evaluation_state"
                 },
                 "accepted_evaluation_state_sha256": _hash(boundary["evaluation_state"]),
+                "retained_discarded_evaluation_tape_sha256": retained,
                 "accounting": accounting,
                 "parent_elapsed_seconds": parent["metrics"]["elapsed_seconds"],
             }
@@ -1915,6 +1965,11 @@ def _preservation(
         "evaluation preservation audit hash differs",
     )
     _same(
+        value.get("exposed_state_sha256"),
+        selected["admission"]["evaluation_preservation_state_sha256"],
+        "final preserved state differs from selected learner/replay/training-RNG domain",
+    )
+    _same(
         value.get("replay_blocks"),
         selected["admission"]["replay_blocks"],
         "final replay block selectors/pins changed",
@@ -1973,6 +2028,7 @@ def _evaluation(
         allowed["evaluation"] = dict(allowed["evaluation"])
         allowed["evaluation"].pop("layout_sampling")
         allowed["evaluation"]["heads"] = ["frozen"]
+        allowed["evaluation"]["cadence"] = FINAL_CADENCE
         _same(
             _continuation(config),
             _continuation(allowed),
@@ -1986,6 +2042,7 @@ def _evaluation(
         ("outer_iterations", expected_k),
         ("actor_updates", expected_counts["actor_updates"]),
         ("critic_updates", expected_counts["critic_updates"]),
+        ("target_reached", head == "learned"),
     ):
         _same(worker["metrics"].get(key), value, f"final {key} differs")
     _same(worker.get("updates"), [], "standalone final invocation trained")

@@ -182,7 +182,8 @@ def checkpoint(store, base, config, boundary, total, counters, worker_pin=None):
         ),
         policy_state_sha256="c" * 64,
         canonical_replay_sha256="d" * 64,
-        exposed_state_sha256="b" * 64,
+        exposed_state_sha256="2" * 64,
+        evaluation_preservation_state_sha256="b" * 64,
         ordered_record_selectors_sha256="e" * 64,
         learner_state_sha256="f" * 64,
         training_rng_sha256="1" * 64,
@@ -726,6 +727,11 @@ def campaign_files(tmp_path_factory):
                 final_config["evaluation"]["heads"] = [head]
                 if head == "frozen":
                     final_config["evaluation"].pop("layout_sampling")
+                    final_config["evaluation"]["cadence"] = {
+                        "unit": "final",
+                        "every": None,
+                        "phase": "after_outer_updates",
+                    }
                 else:
                     final_config["resume"] = audit["admitted_checkpoint"]
                 inherited = events if head == "learned" else []
@@ -1639,3 +1645,213 @@ def test_production_target_and_source_profile_not_caller_options():
         q.PROFILE["nrh.qf3_training"]
         == "65a62e73c7ad2079c8d6c40262220cb8149323f7f7e7bed8425d2d162645a2c8"
     )
+
+
+@pytest.mark.parametrize(
+    "counter,discarded",
+    [
+        ("evaluation_steps", "discarded_evaluation_steps"),
+        ("evaluation_physics_ticks", "discarded_evaluation_physics_ticks"),
+    ],
+)
+def test_canonical_evaluation_credit_requires_retained_tapes(
+    campaign, counter, discarded
+):
+    entry = copy.deepcopy(campaign["request"]["seeds"][0]["training_chain"][0])
+    store = campaign["store"]
+
+    def fabricate(value):
+        value["boundary"][counter] += 10
+        value["boundary"][discarded] += 10
+
+    entry["admission"] = store.replace(entry["admission"], fabricate)
+    with pytest.raises(q.ComparisonError, match="retained tape evidence"):
+        q._chain(q._Reader(), [entry], 0)
+
+
+def retained_pending_attempt(campaign):
+    """Select the valid after-attempt pending checkpoint, not the earlier intent."""
+    store = campaign["store"]
+    nodes = split_chain(campaign, pending=True, discard=True)
+    first = store.read(nodes[0]["admission"])
+    attempted = first["discarded_tapes"][0]
+    steps, ticks = (
+        attempted["accounting"]["simulation_steps"],
+        attempted["accounting"]["physics_ticks"],
+    )
+    first["retained_discarded_evaluation_tape_sha256"] = [
+        attempted["artifact"]["sha256"]
+    ]
+    for key, value in (
+        ("evaluation_steps", steps),
+        ("discarded_evaluation_steps", steps),
+        ("evaluation_physics_ticks", ticks),
+        ("discarded_evaluation_physics_ticks", ticks),
+    ):
+        first["boundary"][key] += value
+    nodes[0]["admission"] = store.save(first)
+    second = store.read(nodes[1]["admission"])
+    second["predecessor_admission"] = nodes[0]["admission"]
+    for key, value in (
+        ("evaluation_steps", steps),
+        ("discarded_evaluation_steps", steps),
+        ("evaluation_physics_ticks", ticks),
+        ("discarded_evaluation_physics_ticks", ticks),
+    ):
+        second["boundary"][key] += value
+    report = store.read(nodes[1]["worker"])
+    report["metrics"]["evaluation_steps"] += steps
+    report["metrics"]["physics_ticks_evaluation"] += ticks
+    nodes[1]["worker"] = store.save(report)
+    p = store.read(nodes[1]["parent"])
+    p["summary_sha256"] = nodes[1]["worker"]["sha256"]
+    p["metrics"]["evaluation_steps"] += steps
+    p["metrics"]["physics_ticks_evaluation"] += ticks
+    nodes[1]["parent"] = store.save(p)
+    second.update(
+        worker_receipt=nodes[1]["worker"], controller_receipt=nodes[1]["parent"]
+    )
+    nodes[1]["admission"] = store.save(second)
+    return nodes
+
+
+def test_post_attempt_pending_checkpoint_retains_exact_credit_on_resume(campaign):
+    nodes = retained_pending_attempt(campaign)
+    chain = q._chain(q._Reader(), nodes, 0)
+    selected = chain["selected"]["admission"]["boundary"]
+    assert selected["discarded_evaluation_steps"] == 50
+    assert selected["discarded_evaluation_physics_ticks"] == 1
+    assert selected["evaluation_steps"] == 26 * 50 + 50
+    assert chain["invocations"][1]["accounting"]["accepted_fresh_steps"] == 50
+    assert chain["invocations"][1]["retained_discarded_evaluation_tape_sha256"] == []
+
+
+@pytest.mark.parametrize(
+    "mode",
+    ["unknown", "duplicate", "unretained_counter", "partial_counter", "non_prefix"],
+)
+def test_retained_attempt_unknown_duplicate_and_partial_credit_refuses(campaign, mode):
+    store = campaign["store"]
+    nodes = retained_pending_attempt(campaign)
+    first = store.read(nodes[0]["admission"])
+    pin = first["discarded_tapes"][0]["artifact"]
+    if mode == "unknown":
+        first["retained_discarded_evaluation_tape_sha256"] = ["0" * 64]
+    elif mode == "duplicate":
+        first["retained_discarded_evaluation_tape_sha256"] = [pin["sha256"]] * 2
+    elif mode == "unretained_counter":
+        first["retained_discarded_evaluation_tape_sha256"] = []
+    elif mode == "partial_counter":
+        first["boundary"]["evaluation_steps"] -= 40
+        first["boundary"]["discarded_evaluation_steps"] -= 40
+    else:
+        first["retained_discarded_evaluation_tape_sha256"] = ["0" * 64, pin["sha256"]]
+    nodes[0]["admission"] = store.save(first)
+    with pytest.raises(q.ComparisonError, match="retained|prefix"):
+        q._chain(q._Reader(), nodes, 0)
+
+
+@pytest.mark.parametrize(
+    "head,value",
+    [("learned", False), ("learned", "yes"), ("learned", 1), ("frozen", True)],
+)
+def test_final_target_flag_must_be_exact_inherited_boolean(campaign, head, value):
+    store = campaign["store"]
+    root = campaign["request"]["seeds"][0]
+    entry = copy.deepcopy(root[head + "_final"])
+    report = store.read(entry["worker"])
+    report["metrics"]["target_reached"] = value
+    entry["worker"] = store.save(report)
+    p = store.read(entry["parent"])
+    p["summary_sha256"] = entry["worker"]["sha256"]
+    p["metrics"]["target_reached"] = value
+    entry["parent"] = store.save(p)
+    if head == "learned":
+        audit = store.read(entry["preservation_admission"])
+        audit.update(worker_receipt=entry["worker"], controller_receipt=entry["parent"])
+        entry["preservation_admission"] = store.save(audit)
+    chain = q._chain(q._Reader(), root["training_chain"], 0)
+    with pytest.raises(q.ComparisonError, match="target_reached"):
+        q._evaluation(q._Reader(), entry, chain, 0, head)
+
+
+def test_preservation_domain_is_distinct_and_selected_hash_cannot_change(campaign):
+    root = campaign["request"]["seeds"][0]
+    chain = q._chain(q._Reader(), root["training_chain"], 0)
+    admission = chain["selected"]["admission"]
+    assert (
+        admission["exposed_state_sha256"]
+        != admission["evaluation_preservation_state_sha256"]
+    )
+    q._evaluation(q._Reader(), root["learned_final"], chain, 0, "learned")
+    corrupted = copy.deepcopy(chain)
+    corrupted["selected"]["admission"]["evaluation_preservation_state_sha256"] = (
+        "0" * 64
+    )
+    with pytest.raises(q.ComparisonError, match="selected learner/replay"):
+        q._evaluation(q._Reader(), root["learned_final"], corrupted, 0, "learned")
+
+
+def test_coherent_final_hash_replacement_cannot_bypass_selected_domain(campaign):
+    store = campaign["store"]
+    root = campaign["request"]["seeds"][0]
+    entry = copy.deepcopy(root["learned_final"])
+    report = store.read(entry["worker"])
+    for summary_record in (
+        report["invocation_evaluation_events"][0]["summary"],
+        report["evaluation_events"][-1]["summary"],
+        report["evaluation"]["learned"],
+    ):
+        summary_record.update(
+            training_state_before="9" * 64, training_state_after="9" * 64
+        )
+    entry["worker"] = store.save(report)
+    p = store.read(entry["parent"])
+    p["summary_sha256"] = entry["worker"]["sha256"]
+    entry["parent"] = store.save(p)
+    audit = store.read(entry["preservation_admission"])
+    audit.update(
+        worker_receipt=entry["worker"],
+        controller_receipt=entry["parent"],
+        exposed_state_sha256="9" * 64,
+    )
+    entry["preservation_admission"] = store.save(audit)
+    chain = q._chain(q._Reader(), root["training_chain"], 0)
+    with pytest.raises(q.ComparisonError, match="selected learner/replay"):
+        q._evaluation(q._Reader(), entry, chain, 0, "learned")
+
+
+@pytest.mark.parametrize("index", range(3))
+@pytest.mark.parametrize("head", [None, "learned", "frozen"])
+def test_three_seed_configs_use_approved_distinct_final_cadences(campaign, index, head):
+    root = campaign["request"]["seeds"][index]
+    entry = root[head + "_final"] if head else root["training_chain"][0]
+    report = campaign["store"].read(entry["worker"])
+    config = q._config(q._Reader(), report, index, head=head)
+    expected = {
+        "unit": "final" if head == "frozen" else "outer_iterations",
+        "every": None if head == "frozen" else 1,
+        "phase": "after_outer_updates",
+    }
+    assert config["evaluation"]["cadence"] == expected
+
+
+@pytest.mark.parametrize("head", [None, "learned", "frozen"])
+def test_wrong_training_or_final_cadence_refuses(campaign, head):
+    store = campaign["store"]
+    root = campaign["request"]["seeds"][0]
+    entry = root[head + "_final"] if head else root["training_chain"][0]
+    report = store.read(entry["worker"])
+    config = store.read(report["resolved_config"])
+    config["evaluation"]["cadence"] = {
+        "unit": "outer_iterations" if head == "frozen" else "final",
+        "every": 1 if head == "frozen" else None,
+        "phase": "after_outer_updates",
+    }
+    report.update(
+        input_config=store.save(config),
+        resolved_config=store.save(config),
+        resolved_config_sha256=q._hash(config),
+    )
+    with pytest.raises(q.ComparisonError, match="evaluation/cohort/noise protocol"):
+        q._config(q._Reader(), report, 0, head=head)
