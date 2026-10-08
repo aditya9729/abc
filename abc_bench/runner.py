@@ -24,6 +24,9 @@ from abc_bench.expoft_dispatch import (
 from abc_bench.expoft_dispatch import (
     training_input as expoft_training_input,
 )
+from abc_bench.resfit_dispatch import read_json as read_resfit_json
+from abc_bench.resfit_dispatch import summarize_worker as summarize_resfit_worker
+from abc_bench.resfit_dispatch import training_input as resfit_training_input
 from abc_bench.resources import inspect_reserved_gpu
 
 ROOT = (
@@ -401,6 +404,26 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 "--out",
                 str(out / "training"),
             ]
+        elif algorithm == "resfit-abc-vla":
+            if args.training_config is None:
+                raise ValueError("Visual ResFiT requires --training-config")
+            training = resfit_training_input(args.training_config)
+            training["max_wall_s"] = min(training["max_wall_s"], max(1, timeout - 60))
+            child_config = out / "training_config.json"
+            write_json(child_config, training)
+            command = [
+                str(ROOT / ".venv/bin/python"),
+                "-m",
+                "nrh.resfit_abc_vla_run",
+                "--config",
+                str(child_config),
+                "--out",
+                str(out / "training"),
+                "--campaign-directory",
+                str(RESULTS.resolve()),
+            ]
+            if getattr(args, "resfit_resume_pin", None) is not None:
+                command += ["--resume-pin", str(args.resfit_resume_pin.resolve())]
         elif algorithm == "realtime-expoft-abc":
             if args.training_config is None:
                 raise ValueError("Real-Time EXPO-FT requires --training-config")
@@ -484,7 +507,33 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 }
             ],
         }
-        if algorithm == "realtime-expoft-abc":
+        if algorithm == "resfit-abc-vla":
+            receipt.update(
+                algorithm="ResFiT visual ABC-VLA train",
+                method_fidelity="three trainable visual encoders; named paper-MSE online-only unprojected residual profile",
+                claim_scope="training evidence; partial optimizer work is not admitted complete-checkpoint learning or benchmark performance",
+                training_stage="train",
+                phase="training",
+                checkpoint_path=training["artifacts"]["checkpoint_path"],
+                task="put_plastic_bottles_in_bin",
+                seed=training["seed"],
+                policy_seed=training["sampler_seed"],
+                independent_admission_required=True,
+                training_target_controls=training["target_controls"],
+                training_config_sha256=hashlib.sha256(
+                    child_config.read_bytes()
+                ).hexdigest(),
+            )
+            receipt["budget"]["steps"] = min(
+                training["episodes"] * 1000, training["target_controls"] + 999
+            )
+            receipt["artifacts"].append(
+                {
+                    "label": "Resolved visual ResFiT configuration",
+                    "path": str(child_config.relative_to(results)),
+                }
+            )
+        elif algorithm == "realtime-expoft-abc":
             receipt.update(
                 algorithm="Real-Time EXPO-FT ABC/Torch train",
                 method_fidelity="released-config ABC/Torch port; prefix queue and dense RGB learner",
@@ -610,15 +659,23 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             code = execute_command(
                 command, out / "run.log", timeout, gpu_uuid=gpu_binding["uuid"]
             )
-            if algorithm == "realtime-expoft-abc":
+            if algorithm in {"realtime-expoft-abc", "resfit-abc-vla"}:
                 receipt["worker_exit_code"] = code
-            if code and not (algorithm == "realtime-expoft-abc" and code == 2):
+            if code and not (
+                algorithm in {"realtime-expoft-abc", "resfit-abc-vla"} and code == 2
+            ):
                 raise RuntimeError(
                     f"ABC evaluation failed with exit code {code}; see run.log"
                 )
             summary_path = (
                 out / "training" / "receipt.json"
-                if algorithm in {"sustained-resfit", "qf3-vla", "realtime-expoft-abc"}
+                if algorithm
+                in {
+                    "sustained-resfit",
+                    "qf3-vla",
+                    "realtime-expoft-abc",
+                    "resfit-abc-vla",
+                }
                 else out
                 / (
                     "paired_eval.json"
@@ -631,7 +688,9 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             )
             summary = (
-                read_expoft_json(summary_path)
+                read_resfit_json(summary_path)
+                if algorithm == "resfit-abc-vla"
+                else read_expoft_json(summary_path)
                 if algorithm == "realtime-expoft-abc"
                 else json.loads(summary_path.read_text())
             )
@@ -668,6 +727,14 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                         }
                     )
                     publish(child, results)
+            elif algorithm == "resfit-abc-vla":
+                receipt.update(
+                    summarize_resfit_worker(summary, training, exit_code=code)
+                )
+                if summary["status"] == "failed":
+                    raise RuntimeError(
+                        "ResFiT worker failed; see preserved worker evidence"
+                    )
             elif algorithm == "realtime-expoft-abc":
                 receipt.update(
                     summarize_expoft_worker(summary, training, exit_code=code)
@@ -767,7 +834,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 "partial"
                 if algorithm == "realtime-expoft-abc"
                 and summary["status"] in {"budget_stopped", "deadline_missed_partial"}
-                or algorithm in {"sustained-resfit", "qf3-vla"}
+                or algorithm in {"sustained-resfit", "qf3-vla", "resfit-abc-vla"}
                 and summary["status"] == "budget_stopped"
                 else "completed"
             )
@@ -780,7 +847,12 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     if algorithm == "baseline"
                     else "Sadhana stage evidence"
                     if algorithm
-                    in {"sustained-resfit", "qf3-vla", "realtime-expoft-abc"}
+                    in {
+                        "sustained-resfit",
+                        "qf3-vla",
+                        "realtime-expoft-abc",
+                        "resfit-abc-vla",
+                    }
                     else "Update smoke evidence",
                     "path": str(summary_path.relative_to(results)),
                 }
@@ -805,7 +877,13 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             receipt["blockers"] = [str(error)]
             worker_receipt = out / "training" / "receipt.json"
             if (
-                algorithm in {"sustained-resfit", "qf3-vla", "realtime-expoft-abc"}
+                algorithm
+                in {
+                    "sustained-resfit",
+                    "qf3-vla",
+                    "realtime-expoft-abc",
+                    "resfit-abc-vla",
+                }
                 and worker_receipt.is_file()
             ):
                 receipt["artifacts"].append(
@@ -819,13 +897,29 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 ).hexdigest()
                 try:
                     failed_worker = (
-                        read_expoft_json(worker_receipt)
+                        read_resfit_json(worker_receipt)
+                        if algorithm == "resfit-abc-vla"
+                        else read_expoft_json(worker_receipt)
                         if algorithm == "realtime-expoft-abc"
                         else json.loads(worker_receipt.read_text())
                     )
                 except (OSError, ValueError):
                     failed_worker = None
-                if algorithm == "realtime-expoft-abc" and isinstance(
+                if algorithm == "resfit-abc-vla" and isinstance(failed_worker, dict):
+                    try:
+                        receipt.update(
+                            summarize_resfit_worker(
+                                failed_worker, training, exit_code=code
+                            )
+                        )
+                    except (ValueError, KeyError) as invalid:
+                        receipt["blockers"].append(
+                            "Invalid ResFiT worker counters: " + str(invalid)
+                        )
+                    if isinstance(failed_worker.get("error"), str):
+                        receipt["worker_error"] = failed_worker["error"]
+                        receipt["blockers"].append(failed_worker["error"])
+                elif algorithm == "realtime-expoft-abc" and isinstance(
                     failed_worker, dict
                 ):
                     try:
@@ -891,6 +985,7 @@ def main() -> None:
             "sustained-resfit",
             "qf3-vla",
             "realtime-expoft-abc",
+            "resfit-abc-vla",
         ),
         default="baseline",
     )
@@ -904,6 +999,7 @@ def main() -> None:
     parser.add_argument("--resfit-state", type=Path)
     parser.add_argument("--training-config", type=Path)
     parser.add_argument("--expoft-resume-pin", type=Path)
+    parser.add_argument("--resfit-resume-pin", type=Path)
     parser.add_argument("--task", default="put_plastic_bottles_in_bin")
     parser.add_argument("--worlds", type=int, default=1)
     parser.add_argument("--chunks", type=int, default=2)

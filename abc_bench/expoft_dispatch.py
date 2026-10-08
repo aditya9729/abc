@@ -45,21 +45,21 @@ def _count(value: Any, name: str) -> int:
     return value
 
 
-def read_json(path: Path) -> dict[str, Any]:
+def read_json(path: Path, *, method: str = "EXPO") -> dict[str, Any]:
     def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
         result = {}
         for key, value in items:
-            _require(key not in result, "Duplicate EXPO JSON key: " + key)
+            _require(key not in result, f"Duplicate {method} JSON key: " + key)
             result[key] = value
         return result
 
     def invalid(value: str) -> None:
-        raise ValueError("Nonfinite EXPO JSON value: " + value)
+        raise ValueError(f"Nonfinite {method} JSON value: " + value)
 
     result = json.loads(
         path.read_bytes(), object_pairs_hook=pairs, parse_constant=invalid
     )
-    _require(isinstance(result, dict), "EXPO JSON object required")
+    _require(isinstance(result, dict), f"{method} JSON object required")
     json.dumps(result, allow_nan=False)
     return result
 
