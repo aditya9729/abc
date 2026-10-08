@@ -112,16 +112,19 @@ def test_sadhana_worker_uses_shared_budget_and_resolved_config(
 
 
 @pytest.mark.parametrize(
-    "stage,status",
+    "stage,status,target_reached",
     [
-        ("native_check", "native_check_completed"),
-        ("train", "budget_stopped"),
-        ("evaluate", "completed"),
-        ("native_check", "failed"),
+        ("native_check", "native_check_completed", False),
+        ("train", "budget_stopped", False),
+        ("train", "completed", True),
+        ("train", "completed", False),
+        ("evaluate", "completed", True),
+        ("evaluate", "completed", False),
+        ("native_check", "failed", False),
     ],
 )
 def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
-    monkeypatch, tmp_path, stage, status
+    monkeypatch, tmp_path, stage, status, target_reached
 ):
     campaign = tmp_path / "campaign"
     monkeypatch.setattr(runner, "RESULTS", campaign)
@@ -188,6 +191,7 @@ def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
                     "simulation_steps": 30,
                     "critic_updates": 2,
                     "actor_updates": 1,
+                    "target_reached": target_reached,
                 },
                 **(
                     {"error": {"type": "ContractError", "message": "metadata differs"}}
@@ -234,6 +238,8 @@ def test_qf3_vla_dispatch_shares_existing_lease_and_preserves_paper_recipe(
     assert receipt["phase"] == "smoke"
     assert receipt["budget"]["steps"] == (2000 if stage == "evaluate" else 400000)
     assert receipt["training_target_control_steps"] == 400000
+    assert receipt["training_target_reached"] is target_reached
+    assert receipt["metrics"]["target_reached"] is target_reached
     assert receipt["seed"] == (None if stage == "evaluate" else 903)
     assert receipt["policy_seed"] == 901
     if stage == "evaluate":

@@ -659,8 +659,8 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 ):
                     raise RuntimeError("QF3 worker did not complete its declared stage")
                 receipt["worker_status"] = summary["status"]
-                receipt["training_target_reached"] = summary.get(
-                    "training_target_reached", False
+                receipt["training_target_reached"] = summary["metrics"].get(
+                    "target_reached", False
                 )
                 receipt["metrics"] = {
                     **summary["metrics"],
