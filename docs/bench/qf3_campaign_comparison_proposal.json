@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "status": "concrete_reader_contract_implementation_waits_for_root_review",
+  "base_commit": "51f1dfffd721d522b61542b991aa20be69d5ad3c",
+  "branch": "qf3-campaign-comparison",
+  "worktree": "/home/user/aditya/RL/abc-qf3-campaign-comparison",
+  "contract": {
+    "path": "/home/user/aditya/RL/abc-qf3-campaign-comparison/docs/bench/qf3_campaign_comparison_contract.md",
+    "bytes": 16954,
+    "sha256": "6c7195cf37e4f9887418d82d18a4a793c82ac8d6e5d823735198510276a6b20d"
+  },
+  "old_reader": {
+    "path": "/home/user/aditya/RL/abc-qf3-campaign-comparison/abc_bench/vla_comparison.py",
+    "bytes": 51018,
+    "sha256": "54803360e8dfb0ba26834a47d295f46680c3006a31af39a3f0131258ead90206"
+  },
+  "historical_full_design": {
+    "path": "/home/user/aditya/RL/builds/qf3-full-campaign-design-20261008/FULL_CAMPAIGN_DESIGN.json",
+    "bytes": 10146,
+    "sha256": "9914d6141b71b711be543ea81568810a0e8391aa40fddfb57b91266a261a76da"
+  },
+  "historical_full_design_review": {
+    "path": "/home/user/aditya/RL/builds/qf3-full-design-review/INDEPENDENT_FULL_CAMPAIGN_DESIGN_REVIEW.json",
+    "bytes": 17907,
+    "sha256": "5124328943f29e549f04bfa29de3131cf16e1d432e078f988c1a59d6feeadcdf"
+  },
+  "source_profile_proposed": {
+    "nrh.qf3_training": "65a62e73c7ad2079c8d6c40262220cb8149323f7f7e7bed8425d2d162645a2c8",
+    "nrh.qf3_checkpoint_storage": "bbed2a270430f6c82ca41e8170af9879ede4001fad340a82fe0e5b249e080818",
+    "nrh.qf3": "06cd071b858c5885bd4849ca3a25c8f80b16894a5bc9ec372091125d2d1361c7",
+    "nrh.qf3_tasks": "ac29ddfcf6688551f270800f05c2d513f5dfbb4870c7c7cf0fc55824ee596016",
+    "nrh.qf3_replay": "ded57c1cfe7c039160bd563404aa3d519a9e6aeb189c987512addf058ea5242a",
+    "nrh.qf3_learning": "cc1aba70e2de7b9ddd4df295bec35137a8afd1a2b6670f9acdb836849bdb047f",
+    "nrh.qf3_rollouts": "39be24afd59e20c8afffa02370b18b3b9ead3f5fd1b4b4761834aba9966bdef4",
+    "nrh.qf3_abc_vla": "ca2f0addce30714081392bb7bc6928ddfa8a6d013841ad96c3111390d1a83eb3"
+  },
+  "new_release_version_expected": "0.4.10",
+  "new_release_actual_wheel_and_install_proof": null,
+  "worker_revision": "sadhana.qf3-native-worker/5",
+  "checkpoint_schema": 4,
+  "replay_block_revision": "sadhana.qf3-replay-blocks/1",
+  "reader_runtime_dependencies": "Python standard library only",
+  "implementation_files_proposed": [
+    "abc_bench/qf3_campaign_comparison.py",
+    "tests/bench/test_qf3_campaign_comparison.py",
+    "docs/bench/qf3_campaign_comparison.md"
+  ],
+  "three_seed_triples_base_lora_worker": [
+    [
+      901,
+      902,
+      903
+    ],
+    [
+      1901,
+      1902,
+      1903
+    ],
+    [
+      2901,
+      2902,
+      2903
+    ]
+  ],
+  "training_target_each_seed": 400000,
+  "warmup_complete_episodes_each_seed": 320,
+  "final_cohort_formula": "2**50+j*200001, j=0..49",
+  "global_pre_outcome_three_selection_seal": true,
+  "actual_resume_chain_and_all_K_fresh50_required": true,
+  "stdlib_tensor_replay_semantics_verified": false,
+  "independent_checkpoint_and_block_admission_required": true,
+  "final_actual_noise_tensor_or_geometry_reconstruction_claim": false,
+  "cpu_io_cost": "Streams actual base/checkpoint/block bytes and parses one public simulation tape at a time. Full campaign reader wall/peak/I/O are unmeasured. No GPU cost or reservation.",
+  "code_changes": false,
+  "tests_or_native_runs": false,
+  "main_or_install_or_runtime_or_ledger_or_shared_docs_changed": false,
+  "old_checkpoint_migration_or_source_guard_bypass": false,
+  "launch_or_final_outcome_or_paper_result": false,
+  "review_corrections": [
+    "initial_mask does not initialize ever_placed; credit only after executed step",
+    "first accepted target crossing and per-invocation evidence deltas required",
+    "independent learned-final checkpoint/training-state preservation admission required",
+    "independent causal replay/native-dispatch/reward/evidence-ID lineage admission and prior-boundary coverage for evicted rows required"
+  ],
+  "previous_contract_sha256": "2ad30ef43fec8a7b4660da544606744dc3da0f0c517f711b5171649e6a51fdb7",
+  "previous_proposal_sha256": "5d299d971a9671e7b98ef699ee472405365d2d3ded8abbcb83c43a732bc84a9a"
+}
