@@ -82,8 +82,14 @@ def test_baseline_no_learned_no_artifact_traversal(tmp_path):
 
 def test_no_report_and_missing_pin_are_unavailable(tmp_path):
     assert load_vla_report()["status"] == "unavailable"
-    path, _ = pinned(tmp_path, baseline())
+    path, pin = pinned(tmp_path, baseline())
     assert "supplied together" in load_vla_report(path)["error"]
+    assert "supplied together" in load_vla_report(sha256=pin)["error"]
+    for malformed in ("invalid", pin.upper()):
+        view = load_vla_report(path, malformed)
+        assert view["status"] == "unavailable"
+        assert "exactly 64 lowercase hexadecimal characters" in view["error"]
+        assert "supplied together" not in view["error"]
 
 
 def test_pin_mismatch_and_later_tampering(tmp_path):

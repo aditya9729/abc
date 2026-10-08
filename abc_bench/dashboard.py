@@ -251,13 +251,13 @@ def load_vla_report(path: Path | None = None, sha256: str | None = None) -> dict
     if path is None and sha256 is None:
         return unavailable
     try:
-        if (
-            path is None
-            or sha256 is None
-            or re.fullmatch(r"[0-9a-f]{64}", sha256) is None
-        ):
+        if path is None or sha256 is None:
             raise ValueError(
                 "Report path and external SHA-256 must be supplied together"
+            )
+        if re.fullmatch(r"[0-9a-f]{64}", sha256) is None:
+            raise ValueError(
+                "External SHA-256 must contain exactly 64 lowercase hexadecimal characters"
             )
         with path.open("rb") as stream:
             snapshot = stream.read(REPORT_LIMIT + 1)
