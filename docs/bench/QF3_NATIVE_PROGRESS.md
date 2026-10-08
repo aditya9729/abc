@@ -47,10 +47,6 @@ The UI is read-only at `http://127.0.0.1:8766/`.
 Its offline snapshot is `/home/user/aditya/RL/abc/outputs/bench/dashboard.html`.
 R1 Lite remains the later policy target. R1 Pro is removed from active work.
 
-The user approved one additional GPU hour. The cumulative ledger limit is 10,800 seconds.
-At this publication, 10,538.595722 seconds are charged and 261.404278 seconds remain. All four recovery jobs are reaped.
-No GPU job is active. Full three-seed training is not included in this extension.
-The controller keeps prior charges, checks occupancy and holds one physical-GPU lease.
-Leela's jobs remain untouched.
-The new proposed calibration uses full 80-world/four-batch warmup, one 16-world rollout, 1600 critic and 200 actor updates, and 50 fresh validation layouts. It requests a separate additional 7200-second allowance, which has not been approved. The matched fixed-development50 evaluator is conditional on at least 600 actual settled seconds remaining and a real accepted checkpoint. See `QF3_NEXT_RUN.md` and `QF3_NEXT_CAPACITY_REVIEW.md` in the Sadhana docs. This calibration is separate from full 400k/three-seed reproduction.
+On 2026-10-08, the user authorized GPU 0 experiment time as needed. This removes the earlier cumulative 10,800-second time cap. The earlier 10,538.595722 seconds remain charged. The coordinator allocates finite admission credit for bounded jobs and retains exclusive leases, occupancy checks and per-job watchdogs. Leela's jobs remain untouched. See [the recorded authorization](gpu0_time_authorization_20261008.json).
+The authorized calibration uses full 80-world/four-batch warmup, one 16-world rollout, 1600 critic and 200 actor updates, and 50 fresh validation layouts. Its parent watchdog is 14400 seconds; its child watchdog is 14340 seconds. Only the watchdog differs from the accepted input recipe. A matched fixed-development50 evaluation follows an independently accepted checkpoint and recorded selection, after the capacity process exits and its lease settles. See `QF3_NEXT_RUN.md` and the historical `QF3_NEXT_CAPACITY_REVIEW.md` in the Sadhana docs. This calibration is separate from full 400k/three-seed reproduction.
 This explanation uses ASD-STE100 guidance. Full vocabulary and grammar compliance was not checked.

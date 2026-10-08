@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "kind": "user_gpu0_time_authorization",
+  "recorded_at_utc": "2026-10-08T13:50:15.362467+00:00",
+  "source": "user_message_2026-10-08",
+  "user_instruction": "hi you can use gpu 0 for your experiments - please use it for as much time as you need",
+  "gpu": 0,
+  "gpu_uuid": "GPU-50925bdd-bd56-4b30-4635-00cee7f5c95b",
+  "cumulative_user_time_cap_seconds": null,
+  "preserve_previous_charges": true,
+  "coordinator_can_allocate_admission_credit_per_bounded_job": true,
+  "exclusive_gpu0_only": true,
+  "leela_jobs_remain_untouched": true,
+  "current_job": {
+    "kind": "qf3_full_one_outer_capacity",
+    "parent_watchdog_seconds": 14400,
+    "child_watchdog_seconds": 14340,
+    "input": {
+      "path": "/home/user/aditya/RL/builds/qf3-capacity-launch-20261008/bottles.capacity.authorized.json",
+      "bytes": 5827,
+      "sha256": "07ab850ce3a3179bf976ab3545d975a06d68d930e85c17d9225de2fab0e7cae8"
+    }
+  },
+  "historical_proposal_unchanged": {
+    "path": "/home/user/aditya/RL/builds/qf3-paper-capacity-proposal-0.4.9-reporting-repair/bottles.paper_capacity_one_outer.proposed.json",
+    "sha256": "57239b5ccee58e7be9a52f9683bf9b193df36cdddcb9f07210fe02aa90001409"
+  },
+  "current_input_diff": [
+    "max_wall_s:7140->14340"
+  ]
+}
