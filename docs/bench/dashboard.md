@@ -68,3 +68,72 @@ python -m unittest discover -s tests/bench -p test_dashboard.py -v
 Checks cover missing metrics, malformed receipts, safe artifact access, and encoded path traversal.
 The HTTP server supports full-file video reads. HTTP range requests are not implemented.
 The dashboard provides no login. Keep the server on localhost.
+
+## Optional ABC-VLA development report
+
+The dashboard can present one externally approved CPU reader report.
+Supply its path and its SHA-256 approval pin together.
+Obtain the pin from the independent review or coordinator.
+Do not calculate a replacement approval pin from an untrusted input.
+
+```sh
+python -m abc_bench.dashboard --results-root outputs/bench --port 8767 \
+  --vla-report /path/to/approved-reader-report.json \
+  --vla-report-sha256 APPROVED_64_CHARACTER_SHA256
+```
+
+Use `--export NEW_PATH.html` for a separate offline view.
+A pinned-report export refuses an existing destination.
+Keep historical snapshots and raw receipts unchanged.
+The coordinator owns publication of actual approved reports.
+
+The dashboard reads and hashes at most 4 MiB of report JSON per refresh.
+It does not follow artifact references or hash model weights.
+It does not import the comparison reader, policy, simulator, or GPU libraries.
+It does not serve the report file or its referenced source paths.
+The API returns only the display fields and report hash.
+
+`/api/vla-comparison` is separate from `/api/results`.
+The optional section leaves canonical run rows and artifact links unchanged.
+Missing configuration or a rejected report shows unavailable values.
+A changed report fails the approved hash check on the next refresh.
+Duplicate JSON keys, nonfinite values, and incomplete summaries are refused.
+Each displayed policy requires 50 complete episodes.
+Paired counts must total 50 and agree with the policy success counts.
+
+The supported frozen status is `validated_frozen_development_evidence`.
+Its learned results and paired measurements remain unavailable.
+The supported comparison status is `descriptive_fixed_development_comparison`.
+It displays both policy summaries and both success definitions.
+Wins mean learned-only success. Losses mean baseline-only success.
+Common-success length changes use learned minus baseline control steps.
+A negative change uses fewer control steps in that common-success subset.
+Different successful subsets do not establish a speed gain.
+Lengths are not native first-success times.
+
+The report hash authenticates bytes, not producer truth or checkpoint selection chronology.
+This view does not repeat the reader's artifact validation or authenticate independent approval.
+This is native YAM development evidence. It is not R1 performance, held-out evaluation, or paper reproduction.
+Synthetic learned fixtures remain software tests. They are not published experiment results.
+
+```mermaid
+flowchart LR
+    P[Producer and independent checkpoint reviewer] -->|retained evidence| R[ABC CPU comparison reader]
+    R -->|derived report| A[Independent review and coordinator approval]
+    A -->|control: explicit path and external SHA pin| D[Dashboard UI agent: bounded JSON presentation]
+    D -->|data: summary and paired display fields| B[Local browser or new offline snapshot]
+    L[Future accepted learned report] -.->|planned pinned input| D
+```
+
+The producer owns execution. The reader team owns evidence validation.
+The coordinator supplies the approved report pin and owns publication.
+The UI agent implements presentation. An independent reviewer checks this interface.
+There is no control connection from the dashboard to training or hardware.
+Jev is not used by this interface.
+This explanation uses STE guidance. A full ASD-STE100 compliance check was not performed.
+
+Focused CPU checks:
+
+```sh
+CUDA_VISIBLE_DEVICES='' python -m pytest tests/bench/test_dashboard_vla.py tests/bench/test_dashboard.py -q
+```

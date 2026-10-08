@@ -5,8 +5,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import mimetypes
 import os
+import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
@@ -21,11 +23,16 @@ HTML = r"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="view
 </style><div class="tag">SADHANA / READ-ONLY EXPERIMENT VIEW</div><h1>Benchmark evidence</h1><p>Compare recorded experiments. A smoke test checks execution. A benchmark measures task performance.<br>Unavailable values are not measured. Diagnostic implementations do not establish paper reproduction.</p><div id="error" role="alert"></div><div class="cards" id="embodiments"></div>
 <div class="toolbar"><label>Method <select id="algorithm"><option value="">All methods</option></select></label><label>Embodiment <select id="embodiment"><option value="">All embodiments</option></select></label><label>Evidence <select id="phase"><option value="">All phases</option><option>smoke</option><option>benchmark</option></select></label><label>Status <select id="status"><option value="">All statuses</option></select></label><button id="refresh">Refresh evidence</button></div>
 <div class="scroll"><table><thead><tr><th>Method / scope</th><th>Embodiment / task</th><th>Run / seed</th><th>Success</th><th>Latency p50 / p95</th><th>Reward / completion</th><th>Budget / execution</th><th>Status / evidence</th></tr></thead><tbody id="runs"></tbody></table><div id="empty" hidden>No recorded runs match these filters.</div></div>
+<section id="vla" hidden><h2>ABC-VLA · fixed development evidence</h2><div id="vla-content" class="card"></div></section>
 <h2>Architecture and team</h2><div class="diagram"><svg viewBox="0 0 1000 165" role="img" aria-label="Runner writes measured receipts. Read-only dashboard presents receipts and approved artifacts. Independent reviewer checks the evidence."><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#70deba"/></marker></defs><g fill="#25364a" stroke="#597086"><rect x="10" y="30" width="210" height="80" rx="10"/><rect x="280" y="30" width="210" height="80" rx="10"/><rect x="550" y="30" width="210" height="80" rx="10"/><rect x="810" y="30" width="180" height="80" rx="10"/></g><g fill="#e8eef6" text-anchor="middle" font-family="system-ui" font-size="15"><text x="115" y="62">Gym + method runner</text><text x="115" y="85">Coordinator / algorithm team</text><text x="385" y="62">Measured run receipts</text><text x="385" y="85">Metrics + artifact paths</text><text x="655" y="62">Read-only dashboard</text><text x="655" y="85">UI agent</text><text x="900" y="62">Evidence review</text><text x="900" y="85">Independent reviewer</text></g><g stroke="#70deba" stroke-width="2" marker-end="url(#arrow)"><path d="M220 70 H275"/><path d="M490 70 H545"/><path d="M760 70 H805"/></g><text x="500" y="145" text-anchor="middle" fill="#aab9ca" font-size="13">Data flow → No dashboard control flow to training or robot hardware.</text></svg></div><footer id="updated"></footer>
 <script>
 let data={runs:[],embodiments:[]};const $=id=>document.getElementById(id);const present=v=>v!==null&&v!==undefined;const number=(v,suffix='')=>present(v)?(typeof v==='number'&&!Number.isInteger(v)?v.toFixed(2):String(v))+suffix:'Unavailable';function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}function badge(v){return el('span',v||'unavailable','status '+(['completed','passed','blocked','failed'].includes(v)?v:''))}function cell(row,text,sub){const c=el('td',text);if(sub)c.append(el('small',sub));row.append(c);return c}function options(id,key){const current=$(id).value;$(id).replaceChildren(el('option','All '+id+'s'));$(id).firstChild.value='';[...new Set(data.runs.map(r=>r[key]).filter(Boolean))].sort().forEach(v=>{const o=el('option',v);o.value=v;$(id).append(o)});$(id).value=current}
 function render(){const filtered=data.runs.filter(r=>['algorithm','embodiment','phase','status'].every(k=>!$(k).value||r[k]===$(k).value));$('runs').replaceChildren();$('empty').hidden=filtered.length>0;for(const r of filtered){const row=el('tr'),m=r.metrics||{},lat=m.latency_ms||{},b=r.budget||{};cell(row,r.algorithm||'Unavailable',r.method_fidelity||r.claim_scope||'Scope unavailable');cell(row,r.embodiment||'Unavailable',r.task);cell(row,r.run_id||'Unavailable',(r.phase||'phase unavailable')+' · seed '+number(r.seed));cell(row,present(m.successes)&&present(m.episodes)?`${m.successes} / ${m.episodes}`:'Unavailable');cell(row,number(lat.p50,' ms')+' / '+number(lat.p95,' ms'),m.latency_scope);cell(row,number(m.reward),number(m.completion_time_seconds,' s'));cell(row,number(b.wall_seconds,' s budget'),number(m.elapsed_seconds,' s elapsed')+' · '+number(m.simulation_steps??b.steps,' steps'));const c=cell(row);c.append(badge(r.status));for(const blocker of r.blockers||[])c.append(el('small',blocker));for(const a of r.artifacts||[]){if(!a.url)continue;const link=el('a',a.label||a.path);link.href=a.url;link.target='_blank';link.rel='noopener';c.append(el('br'),link)}if(r.checkpoint_path)c.append(el('small','Checkpoint: '+r.checkpoint_path));const details=el('details');details.append(el('summary','Run receipt'),el('pre',JSON.stringify(r,null,2)));c.append(details);$('runs').append(row)}}
-async function load(){try{if(window.BENCHMARK_SNAPSHOT){data=window.BENCHMARK_SNAPSHOT}else{const response=await fetch('/api/results',{cache:'no-store'});if(!response.ok)throw Error('Evidence request failed: '+response.status);data=await response.json()}$('error').textContent=(data.errors||[]).join(' · ');$('embodiments').replaceChildren();for(const e of data.embodiments){const card=el('div',undefined,'card');card.append(el('h2',e.label||e.id),badge(e.status));for(const b of e.blockers||[])card.append(el('p',b));$('embodiments').append(card)}['algorithm','embodiment','status'].forEach(k=>options(k,k));render();$('updated').textContent='Read at '+new Date().toLocaleString()+'. Receipts remain the source of evidence. STE guidance used; full ASD-STE100 compliance was not checked.'}catch(e){$('error').textContent=String(e)}}['algorithm','embodiment','phase','status'].forEach(k=>$(k).onchange=render);$('refresh').onclick=load;load();
+
+function renderVla(report){$('vla').hidden=false;const panel=$('vla-content');panel.replaceChildren();panel.append(el('p','Presentation of an externally approved, SHA-pinned CPU reader report. No policy or artifact validation runs here.'));if(report.status!=='available'){panel.append(el('p',report.error||'Report unavailable. No comparison is configured.'));return}panel.append(el('p',report.mode==='baseline'?'Retained frozen baseline · learned comparison unavailable':'Descriptive fixed-development comparison · native YAM only'));panel.append(el('small','Report SHA-256: '+report.report_sha256));const table=el('table'),header=el('tr');for(const label of ['Policy','History success / 50','Native-current success / 50','Success-only mean controls','Failure-inclusive mean controls','Native-current-only mean controls'])header.append(el('th',label));table.append(header);for(const [name,summary] of [['Frozen baseline',report.baseline],['Learned policy',report.learned]]){const row=el('tr');cell(row,name);cell(row,summary?number(summary.successes)+' / 50':'Unavailable');cell(row,summary?number(summary.native_successes)+' / 50':'Unavailable');for(const key of ['mean_successful_episode_length','failure_inclusive_mean_control_steps','native_current_success_only_mean_control_steps'])cell(row,number(summary?.[key]));table.append(row)}const scroll=el('div',undefined,'scroll');scroll.append(table);panel.append(scroll);for(const [label,pair] of [['History success',report.history_success_pairing],['Native-current success',report.native_current_success_pairing]]){panel.append(el('h3',label+' · paired outcomes'));if(!pair){panel.append(el('p','Wins, losses, common successes, and length changes: Unavailable'));continue}const counts=pair.counts;panel.append(el('p',`Learned wins: ${counts.win} · Learned losses: ${counts.loss} · Both succeed: ${counts.both} · Neither succeeds: ${counts.neither}`));panel.append(el('p','Common-success mean learned minus baseline: '+number(pair.common_success_mean_length_change,' controls')+'. A negative change uses fewer controls.'));const details=el('details');details.append(el('summary','Common-success lengths by seed'));const pairedTable=el('table'),h=el('tr');for(const title of ['Seed','Baseline controls','Learned controls','Learned − baseline'])h.append(el('th',title));pairedTable.append(h);for(const change of pair.common_success_length_changes){const row=el('tr');for(const key of ['seed','baseline_control_steps','learned_control_steps','learned_minus_baseline'])cell(row,number(change[key]));pairedTable.append(row)}details.append(pairedTable);panel.append(details)}for(const limit of report.limits)panel.append(el('p',limit));}
+async function loadVla(){try{if(window.BENCHMARK_SNAPSHOT){renderVla(window.VLA_COMPARISON_SNAPSHOT||{status:'unavailable'});return}const response=await fetch('/api/vla-comparison',{cache:'no-store'});if(!response.ok)throw Error('VLA report request failed: '+response.status);renderVla(await response.json())}catch(error){renderVla({status:'unavailable',error:String(error)})}}
+
+async function load(){try{if(window.BENCHMARK_SNAPSHOT){data=window.BENCHMARK_SNAPSHOT}else{const response=await fetch('/api/results',{cache:'no-store'});if(!response.ok)throw Error('Evidence request failed: '+response.status);data=await response.json()}$('error').textContent=(data.errors||[]).join(' · ');$('embodiments').replaceChildren();for(const e of data.embodiments){const card=el('div',undefined,'card');card.append(el('h2',e.label||e.id),badge(e.status));for(const b of e.blockers||[])card.append(el('p',b));$('embodiments').append(card)}['algorithm','embodiment','status'].forEach(k=>options(k,k));render();$('updated').textContent='Read at '+new Date().toLocaleString()+'. Receipts remain the source of evidence. STE guidance used; full ASD-STE100 compliance was not checked.'}catch(e){$('error').textContent=String(e)}}['algorithm','embodiment','phase','status'].forEach(k=>$(k).onchange=render);$('refresh').onclick=()=>{load();loadVla()};load();loadVla();
 </script></html>"""
 
 
@@ -101,8 +108,238 @@ def load_results(root: Path) -> tuple[dict, dict[str, Path]]:
     return result, artifacts
 
 
+REPORT_LIMIT = 4 * 1024 * 1024
+VLA_LIMITS = [
+    "Development cohort only. No held-out, author-performance, paper reproduction, or causal RL gain claim.",
+    "History success means all five bottles were placed at least once. Native-current success is judged at the history-defined episode end.",
+    "Lengths are control steps, not native first-success times. Different successful subsets do not establish a speed gain.",
+    "A report hash binds bytes. It does not prove producer truth, checkpoint selection chronology, or equal native trajectories.",
+    "This dashboard verifies only the supplied report bytes and display contract. It does not repeat source, artifact, or checkpoint validation.",
+]
+
+
+def _report_object(pairs: list[tuple[str, object]]) -> dict:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"Duplicate report key: {key}")
+        result[key] = value
+    return result
+
+
+def _report_float(value: str) -> float:
+    parsed = float(value)
+    if not math.isfinite(parsed):
+        raise ValueError("Non-finite report number")
+    return parsed
+
+
+def _display_number(value: object, *, integer: bool = False) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and (not integer or isinstance(value, int))
+    )
+
+
+def _display_summary(value: object) -> dict:
+    if not isinstance(value, dict):
+        raise TypeError("Missing policy summary")
+    if (
+        type(value.get("completed_episodes")) is not int
+        or value["completed_episodes"] != 50
+    ):
+        raise ValueError("Report requires 50 complete episodes per policy")
+    for key in ("successes", "native_successes"):
+        if (
+            not _display_number(value.get(key), integer=True)
+            or not 0 <= value[key] <= 50
+        ):
+            raise ValueError(f"Invalid summary {key}")
+    selected = {
+        key: value[key]
+        for key in ("completed_episodes", "successes", "native_successes")
+    }
+    for key in (
+        "mean_successful_episode_length",
+        "failure_inclusive_mean_control_steps",
+        "native_current_success_only_mean_control_steps",
+    ):
+        mean = value.get(key)
+        count = (
+            value["native_successes"]
+            if key.startswith("native_current")
+            else value["successes"]
+        )
+        if key == "failure_inclusive_mean_control_steps":
+            count = 50
+        if count == 0:
+            if mean is not None:
+                raise ValueError(f"Empty success subset requires null {key}")
+        elif not _display_number(mean) or not 0 < mean <= 1000:
+            raise ValueError(f"Invalid or missing summary {key}")
+        selected[key] = mean
+    return selected
+
+
+def _display_pairing(value: object) -> dict:
+    if not isinstance(value, dict) or not isinstance(value.get("counts"), dict):
+        raise TypeError("Missing complete paired outcomes")
+    counts = value["counts"]
+    if (
+        set(counts) != {"win", "loss", "both", "neither"}
+        or any(
+            not _display_number(n, integer=True) or not 0 <= n <= 50
+            for n in counts.values()
+        )
+        or sum(counts.values()) != 50
+    ):
+        raise ValueError("Paired outcome counts must total 50")
+    changes = value.get("common_success_length_changes")
+    if not isinstance(changes, list) or len(changes) != counts["both"]:
+        raise ValueError("Invalid common-success lengths")
+    safe_changes = []
+    for item in changes:
+        keys = (
+            "seed",
+            "baseline_control_steps",
+            "learned_control_steps",
+            "learned_minus_baseline",
+        )
+        if not isinstance(item, dict) or any(
+            not _display_number(item.get(k), integer=True) for k in keys
+        ):
+            raise ValueError("Invalid paired length row")
+        if not 1000000 <= item["seed"] < 1000050 or any(
+            not 0 < item[k] <= 1000 for k in keys[1:3]
+        ):
+            raise ValueError("Invalid paired seed or episode length")
+        if (
+            item["learned_minus_baseline"]
+            != item["learned_control_steps"] - item["baseline_control_steps"]
+        ):
+            raise ValueError("Inconsistent paired length change")
+        safe_changes.append({k: item[k] for k in keys})
+    if len({item["seed"] for item in safe_changes}) != len(safe_changes):
+        raise ValueError("Duplicate common-success seed")
+    mean = value.get("common_success_mean_length_change")
+    if not changes and mean is not None:
+        raise ValueError("Empty common-success subset requires null mean")
+    if changes and (
+        not _display_number(mean)
+        or not math.isclose(
+            mean, sum(i["learned_minus_baseline"] for i in safe_changes) / len(changes)
+        )
+    ):
+        raise ValueError("Inconsistent common-success mean")
+    return {
+        "counts": dict(counts),
+        "common_success_length_changes": safe_changes,
+        "common_success_mean_length_change": mean,
+    }
+
+
+def load_vla_report(path: Path | None = None, sha256: str | None = None) -> dict:
+    """Present only externally pinned reader JSON; never follow artifact references."""
+    unavailable = {
+        "status": "unavailable",
+        "learned": None,
+        "history_success_pairing": None,
+        "native_current_success_pairing": None,
+    }
+    if path is None and sha256 is None:
+        return unavailable
+    try:
+        if (
+            path is None
+            or sha256 is None
+            or re.fullmatch(r"[0-9a-f]{64}", sha256) is None
+        ):
+            raise ValueError(
+                "Report path and external SHA-256 must be supplied together"
+            )
+        with path.open("rb") as stream:
+            snapshot = stream.read(REPORT_LIMIT + 1)
+        if len(snapshot) > REPORT_LIMIT:
+            raise ValueError("Report exceeds 4 MiB display limit")
+        if hashlib.sha256(snapshot).hexdigest() != sha256:
+            raise ValueError("Approved report SHA-256 mismatch")
+        report = json.loads(
+            snapshot,
+            object_pairs_hook=_report_object,
+            parse_constant=reject_nonfinite,
+            parse_float=_report_float,
+        )
+        if (
+            not isinstance(report, dict)
+            or type(report.get("schema_version")) is not int
+            or report["schema_version"] != 1
+        ):
+            raise ValueError("Unsupported reader report schema")
+        status = report.get("status")
+        if status not in {
+            "validated_frozen_development_evidence",
+            "descriptive_fixed_development_comparison",
+        }:
+            raise ValueError("Reader report is not an accepted display status")
+        baseline = report.get("baseline")
+        if not isinstance(baseline, dict):
+            raise TypeError("Missing baseline summary")
+        result = {
+            **unavailable,
+            "status": "available",
+            "report_sha256": sha256,
+            "baseline": _display_summary(baseline.get("summary")),
+            "mode": "baseline",
+            "limits": list(VLA_LIMITS),
+        }
+        if status == "validated_frozen_development_evidence":
+            if (
+                report.get("comparison_executed") is not False
+                or report.get("learned_result", "missing") is not None
+                or any(
+                    key in report
+                    for key in (
+                        "learned",
+                        "history_success_pairing",
+                        "native_current_success_pairing",
+                    )
+                )
+            ):
+                raise ValueError("Frozen report cannot include a learned comparison")
+        else:
+            learned = report.get("learned")
+            if not isinstance(learned, dict):
+                raise ValueError("Missing learned summary")
+            result.update(
+                mode="comparison", learned=_display_summary(learned.get("summary"))
+            )
+            for key in ("history_success_pairing", "native_current_success_pairing"):
+                result[key] = _display_pairing(report.get(key))
+                metric = (
+                    "successes"
+                    if key == "history_success_pairing"
+                    else "native_successes"
+                )
+                counts = result[key]["counts"]
+                if (
+                    counts["both"] + counts["loss"] != result["baseline"][metric]
+                    or counts["both"] + counts["win"] != result["learned"][metric]
+                ):
+                    raise ValueError("Paired counts disagree with policy summaries")
+        return result
+    except (OSError, ValueError, TypeError, OverflowError) as exc:
+        return {**unavailable, "error": f"ABC-VLA report unavailable: {exc}"}
+
+
 def make_server(
-    root: Path, host: str = "127.0.0.1", port: int = 8765
+    root: Path,
+    host: str = "127.0.0.1",
+    port: int = 8765,
+    *,
+    vla_report: Path | None = None,
+    vla_report_sha256: str | None = None,
 ) -> ThreadingHTTPServer:
     """Create a read-only server. Call server_close after shutdown."""
     root = root.resolve()
@@ -112,6 +349,14 @@ def make_server(
             route = unquote(urlsplit(self.path).path)
             if route == "/":
                 self.respond(200, HTML.encode(), "text/html; charset=utf-8")
+            elif route == "/api/vla-comparison":
+                self.respond(
+                    200,
+                    json.dumps(
+                        load_vla_report(vla_report, vla_report_sha256), allow_nan=False
+                    ).encode(),
+                    "application/json",
+                )
             elif route == "/api/results":
                 result, _ = load_results(root)
                 self.respond(
@@ -165,8 +410,18 @@ def make_server(
     return ThreadingHTTPServer((host, port), Handler)
 
 
-def export_snapshot(root: Path, destination: Path) -> None:
+def export_snapshot(
+    root: Path,
+    destination: Path,
+    *,
+    vla_report: Path | None = None,
+    vla_report_sha256: str | None = None,
+) -> None:
     """Write a portable interactive view of the current verified receipt data."""
+    if (
+        vla_report is not None or vla_report_sha256 is not None
+    ) and destination.exists():
+        raise FileExistsError("Pinned comparison export requires a new snapshot path")
     data, _ = load_results(root)
     for run in data["runs"]:
         for artifact in run.get("artifacts", []):
@@ -180,7 +435,15 @@ def export_snapshot(root: Path, destination: Path) -> None:
                 )
     encoded = json.dumps(data, allow_nan=False).replace("<", "\\u003c")
     document = HTML.replace(
-        "<script>", "<script>window.BENCHMARK_SNAPSHOT=" + encoded + ";", 1
+        "<script>",
+        "<script>window.VLA_COMPARISON_SNAPSHOT="
+        + json.dumps(
+            load_vla_report(vla_report, vla_report_sha256), allow_nan=False
+        ).replace("<", "\\u003c")
+        + ";window.BENCHMARK_SNAPSHOT="
+        + encoded
+        + ";",
+        1,
     )
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(document)
@@ -196,13 +459,32 @@ def main() -> None:
         "--export", type=Path, help="Write an offline interactive snapshot and exit"
     )
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument(
+        "--vla-report", type=Path, help="Externally approved CPU reader JSON report"
+    )
+    parser.add_argument(
+        "--vla-report-sha256", help="External approval pin for the report bytes"
+    )
     args = parser.parse_args()
+    if (args.vla_report is None) != (args.vla_report_sha256 is None):
+        parser.error("--vla-report and --vla-report-sha256 must be supplied together")
     if args.host == "::1":
         parser.error("Use 127.0.0.1 or localhost; this server uses IPv4.")
     if args.export is not None:
-        export_snapshot(args.results_root, args.export)
+        export_snapshot(
+            args.results_root,
+            args.export,
+            vla_report=args.vla_report,
+            vla_report_sha256=args.vla_report_sha256,
+        )
         return
-    server = make_server(args.results_root, args.host, args.port)
+    server = make_server(
+        args.results_root,
+        args.host,
+        args.port,
+        vla_report=args.vla_report,
+        vla_report_sha256=args.vla_report_sha256,
+    )
     print(f"Benchmark evidence: http://{args.host}:{server.server_port}", flush=True)
     try:
         server.serve_forever()
