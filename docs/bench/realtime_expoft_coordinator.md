@@ -23,7 +23,7 @@ The capitalized arguments are placeholders. No new native run is claimed here. R
 
 The coordinator forwards the worker's exact configuration. It reduces the child watchdog to retain the existing 60-second parent allowance. It passes the canonical lease directory. Optional `--expoft-resume-pin` identifies a reviewed worker continuation pin. The worker validates that pin. Native world state is not restored.
 
-The parent publishes `phase=training`. It does not publish training success as a benchmark score. `episode_schedule_completed` means the configured episodes ended at a complete update boundary. A missing successful imitation sample remains `awaiting_success_imitation_data`.
+The parent publishes `phase=training`. It does not publish training success as a benchmark score. `episode_schedule_completed` means the configured episodes ended at a complete update boundary. Warmup with no updates reports `no_accepted_update_groups`. A missing successful imitation sample reports `awaiting_success_imitation_data`.
 
 | Evidence | Meaning |
 | --- | --- |
@@ -35,11 +35,13 @@ The parent publishes `phase=training`. It does not publish training success as a
 | `completed_training_episodes` | Newly completed episodes; this is not an evaluation cohort. |
 | `successes`, `episodes`, latency percentiles | Unavailable as benchmark measurements in this route. |
 
-Control counts must reconcile. Counters use nonnegative integers. Boolean aliases fail. Input identity uses exact JSON types. Repeated update ordinals fail.
+Control counts must reconcile with the wrapper's issued controls. Counters use nonnegative integers. Boolean aliases fail. Input identity uses exact JSON types. Native learning starts after ten episodes, with one update group per 30 controls. Fixture clocks fail. Repeated update ordinals fail.
 
-The parent retains `training/receipt.json` on worker failure. It records its checksum and error. Invalid worker counters receive no credit. A budget stop or strict-clock miss publishes `status=partial`. A failed process publishes `status=failed`.
+Each accepted group has 20 critic, target and noise updates, one editor update and one temperature update. It has one completed or skipped base update. A completed base update has one auxiliary update. Initial and final counters must agree with these groups. A ready boundary has less than 30 controls of update debt. Interrupted optimizer phase counts can exceed accepted groups in a failed receipt. These phase counts do not increase accepted update credit.
 
-The CPU suite checks orchestration with explicit doubles. It checks the shared reservation, settlement, watchdog, UUID forwarding, continuation argument and failure receipts. It does not construct a learner or use a GPU. The initial focused suite passed 33 tests. The full benchmark suite passed 251 tests in 16.99 seconds. Installed runtime, native learning, storage capacity and matched evaluation remain separate gates.
+The parent retains `training/receipt.json` on worker failure. It records its checksum and error. Invalid worker counters receive no credit. A completed worker requires exit code 0. A budget stop or strict-clock miss requires exit code 2 and publishes `status=partial`. Exit/status mismatches fail and retain raw evidence. Fatal process exits remain failures.
+
+The CPU suite checks orchestration with explicit doubles. It checks the shared reservation, settlement, watchdog, UUID forwarding, continuation argument and failure receipts. It checks the production CLI exit map, warmup receipts, counter inflation, pending debt and interrupted optimizer credit. It does not construct a learner or use a GPU. Initial owner checks passed 251 benchmark tests. Independent review found interface defects in that initial change. The repaired revision needs new tests and review. Installed runtime, native learning, storage capacity and matched evaluation remain separate gates.
 
 ```mermaid
 flowchart LR

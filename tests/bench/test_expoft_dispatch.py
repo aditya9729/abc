@@ -16,7 +16,7 @@ def input_config():
         "domain": "sim",
         "profile": expoft_dispatch.PROFILE,
         "mode": "paused_simulation_fixed_tick",
-        "episodes": 12,
+        "episodes": 13,
         "max_wall_s": 500,
         "seed": 903,
         "sampler_seed": 901,
@@ -24,9 +24,24 @@ def input_config():
     }
 
 
+def learner_counts(calls):
+    return {
+        "critic": 20 * calls,
+        "critic_target": 20 * calls,
+        "noise": 20 * calls,
+        "editor": calls,
+        "temperature": calls,
+        "update_calls": calls,
+        "base": 0,
+        "auxiliary": 0,
+        "skipped_base": calls,
+    }
+
+
 def worker_record(config, status="completed"):
-    completed = 12 if status == "completed" else 11
+    completed = 13 if status == "completed" else 12
     discarded = 0 if status == "completed" else 3
+    calls = 3 if status == "completed" else 2
     return {
         "revision": expoft_dispatch.REVISION,
         "domain": "sim",
@@ -34,6 +49,9 @@ def worker_record(config, status="completed"):
         "identity": {
             "revision": expoft_dispatch.REVISION,
             "config": {k: v for k, v in config.items() if k != "max_wall_s"},
+            "learning_starts": 10,
+            "step_interval": 30,
+            "diagnostic_fixture": False,
         },
         "clock_mode": config["mode"],
         "independent_native_admission": False,
@@ -41,29 +59,52 @@ def worker_record(config, status="completed"):
         "wall_time_reactivity_verified": False,
         "wrapper": {
             "completed_episodes": completed,
-            "accepted_update_calls": 3,
+            "accepted_update_calls": calls,
+            "issued_steps": 330 + (completed - 11) * 30 + discarded,
+            "update_debt": 0,
+            "checkpoint_serial": 5,
             "phase": "ready" if status == "completed" else "collecting",
         },
         "invocation": {
-            "initial_wrapper": {"completed_episodes": 10, "accepted_update_calls": 1},
-            "physical_control_steps": (completed - 10) * 30 + discarded,
-            "accepted_completed_control_steps": (completed - 10) * 30,
+            "initial_wrapper": {
+                "completed_episodes": 11,
+                "accepted_update_calls": 1,
+                "issued_steps": 330,
+                "update_debt": 0,
+                "checkpoint_serial": 3,
+                "phase": "ready",
+            },
+            "initial_learner_counters": learner_counts(1),
+            "physical_control_steps": (completed - 11) * 30 + discarded,
+            "accepted_completed_control_steps": (completed - 11) * 30,
             "discarded_partial_control_steps": discarded,
         },
         "accepted_update_groups": [
-            {"ordinal": i, "pin": {"fixture": True}} for i in range(3)
+            {"ordinal": i, "pin": {"fixture": True}} for i in range(calls)
         ],
         "successful_base_updates": 0,
+        "skipped_base_updates": calls,
+        "learner_counters": learner_counts(calls),
         "learning_status": "awaiting_success_imitation_data",
         "error": "fixture clock miss" if status != "completed" else None,
     }
 
 
 @pytest.mark.parametrize(
-    "status", ["completed", "budget_stopped", "deadline_missed_partial", "failed"]
+    "status,exit_code,expected",
+    [
+        ("completed", 0, "completed"),
+        ("budget_stopped", 2, "partial"),
+        ("deadline_missed_partial", 2, "partial"),
+        ("failed", 1, "failed"),
+        ("completed", 2, "failed"),
+        ("budget_stopped", 0, "failed"),
+        ("deadline_missed_partial", 0, "failed"),
+        ("budget_stopped", 1, "failed"),
+    ],
 )
 def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
-    monkeypatch, tmp_path, status
+    monkeypatch, tmp_path, status, exit_code, expected
 ):
     campaign = tmp_path / "campaign"
     monkeypatch.setattr(runner, "RESULTS", campaign)
@@ -105,7 +146,7 @@ def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
         assert type(ledger["active_parent_pid"]) is int
         destination = Path(command[command.index("--out") + 1])
         runner.write_json(destination / "receipt.json", worker_record(child, status))
-        return 1 if status == "failed" else 0
+        return exit_code
 
     monkeypatch.setattr(runner, "execute_command", fixture_worker)
     args = Namespace(
@@ -122,19 +163,26 @@ def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
         expoft_resume_pin=tmp_path / "resume-pin.json",
     )
     receipt = runner.run_baseline(args)
-    expected = (
-        "failed"
-        if status == "failed"
-        else "completed"
-        if status == "completed"
-        else "partial"
-    )
-    assert receipt["status"] == expected and receipt["worker_status"] == status
+    assert receipt["status"] == expected and receipt["worker_exit_code"] == exit_code
     assert receipt["phase"] == "training" and receipt["training_stage"] == "train"
     assert (
         receipt["task"] == "put_plastic_bottles_in_bin"
         and receipt["checkpoint_path"] == config["artifacts"]["checkpoint_path"]
     )
+    ledger = json.loads((campaign / "gpu_budget.json").read_bytes())
+    assert (
+        7100 <= ledger["charged_seconds"] < 7101 and "active_parent_pid" not in ledger
+    )
+    assert publications[-1]["status"] == expected
+    assert any(
+        a["path"].endswith("training/receipt.json") for a in receipt["artifacts"]
+    )
+    if expected == "failed" and status != "failed":
+        assert receipt["metrics"].get("updates") is None
+        assert "episode_schedule_completed" not in receipt
+        assert any("exit code and status differ" in b for b in receipt["blockers"])
+        return
+    assert receipt["worker_status"] == status
     assert receipt["metrics"]["simulation_steps"] == (
         60 if status == "completed" else 33
     )
@@ -144,9 +192,10 @@ def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
     assert receipt["metrics"]["discarded_partial_control_steps"] == (
         0 if status == "completed" else 3
     )
-    assert (
-        receipt["metrics"]["updates"] == 2
-        and receipt["metrics"]["cumulative_accepted_update_calls"] == 3
+    assert receipt["metrics"]["updates"] == (
+        2 if status == "completed" else 1
+    ) and receipt["metrics"]["cumulative_accepted_update_calls"] == (
+        3 if status == "completed" else 2
     )
     assert (
         receipt["metrics"]["successes"] is None
@@ -157,14 +206,6 @@ def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
     assert receipt["independent_admission_required"] is True
     assert receipt["wall_time_reactivity_verified"] is False
     assert config == json.loads(config_path.read_bytes())
-    ledger = json.loads((campaign / "gpu_budget.json").read_bytes())
-    assert (
-        7100 <= ledger["charged_seconds"] < 7101 and "active_parent_pid" not in ledger
-    )
-    assert publications[-1]["status"] == expected
-    assert any(
-        a["path"].endswith("training/receipt.json") for a in receipt["artifacts"]
-    )
     if status == "failed":
         assert receipt["worker_error"] == "fixture clock miss"
         assert len(receipt["worker_receipt_sha256"]) == 64
@@ -183,6 +224,19 @@ def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
         "unfinished",
         "unknown",
         "list_learning",
+        "issued_delta",
+        "due_debt",
+        "critic_short",
+        "noise_short",
+        "critic_target_short",
+        "editor_short",
+        "temperature_short",
+        "auxiliary_short",
+        "base_total",
+        "initial_counts",
+        "initial_schema",
+        "fixture_clock",
+        "clock_bool",
     ],
 )
 def test_invalid_worker_evidence_has_no_counter_admission(fault):
@@ -206,10 +260,105 @@ def test_invalid_worker_evidence_has_no_counter_admission(fault):
         worker["wrapper"]["phase"] = "pending_updates"
     elif fault == "unknown":
         worker["status"] = []
-    else:
+    elif fault == "list_learning":
         worker["learning_status"] = []
+    elif fault == "issued_delta":
+        worker["invocation"]["physical_control_steps"] += 1
+        worker["invocation"]["accepted_completed_control_steps"] += 1
+    elif fault == "due_debt":
+        worker["wrapper"]["update_debt"] = 30
+    elif fault.endswith("_short"):
+        key = fault.removesuffix("_short")
+        if key == "auxiliary":
+            worker["learner_counters"].update(base=1, skipped_base=2)
+            worker.update(
+                successful_base_updates=1,
+                skipped_base_updates=2,
+                learning_status="components_exercised_no_gain_claim",
+            )
+        else:
+            worker["learner_counters"][key] -= 1
+    elif fault == "base_total":
+        worker["learner_counters"]["skipped_base"] = 4
+        worker["skipped_base_updates"] = 4
+    elif fault == "initial_counts":
+        worker["invocation"]["initial_learner_counters"]["noise"] = 19
+    elif fault == "initial_schema":
+        worker["invocation"]["initial_wrapper"]["unknown"] = 0
+    elif fault == "fixture_clock":
+        worker["identity"].update(
+            diagnostic_fixture=True, learning_starts=0, step_interval=1
+        )
+    elif fault == "clock_bool":
+        worker["identity"]["step_interval"] = True
     with pytest.raises(ValueError):
         expoft_dispatch.summarize_worker(worker, config)
+
+
+def test_native_warmup_stop_with_no_update_groups_is_valid():
+    config = input_config()
+    worker = worker_record(config, "budget_stopped")
+    worker["wrapper"].update(
+        completed_episodes=8, issued_steps=240, accepted_update_calls=0, phase="ready"
+    )
+    worker["invocation"].update(
+        initial_wrapper={
+            "completed_episodes": 0,
+            "issued_steps": 0,
+            "accepted_update_calls": 0,
+            "update_debt": 0,
+            "checkpoint_serial": 0,
+            "phase": "ready",
+        },
+        initial_learner_counters=learner_counts(0),
+        physical_control_steps=240,
+        accepted_completed_control_steps=240,
+        discarded_partial_control_steps=0,
+    )
+    worker.update(
+        accepted_update_groups=[],
+        learner_counters=learner_counts(0),
+        skipped_base_updates=0,
+        learning_status="no_accepted_update_groups",
+    )
+    result = expoft_dispatch.summarize_worker(worker, config, exit_code=2)
+    assert result["learning_status"] == "no_accepted_update_groups"
+    assert result["metrics"]["simulation_steps"] == 240
+    assert result["metrics"]["updates"] == 0
+    assert result["episode_schedule_completed"] is False
+
+
+def test_partial_optimizer_failure_keeps_only_accepted_group_credit():
+    config = input_config()
+    worker = worker_record(config, "failed")
+    worker["learner_counters"]["critic"] += 1
+    worker["learner_counters"]["base"] += 1
+    worker.update(
+        successful_base_updates=1, learning_status="components_exercised_no_gain_claim"
+    )
+    # A returned native command can fail during replay append. Preserve its
+    # physical evidence separately from the wrapper's successfully added rows.
+    worker["wrapper"]["issued_steps"] -= 1
+    result = expoft_dispatch.summarize_worker(worker, config, exit_code=1)
+    assert result["metrics"]["updates"] == 1
+    assert result["metrics"]["cumulative_accepted_update_calls"] == 2
+    assert result["metrics"]["simulation_steps"] == 33
+    assert result["episode_schedule_completed"] is False
+
+
+def test_completed_group_with_actual_successful_imitation_is_supported():
+    config = input_config()
+    worker = worker_record(config)
+    worker["learner_counters"].update(base=1, auxiliary=1, skipped_base=2)
+    worker.update(
+        successful_base_updates=1,
+        skipped_base_updates=2,
+        learning_status="components_exercised_no_gain_claim",
+    )
+    result = expoft_dispatch.summarize_worker(worker, config, exit_code=0)
+    assert result["learning_status"] == "components_exercised_no_gain_claim"
+    assert result["metrics"]["updates"] == 2
+    assert result["metrics"]["successes"] is None
 
 
 @pytest.mark.parametrize("content", ['{"x":1,"x":2}', '{"x":NaN}', '{"x":1e999}', "[]"])

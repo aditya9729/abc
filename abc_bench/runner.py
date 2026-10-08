@@ -605,11 +605,14 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         ledger["active_parent_pid"] = os.getpid()
         ledger["active_gpu_uuid"] = gpu_binding["uuid"]
         write_json(ledger_path, ledger)
+        code = None
         try:
             code = execute_command(
                 command, out / "run.log", timeout, gpu_uuid=gpu_binding["uuid"]
             )
-            if code:
+            if algorithm == "realtime-expoft-abc":
+                receipt["worker_exit_code"] = code
+            if code and not (algorithm == "realtime-expoft-abc" and code == 2):
                 raise RuntimeError(
                     f"ABC evaluation failed with exit code {code}; see run.log"
                 )
@@ -666,7 +669,9 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     )
                     publish(child, results)
             elif algorithm == "realtime-expoft-abc":
-                receipt.update(summarize_expoft_worker(summary, training))
+                receipt.update(
+                    summarize_expoft_worker(summary, training, exit_code=code)
+                )
                 if summary["status"] == "failed":
                     raise RuntimeError(
                         "EXPO worker failed; see preserved worker evidence"
@@ -824,7 +829,11 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     failed_worker, dict
                 ):
                     try:
-                        receipt.update(summarize_expoft_worker(failed_worker, training))
+                        receipt.update(
+                            summarize_expoft_worker(
+                                failed_worker, training, exit_code=code
+                            )
+                        )
                     except (ValueError, KeyError) as invalid:
                         receipt["blockers"].append(
                             "Invalid EXPO worker counters: " + str(invalid)

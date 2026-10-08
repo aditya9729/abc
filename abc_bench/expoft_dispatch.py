@@ -15,6 +15,24 @@ PROFILE = "abc-vla/released-config-first/1"
 REVISION = "sadhana.realtime-expoft-worker/1"
 MODES = {"paused_simulation_fixed_tick", "strict_wall"}
 STATUSES = {"completed", "budget_stopped", "deadline_missed_partial", "failed"}
+WRAPPER_COUNTS = {
+    "completed_episodes",
+    "issued_steps",
+    "update_debt",
+    "accepted_update_calls",
+    "checkpoint_serial",
+}
+LEARNER_COUNTS = {
+    "critic",
+    "critic_target",
+    "noise",
+    "editor",
+    "temperature",
+    "base",
+    "auxiliary",
+    "update_calls",
+    "skipped_base",
+}
 
 
 def _require(value: bool, message: str) -> None:
@@ -79,7 +97,62 @@ def training_input(path: Path) -> dict[str, Any]:
     return config
 
 
-def summarize_worker(worker: dict[str, Any], config: dict[str, Any]) -> dict[str, Any]:
+def _wrapper(value: Any, *, initial: bool) -> dict[str, Any]:
+    _require(
+        isinstance(value, dict) and set(value) == WRAPPER_COUNTS | {"phase"},
+        "EXPO wrapper counter schema differs",
+    )
+    for key in WRAPPER_COUNTS:
+        _count(value[key], key)
+    phases = (
+        {"ready", "pending_updates"}
+        if initial
+        else {"ready", "pending_updates", "collecting"}
+    )
+    _require(
+        isinstance(value["phase"], str) and value["phase"] in phases,
+        "EXPO wrapper phase differs",
+    )
+    _require(
+        value["phase"] != "ready" or value["update_debt"] < 30,
+        "EXPO ready boundary retains due update debt",
+    )
+    return value
+
+
+def _learner_counts(value: Any, calls: int, *, failed: bool) -> dict[str, int]:
+    _require(
+        isinstance(value, dict) and set(value) == LEARNER_COUNTS,
+        "EXPO learner counter schema differs",
+    )
+    for key in LEARNER_COUNTS:
+        _count(value[key], "learner " + key)
+    expected = {
+        **{key: 20 * calls for key in ("critic", "noise", "critic_target")},
+        **{key: calls for key in ("editor", "temperature", "update_calls")},
+    }
+    # An interrupted optimizer group may have phase counts beyond the accepted
+    # prefix. Only the wrapper's fully retained groups receive update credit.
+    _require(
+        all(value[k] >= v if failed else value[k] == v for k, v in expected.items())
+        and (
+            value["base"] + value["skipped_base"] >= calls
+            if failed
+            else value["base"] + value["skipped_base"] == calls
+        )
+        and (
+            value["auxiliary"] <= value["base"]
+            if failed
+            else value["auxiliary"] == value["base"]
+        ),
+        "EXPO learner and accepted update groups do not reconcile",
+    )
+    return value
+
+
+def summarize_worker(
+    worker: dict[str, Any], config: dict[str, Any], *, exit_code: int | None = None
+) -> dict[str, Any]:
     _require(
         worker.get("revision") == REVISION and worker.get("domain") == "sim",
         "EXPO worker revision/domain differs",
@@ -88,6 +161,19 @@ def summarize_worker(worker: dict[str, Any], config: dict[str, Any]) -> dict[str
     _require(
         isinstance(status, str) and status in STATUSES, "EXPO worker status differs"
     )
+    if exit_code is not None:
+        _require(
+            type(exit_code) is int
+            and (
+                status == "completed"
+                and exit_code == 0
+                or status in {"budget_stopped", "deadline_missed_partial"}
+                and exit_code == 2
+                or status == "failed"
+                and exit_code not in {0, 2}
+            ),
+            "EXPO worker exit code and status differ",
+        )
     identity = worker.get("identity")
     _require(
         isinstance(identity, dict)
@@ -99,6 +185,14 @@ def summarize_worker(worker: dict[str, Any], config: dict[str, Any]) -> dict[str
             allow_nan=False,
         ),
         "EXPO worker input identity differs",
+    )
+    _require(
+        identity.get("diagnostic_fixture") is False
+        and type(identity.get("learning_starts")) is int
+        and identity["learning_starts"] == 10
+        and type(identity.get("step_interval")) is int
+        and identity["step_interval"] == 30,
+        "EXPO native update clock identity differs",
     )
     _require(worker.get("clock_mode") == config["mode"], "EXPO worker clock differs")
     # Training receipts are never an independent native or author reproduction.
@@ -113,8 +207,8 @@ def summarize_worker(worker: dict[str, Any], config: dict[str, Any]) -> dict[str
         isinstance(invocation, dict) and isinstance(wrapper, dict),
         "EXPO counters missing",
     )
-    initial = invocation.get("initial_wrapper")
-    _require(isinstance(initial, dict), "EXPO invocation initial counters missing")
+    initial = _wrapper(invocation.get("initial_wrapper"), initial=True)
+    wrapper = _wrapper(wrapper, initial=False)
     physical = _count(invocation.get("physical_control_steps"), "physical controls")
     accepted = _count(
         invocation.get("accepted_completed_control_steps"), "accepted controls"
@@ -125,6 +219,14 @@ def summarize_worker(worker: dict[str, Any], config: dict[str, Any]) -> dict[str
     _require(
         physical == accepted + discarded, "EXPO invocation controls do not reconcile"
     )
+    issued_delta = wrapper["issued_steps"] - initial["issued_steps"]
+    _require(
+        issued_delta >= 0
+        and accepted <= issued_delta <= physical
+        and (status == "failed" or issued_delta == physical)
+        and wrapper["checkpoint_serial"] >= initial["checkpoint_serial"],
+        "EXPO invocation controls differ from issued wrapper counters",
+    )
     episodes = _count(wrapper.get("completed_episodes"), "completed episodes")
     initial_episodes = _count(initial.get("completed_episodes"), "initial episodes")
     calls = _count(wrapper.get("accepted_update_calls"), "accepted update calls")
@@ -132,6 +234,16 @@ def summarize_worker(worker: dict[str, Any], config: dict[str, Any]) -> dict[str
     _require(
         initial_episodes <= episodes <= config["episodes"] and initial_calls <= calls,
         "EXPO completed invocation counters regressed",
+    )
+    before = _learner_counts(
+        invocation.get("initial_learner_counters"), initial_calls, failed=False
+    )
+    after = _learner_counts(
+        worker.get("learner_counters"), calls, failed=status == "failed"
+    )
+    _require(
+        all(after[k] >= before[k] for k in LEARNER_COUNTS),
+        "EXPO learner counters regressed",
     )
     _require(
         isinstance(worker.get("accepted_update_groups"), list)
@@ -141,15 +253,28 @@ def summarize_worker(worker: dict[str, Any], config: dict[str, Any]) -> dict[str
     for ordinal, group in enumerate(worker["accepted_update_groups"]):
         _require(
             isinstance(group, dict)
+            and set(group) == {"ordinal", "pin"}
+            and isinstance(group["pin"], dict)
             and type(group.get("ordinal")) is int
             and group["ordinal"] == ordinal,
             "EXPO accepted update-group ordinal differs",
         )
-    _count(worker.get("successful_base_updates"), "producer base updates")
     _require(
-        isinstance(worker.get("learning_status"), str)
-        and worker["learning_status"]
-        in {"components_exercised_no_gain_claim", "awaiting_success_imitation_data"},
+        _count(worker.get("successful_base_updates"), "producer base updates")
+        == after["base"]
+        and _count(worker.get("skipped_base_updates"), "producer skipped base updates")
+        == after["skipped_base"],
+        "EXPO producer base counters differ from learner",
+    )
+    expected_learning = (
+        "components_exercised_no_gain_claim"
+        if after["base"] > 0
+        else "awaiting_success_imitation_data"
+        if after["skipped_base"] > 0
+        else "no_accepted_update_groups"
+    )
+    _require(
+        worker.get("learning_status") == expected_learning,
         "EXPO learning status differs",
     )
     if status == "completed":
