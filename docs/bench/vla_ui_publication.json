@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "kind": "qf3_vla_ui_root_publication",
+  "created_at_utc": "2026-10-08T14:13:13.033613+00:00",
+  "status": "accepted_baseline_only_UI_publication",
+  "source_commit": "c453f946b9055eaed3a9dfd30de46f43e0340010",
+  "url": "http://127.0.0.1:8767",
+  "approval_sha256": "7df0b8b8188cefc22e24d0f012615df738f92e09dac92eed7fb2afa6343f35ed",
+  "canonical_runs": 50,
+  "current_gpu_run": "qf3-vla-20261008T135905-d71916",
+  "approved_presentation": {
+    "status": "available",
+    "learned": null,
+    "history_success_pairing": null,
+    "native_current_success_pairing": null,
+    "report_sha256": "7df0b8b8188cefc22e24d0f012615df738f92e09dac92eed7fb2afa6343f35ed",
+    "baseline": {
+      "completed_episodes": 50,
+      "successes": 10,
+      "native_successes": 7,
+      "mean_successful_episode_length": 935.9,
+      "failure_inclusive_mean_control_steps": 987.18,
+      "native_current_success_only_mean_control_steps": 922.5714285714286
+    },
+    "mode": "baseline",
+    "limits": [
+      "Development cohort only. No held-out, author-performance, paper reproduction, or causal RL gain claim.",
+      "History success means all five bottles were placed at least once. Native-current success is judged at the history-defined episode end.",
+      "Lengths are control steps, not native first-success times. Different successful subsets do not establish a speed gain.",
+      "A report hash binds bytes. It does not prove producer truth, checkpoint selection chronology, or equal native trajectories.",
+      "This dashboard verifies only the supplied report bytes and display contract. It does not repeat source, artifact, or checkpoint validation."
+    ]
+  },
+  "references": {
+    "source_review": {
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/INDEPENDENT_VLA_UI_REVIEW.json",
+      "bytes": 10033,
+      "sha256": "c6f96a141443005547059ecab560c24a92532ef54ea22eacf917eeb375b61503"
+    },
+    "installed_browser": {
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-runtime/INSTALLED_BROWSER_VERIFICATION.json",
+      "bytes": 32496,
+      "sha256": "dc03e86b93fb8d6c56e9e6a757cbc1676288ac8838770884cd22d55d878230b2"
+    },
+    "changed_hash_browser": {
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-runtime/REJECTED_REPORT_BROWSER.json",
+      "bytes": 366,
+      "sha256": "b437c72ed28e0264155818506e149506047f1fa5f340539c95b6af6ab9461c7e"
+    },
+    "offline": {
+      "path": "/home/user/aditya/RL/abc/outputs/bench/progress/qf3-live-20261008/vla-baseline.html",
+      "bytes": 244052,
+      "sha256": "6703c0cded635c77cefdd67fb35dc0ccec08f063a391ef6fd62108f12e4be9b0"
+    }
+  },
+  "scope": "Published from isolated installed CPU wheel. Main execution source/runtime and historical receipts/snapshots unchanged. No learned comparison is measured.",
+  "limitations": [
+    "Mobile table uses horizontal scrolling; the long report pin can clip visually.",
+    "Uses STE guidance; full ASD-STE100 compliance was not checked."
+  ]
+}

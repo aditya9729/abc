@@ -1,0 +1,218 @@
+{
+  "GPU_or_native_initialization": false,
+  "actual_baseline_display": {
+    "approved_report": {
+      "bytes": 269407,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-review/ACTUAL_BASELINE_READER.json",
+      "sha256": "7df0b8b8188cefc22e24d0f012615df738f92e09dac92eed7fb2afa6343f35ed"
+    },
+    "episodes": 50,
+    "failure_inclusive_mean_control_steps": 987.18,
+    "history_successes": 10,
+    "learned": null,
+    "model_bytes_rehashed": false,
+    "native_current_successes": 7,
+    "only_report_opened": true,
+    "paired_results": null,
+    "referenced_artifacts_traversed": false,
+    "successful_only_mean_control_steps": 935.9
+  },
+  "actual_capacity_admission_issued": false,
+  "artifacts": [
+    {
+      "bytes": 9584,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/probe_ui.py",
+      "sha256": "454a63c3c45625291cfa458103ddf45245b934ec9922e2bc8a5ad0be0ff1c40b"
+    },
+    {
+      "bytes": 3536,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/INDEPENDENT_UI_PROBES.json",
+      "sha256": "c07dc70eadbd4c53fb030df245d1979b33e89a6ce2e9ff53f2d3254d10fc89d5"
+    },
+    {
+      "bytes": 945,
+      "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/ACTUAL_CANONICAL_PRESERVATION.json",
+      "sha256": "54f4c3caa14aea16d44a53dfca98590f491eb0b19f137176ac9cfacef6b3c06c"
+    }
+  ],
+  "author": "/root/abc_ui",
+  "base_commit": "192ae8b554a6c8f0b4e4389a99d480dd49faa6b0",
+  "branch": "vla-comparison-ui",
+  "browser_visual_check": false,
+  "canonical_scope": {
+    "actual_source_old_artifact_path_ast_identical": true,
+    "actual_source_old_load_results_ast_identical": true,
+    "actual_source_old_reject_nonfinite_ast_identical": true,
+    "artifact_contents_opened": false,
+    "canonical_rows_at_inspection": 50,
+    "count_changed_from_historical49_by_new_root_running_run": true,
+    "files_unchanged": {
+      "/home/user/aditya/RL/abc/outputs/bench/dashboard.html": "66ee868b293bc1786306e6611c89eebc9ffe2d56bf62e41bb1d78d36b9c48b05",
+      "/home/user/aditya/RL/abc/outputs/bench/results.json": "59030cf60d5ae0ade55032bd782867364d0a8a974681449eb5dc62acc9e0fd97"
+    },
+    "module_invocation_or_server_or_export_on_root_results": false,
+    "no_root_publication": true,
+    "root_running_run": [
+      "qf3-vla-20261008T135905-d71916"
+    ],
+    "schema_version": 1,
+    "source_sha256": "2b1255e5ee3e53b008d913dca2dc1f1fe9c9f0242582c7bc58078165a54b4374",
+    "status": "existing_canonical_preservation_and_source_scope_passed"
+  },
+  "commit": "c453f946b9055eaed3a9dfd30de46f43e0340010",
+  "counts": {
+    "base_full": 203,
+    "existing_original_test_files_removed": false,
+    "focused_cases": 27,
+    "new_VLA_cases": 22,
+    "old_dashboard_cases": 5,
+    "owner_full": 225
+  },
+  "files": [
+    {
+      "bytes": 29503,
+      "path": "/home/user/aditya/RL/abc-vla-comparison-ui/abc_bench/dashboard.py",
+      "sha256": "2b1255e5ee3e53b008d913dca2dc1f1fe9c9f0242582c7bc58078165a54b4374"
+    },
+    {
+      "bytes": 8070,
+      "path": "/home/user/aditya/RL/abc-vla-comparison-ui/tests/bench/test_dashboard_vla.py",
+      "sha256": "9550bc8d4819659e01c18b3292d54a6efb913477a08ce2073ba21c8f147e0242"
+    },
+    {
+      "bytes": 7069,
+      "path": "/home/user/aditya/RL/abc-vla-comparison-ui/docs/bench/dashboard.md",
+      "sha256": "c7e6f95f540c2a36716593421ed8d31b82a7075b9bb9306144bf155896e414aa"
+    }
+  ],
+  "independent_checks": [
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 /home/user/aditya/RL/abc/.venv/bin/python -B -m pytest tests/bench/test_dashboard_vla.py tests/bench/test_dashboard.py -q --tb=short --basetemp=/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/pytest-tmp",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison-ui",
+      "exit_code": 0,
+      "label": "focused_CPU",
+      "passed": 27,
+      "pytest_elapsed_seconds": 1.42,
+      "retained_tool_stdout": "27 passed in 1.42s"
+    },
+    {
+      "command": "env CUDA_VISIBLE_DEVICES='' MUJOCO_GL=disable OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 /home/user/aditya/RL/abc/.venv/bin/python -I -B /home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/probe_ui.py --source-sha256 2b1255e5ee3e53b008d913dca2dc1f1fe9c9f0242582c7bc58078165a54b4374",
+      "cwd": "/home/user/aditya/RL",
+      "exit_code": 0,
+      "label": "additional_independent_boundaries",
+      "passed_cases": 27,
+      "report": {
+        "bytes": 3536,
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/INDEPENDENT_UI_PROBES.json",
+        "sha256": "c07dc70eadbd4c53fb030df245d1979b33e89a6ce2e9ff53f2d3254d10fc89d5"
+      }
+    },
+    {
+      "command": "/home/user/aditya/RL/abc/.venv/bin/ruff check abc_bench/dashboard.py tests/bench/test_dashboard_vla.py",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison-ui",
+      "exit_code": 0,
+      "label": "Ruff_lint",
+      "retained_tool_stdout": "All checks passed!"
+    },
+    {
+      "command": "/home/user/aditya/RL/abc/.venv/bin/ruff format --check abc_bench/dashboard.py tests/bench/test_dashboard_vla.py",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison-ui",
+      "exit_code": 0,
+      "label": "Ruff_format",
+      "retained_tool_stdout": "2 files already formatted"
+    },
+    {
+      "command": "git diff --check; git diff --numstat; sha256sum abc_bench/dashboard.py tests/bench/test_dashboard_vla.py docs/bench/dashboard.md",
+      "cwd": "/home/user/aditya/RL/abc-vla-comparison-ui",
+      "exit_code": 0,
+      "label": "git_diff_whitespace_and_scope",
+      "scope": "Read-only grouped shell checks after freeze; no source fix by reviewer."
+    },
+    {
+      "canonical_rows": 50,
+      "exit_code": 0,
+      "label": "actual_canonical_preservation_and_AST_scope",
+      "old_artifact_path_AST_identical": true,
+      "old_loader_AST_identical": true,
+      "report": {
+        "bytes": 945,
+        "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/ACTUAL_CANONICAL_PRESERVATION.json",
+        "sha256": "54f4c3caa14aea16d44a53dfca98590f491eb0b19f137176ac9cfacef6b3c06c"
+      },
+      "root_files_changed_by_reviewer": false,
+      "scope": "Read-only inline stdlib Python AST comparison and canonical index load; no native artifact contents, server, export, module CLI or root publication."
+    },
+    {
+      "commit": "c453f946b9055eaed3a9dfd30de46f43e0340010",
+      "exactly_three_owned_files": true,
+      "exit_code": 0,
+      "label": "final_commit_and_pin_equality",
+      "worktree_clean": true
+    }
+  ],
+  "independent_extra_boundary_cases": 27,
+  "independent_focused_cases": 27,
+  "installed_UI_verification": false,
+  "kind": "qf3_abc_vla_dashboard_independent_source_review",
+  "limitations": [
+    "Presentation of externally approved report bytes/display contract only; no repeated reader artifact validation or approval authentication.",
+    "Synthetic learned comparisons are ephemeral software fixtures; no actual learned result or selected checkpoint created.",
+    "Different successful subsets do not establish speed gain; paired counts/common-success lengths are descriptive development metrics.",
+    "Native geometry/trajectory parity, held-out/author results, R1 performance and causal RL gains remain unverified.",
+    "No browser visual or installed UI package check performed by this reviewer.",
+    "No GPU/native work, main/runtime/install/ledger mutation or root publication performed.",
+    "Active capacity run admission remains pending terminal actual artifacts."
+  ],
+  "main_or_installed_or_ledger_mutations": false,
+  "owner_results": {
+    "Ruff_and_diff_pass": true,
+    "command_focused": "CUDA_VISIBLE_DEVICES='' /home/user/aditya/RL/abc/.venv/bin/python -m pytest tests/bench/test_dashboard_vla.py tests/bench/test_dashboard.py -q",
+    "command_full": "CUDA_VISIBLE_DEVICES='' /home/user/aditya/RL/abc/.venv/bin/python -m pytest tests/bench -q",
+    "cwd": "/home/user/aditya/RL/abc-vla-comparison-ui",
+    "exit_code": 0,
+    "focused_passed": 27,
+    "focused_seconds": 0.93,
+    "full_ABC_passed": 225,
+    "full_ABC_seconds": 24.12,
+    "provenance": "Owner completed tool results reported in team messages; not this reviewer full-suite execution."
+  },
+  "prior_findings_repaired": [
+    {
+      "finding": "SHA-only optional public export could overwrite existing HTML",
+      "independent_recheck_passed": true,
+      "repair": "Guard existing destination when either optional path or SHA is supplied"
+    },
+    {
+      "finding": "Ignored1e999 could decode to inf despite nonfinite-refusal claim",
+      "independent_recheck_passed": true,
+      "repair": "parse_float finite validation rejects numeric overflow in every parsed field"
+    }
+  ],
+  "review_markdown": {
+    "bytes": 4426,
+    "path": "/home/user/aditya/RL/builds/qf3-vla-comparison-ui-review/INDEPENDENT_VLA_UI_REVIEW.md",
+    "sha256": "816b3b6a2ea16fb84298fdee73ade498a0f0955b16d87be6e0f2cf4b8851f048"
+  },
+  "review_setup_observations": [
+    {
+      "exit_code": 1,
+      "reason": "First focused command lacked parent directory for pytest basetemp;5old tests passed and20new setups failed",
+      "resolved": "Created owned reviewer output directory; corrected focused suite passed25beforerepair and27onfinalrepair.",
+      "software_defect": false
+    },
+    {
+      "exit_code": 1,
+      "reason": "Initial actual-index probe assumed historical49rows while root had already added the running calibration as row50",
+      "resolved": "Compared actual existing50snapshot before/after; preserved historical fixture49check separately.",
+      "software_defect": false
+    }
+  ],
+  "reviewed_utc": "2026-10-08T14:07:05.328921+00:00",
+  "reviewer": "/root/training_harness_audit",
+  "root_publication": false,
+  "schema_version": 1,
+  "source_blockers": [],
+  "status": "accepted_for_CPU_software_integration",
+  "worktree": "/home/user/aditya/RL/abc-vla-comparison-ui",
+  "worktree_clean": true
+}

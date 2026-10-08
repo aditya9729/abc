@@ -1,0 +1,10 @@
+{
+  "status": "accepted_changed_pin_browser_refusal",
+  "scope": "Installed UI, changed local report copy, no native execution.",
+  "changed_copy_sha256": "968cd41b95d3667faf3d766a90b48b4ae572e711a361212a5fdb0fa51c710518",
+  "canonical_rows_preserved": 50,
+  "baseline_metrics_hidden": true,
+  "external_requests": [],
+  "page_errors": [],
+  "server_closed": true
+}
