@@ -12,7 +12,11 @@ from abc_bench import expoft_dispatch, runner
 
 def input_config():
     return {
-        "schema_version": 1,
+        "schema_version": 2,
+        "checkpoint_storage": {
+            "format": "immutable_episode_blocks",
+            "schema_version": 1,
+        },
         "domain": "sim",
         "profile": expoft_dispatch.PROFILE,
         "mode": "paused_simulation_fixed_tick",
@@ -77,6 +81,8 @@ def worker_record(config, status="completed"):
             "initial_learner_counters": learner_counts(1),
             "physical_control_steps": (completed - 11) * 30 + discarded,
             "accepted_completed_control_steps": (completed - 11) * 30,
+            "accepted_warmup_control_steps": 0,
+            "accepted_learning_control_steps": (completed - 11) * 30,
             "discarded_partial_control_steps": discarded,
         },
         "accepted_update_groups": [
@@ -239,6 +245,9 @@ def test_worker_dispatch_reserves_shared_lease_and_preserves_partial_counts(
         "clock_bool",
         "extra_coherent_group",
         "unchanged_episode_prefix",
+        "partition_sum",
+        "partition_bool",
+        "wrong_learning_partition",
     ],
 )
 def test_invalid_worker_evidence_has_no_counter_admission(fault):
@@ -301,6 +310,14 @@ def test_invalid_worker_evidence_has_no_counter_admission(fault):
         )
     elif fault == "unchanged_episode_prefix":
         worker["invocation"]["initial_wrapper"]["completed_episodes"] = 13
+    elif fault == "partition_sum":
+        worker["invocation"]["accepted_warmup_control_steps"] = 1
+    elif fault == "partition_bool":
+        worker["invocation"]["accepted_warmup_control_steps"] = False
+    elif fault == "wrong_learning_partition":
+        worker["invocation"].update(
+            accepted_warmup_control_steps=30, accepted_learning_control_steps=30
+        )
     with pytest.raises(ValueError):
         expoft_dispatch.summarize_worker(worker, config)
 
@@ -323,6 +340,8 @@ def test_native_warmup_stop_with_no_update_groups_is_valid():
         initial_learner_counters=learner_counts(0),
         physical_control_steps=240,
         accepted_completed_control_steps=240,
+        accepted_warmup_control_steps=240,
+        accepted_learning_control_steps=0,
         discarded_partial_control_steps=0,
     )
     worker.update(
@@ -335,6 +354,8 @@ def test_native_warmup_stop_with_no_update_groups_is_valid():
     assert result["learning_status"] == "no_accepted_update_groups"
     assert result["metrics"]["simulation_steps"] == 240
     assert result["metrics"]["updates"] == 0
+    assert result["metrics"]["accepted_warmup_control_steps"] == 240
+    assert result["metrics"]["accepted_learning_control_steps"] == 0
     assert result["episode_schedule_completed"] is False
 
 
@@ -380,6 +401,8 @@ def test_pending_update_only_resume_credits_no_new_controls():
     worker["invocation"].update(
         physical_control_steps=0,
         accepted_completed_control_steps=0,
+        accepted_warmup_control_steps=0,
+        accepted_learning_control_steps=0,
         discarded_partial_control_steps=0,
     )
     result = expoft_dispatch.summarize_worker(worker, config, exit_code=0)
@@ -388,7 +411,7 @@ def test_pending_update_only_resume_credits_no_new_controls():
     assert result["metrics"]["updates"] == 2
 
 
-def test_revision1_crossing_warmup_receipt_requires_later_tape_admission():
+def test_crossing_warmup_receipt_has_exact_learning_debt_partition():
     config = input_config()
     worker = worker_record(config, "budget_stopped")
     worker["wrapper"].update(
@@ -406,6 +429,8 @@ def test_revision1_crossing_warmup_receipt_requires_later_tape_admission():
         initial_learner_counters=learner_counts(0),
         physical_control_steps=330,
         accepted_completed_control_steps=330,
+        accepted_warmup_control_steps=300,
+        accepted_learning_control_steps=30,
         discarded_partial_control_steps=0,
     )
     worker.update(
@@ -416,7 +441,16 @@ def test_revision1_crossing_warmup_receipt_requires_later_tape_admission():
     result = expoft_dispatch.summarize_worker(worker, config, exit_code=2)
     assert result["metrics"]["updates"] == 1
     assert result["metrics"]["accepted_completed_control_steps"] == 330
+    assert result["metrics"]["accepted_warmup_control_steps"] == 300
+    assert result["metrics"]["accepted_learning_control_steps"] == 30
     assert result["independent_admission_required"] is True
+    # Preserve the total control credit, but claim a coherent extra group using
+    # warmup controls. Only the exact learning partition can reject this case.
+    worker["wrapper"]["accepted_update_calls"] = 2
+    worker.update(learner_counters=learner_counts(2), skipped_base_updates=2)
+    worker["accepted_update_groups"].append({"ordinal": 1, "pin": {"fixture": True}})
+    with pytest.raises(ValueError, match="update debt"):
+        expoft_dispatch.summarize_worker(worker, config, exit_code=2)
 
 
 @pytest.mark.parametrize("content", ['{"x":1,"x":2}', '{"x":NaN}', '{"x":1e999}', "[]"])
@@ -435,6 +469,12 @@ def test_duplicate_nonfinite_and_nonobject_json_rejected(tmp_path, content):
         ("episodes", False),
         ("max_wall_s", float("inf")),
         ("mode", []),
+        ("schema_version", 1),
+        ("checkpoint_storage", {"format": "inline", "schema_version": 1}),
+        (
+            "checkpoint_storage",
+            {"format": "immutable_episode_blocks", "schema_version": True},
+        ),
     ],
 )
 def test_coordinator_refuses_invalid_native_request(tmp_path, field, value):

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 PROFILE = "abc-vla/released-config-first/1"
-REVISION = "sadhana.realtime-expoft-worker/1"
+REVISION = "sadhana.realtime-expoft-worker/2"
 MODES = {"paused_simulation_fixed_tick", "strict_wall"}
 STATUSES = {"completed", "budget_stopped", "deadline_missed_partial", "failed"}
 WRAPPER_COUNTS = {
@@ -67,8 +67,17 @@ def read_json(path: Path) -> dict[str, Any]:
 def training_input(path: Path) -> dict[str, Any]:
     config = read_json(path)
     _require(
-        type(config.get("schema_version")) is int and config["schema_version"] == 1,
-        "EXPO config requires schema1",
+        type(config.get("schema_version")) is int and config["schema_version"] == 2,
+        "EXPO coordinator requires canonical schema2",
+    )
+    storage = config.get("checkpoint_storage")
+    _require(
+        isinstance(storage, dict)
+        and set(storage) == {"format", "schema_version"}
+        and storage["format"] == "immutable_episode_blocks"
+        and type(storage["schema_version"]) is int
+        and storage["schema_version"] == 1,
+        "EXPO native coordinator requires immutable episode block storage1",
     )
     _require(
         config.get("domain") == "sim" and config.get("profile") == PROFILE,
@@ -245,25 +254,33 @@ def summarize_worker(
             initial_calls == 0 and initial["update_debt"] == 0,
             "EXPO warmup prefix contains learner update credit",
         )
+    warmup = _count(
+        invocation.get("accepted_warmup_control_steps"), "accepted warmup controls"
+    )
+    learned = _count(
+        invocation.get("accepted_learning_control_steps"), "accepted learning controls"
+    )
+    new_warmup_episodes = min(episodes, 10) - min(initial_episodes, 10)
+    new_learning_episodes = episodes - max(initial_episodes, min(episodes, 10))
+    _require(
+        warmup + learned == accepted
+        and warmup >= new_warmup_episodes
+        and learned >= new_learning_episodes
+        and (new_warmup_episodes > 0 or warmup == 0)
+        and (new_learning_episodes > 0 or learned == 0),
+        "EXPO completed warmup/learning control partition differs",
+    )
     learned_delta = (
         wrapper["update_debt"] - initial["update_debt"] + 30 * (calls - initial_calls)
     )
-    if initial_episodes >= 10:
-        _require(
-            learned_delta == accepted,
-            "EXPO post-warmup update debt differs from accepted controls",
-        )
-    elif episodes <= 10:
+    _require(
+        learned_delta == learned,
+        "EXPO update debt differs from accepted learning controls",
+    )
+    if episodes <= 10:
         _require(
             calls == 0 and wrapper["update_debt"] == 0,
             "EXPO warmup boundary contains learner update credit",
-        )
-    else:
-        # Revision1 does not publish a warmup/learning control partition. The
-        # independently audited tapes must supply that missing exact boundary.
-        _require(
-            0 <= learned_delta <= accepted - (10 - initial_episodes),
-            "EXPO crossing-warmup update credit exceeds accepted controls",
         )
     before = _learner_counts(
         invocation.get("initial_learner_counters"), initial_calls, failed=False
@@ -324,6 +341,8 @@ def summarize_worker(
         "metrics": {
             "simulation_steps": physical,
             "accepted_completed_control_steps": accepted,
+            "accepted_warmup_control_steps": warmup,
+            "accepted_learning_control_steps": learned,
             "discarded_partial_control_steps": discarded,
             "completed_training_episodes": episodes - initial_episodes,
             "cumulative_completed_training_episodes": episodes,

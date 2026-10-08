@@ -21,6 +21,8 @@ python -m abc_bench.runner \
 
 The capitalized arguments are placeholders. No new native run is claimed here. Root owns GPU launches. The existing nonblocking lock refuses concurrent launch attempts.
 
+The coordinator accepts canonical schema2 with `checkpoint_storage={"format":"immutable_episode_blocks","schema_version":1}`. It requires worker revision2. The worker also supports inline checkpoints for diagnostics; this native coordinator requires the shared block format. Original schema1 inputs require an explicit preparation step before this route.
+
 The coordinator forwards the worker's exact configuration. It reduces the child watchdog to retain the existing 60-second parent allowance. It passes the canonical lease directory. Optional `--expoft-resume-pin` identifies a reviewed worker continuation pin. The worker validates that pin. Native world state is not restored.
 
 The parent publishes `phase=training`. It does not publish training success as a benchmark score. `episode_schedule_completed` means the configured episodes ended at a complete update boundary. Warmup with no updates reports `no_accepted_update_groups`. A missing successful imitation sample reports `awaiting_success_imitation_data`.
@@ -29,6 +31,8 @@ The parent publishes `phase=training`. It does not publish training success as a
 | --- | --- |
 | `simulation_steps` | Physical submissions during this invocation, including partial attempts. |
 | `accepted_completed_control_steps` | Invocation controls from complete accepted episodes, including warmup. |
+| `accepted_warmup_control_steps` | Accepted invocation controls from completed episode ordinals zero through nine. |
+| `accepted_learning_control_steps` | Accepted invocation controls from completed episode ordinals ten onward. |
 | `discarded_partial_control_steps` | Invocation controls outside those complete episodes. |
 | `updates` | Newly accepted full learner update calls. It does not mean inner critic minibatches. |
 | `cumulative_accepted_update_calls` | Accepted calls including the resumed prefix. |
@@ -39,11 +43,11 @@ Control counts must reconcile with the wrapper's issued controls. Counters use n
 
 Each accepted group has 20 critic, target and noise updates, one editor update and one temperature update. It has one completed or skipped base update. A completed base update has one auxiliary update. Initial and final counters must agree with these groups. A ready boundary has less than 30 controls of update debt. Interrupted optimizer phase counts can exceed accepted groups in a failed receipt. These phase counts do not increase accepted update credit.
 
-After warmup, each new accepted control adds one unit of update debt. Each new accepted group removes 30 units. This equation permits a pending-update resume with no new controls. An unchanged completed-episode prefix must have zero new accepted controls. Warmup-only boundaries have no update credit. Revision1 lacks an explicit warmup/learning control partition for an invocation that crosses warmup. Such receipts still require independent tape admission; the reducer checks only possible aggregate bounds. The proposed worker revision2 will supply that partition for exact clock checks.
+Each new accepted learning control adds one unit of update debt. Each new accepted group removes 30 units. This equation permits a pending-update resume with no new controls. Warmup and learning controls must sum to accepted completed controls. The partition must agree with completed episode ordinals. An unchanged completed-episode prefix must have zero new accepted controls. Warmup-only boundaries have no update credit. These checks cover an invocation that crosses warmup. Raw tapes and optimizer states still require independent native admission.
 
 The parent retains `training/receipt.json` on worker failure. It records its checksum and error. Invalid worker counters receive no credit. A completed worker requires exit code 0. A budget stop or strict-clock miss requires exit code 2 and publishes `status=partial`. Exit/status mismatches fail and retain raw evidence. Fatal process exits remain failures.
 
-The CPU suite checks orchestration with explicit doubles. It checks the shared reservation, settlement, watchdog, UUID forwarding, continuation argument and failure receipts. It checks the production CLI exit map, warmup receipts, counter inflation, pending debt and interrupted optimizer credit. It does not construct a learner or use a GPU. Initial owner checks passed 251 benchmark tests. Independent review found interface defects in that initial change. The repaired revision needs new tests and review. Installed runtime, native learning, storage capacity and matched evaluation remain separate gates.
+The CPU suite checks orchestration with explicit doubles. It checks the shared reservation, settlement, watchdog, UUID forwarding, continuation argument and failure receipts. It checks the production CLI exit map, warmup receipts, counter inflation, pending debt and interrupted optimizer credit. It does not construct a learner or use a GPU. Published revision1 passed 275 owner tests, 74 independent checks and 47 fresh installed checks. This worker2/block-storage integration needs its own tests and review. Installed runtime, native learning, storage capacity and matched evaluation remain separate gates.
 
 ```mermaid
 flowchart LR
