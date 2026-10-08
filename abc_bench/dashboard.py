@@ -9,6 +9,7 @@ import math
 import mimetypes
 import os
 import re
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import quote, unquote, urlsplit
@@ -27,12 +28,12 @@ HTML = r"""<!doctype html><html lang="en"><meta charset="utf-8"><meta name="view
 <h2>Architecture and team</h2><div class="diagram"><svg viewBox="0 0 1000 165" role="img" aria-label="Runner writes measured receipts. Read-only dashboard presents receipts and approved artifacts. Independent reviewer checks the evidence."><defs><marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8" fill="#70deba"/></marker></defs><g fill="#25364a" stroke="#597086"><rect x="10" y="30" width="210" height="80" rx="10"/><rect x="280" y="30" width="210" height="80" rx="10"/><rect x="550" y="30" width="210" height="80" rx="10"/><rect x="810" y="30" width="180" height="80" rx="10"/></g><g fill="#e8eef6" text-anchor="middle" font-family="system-ui" font-size="15"><text x="115" y="62">Gym + method runner</text><text x="115" y="85">Coordinator / algorithm team</text><text x="385" y="62">Measured run receipts</text><text x="385" y="85">Metrics + artifact paths</text><text x="655" y="62">Read-only dashboard</text><text x="655" y="85">UI agent</text><text x="900" y="62">Evidence review</text><text x="900" y="85">Independent reviewer</text></g><g stroke="#70deba" stroke-width="2" marker-end="url(#arrow)"><path d="M220 70 H275"/><path d="M490 70 H545"/><path d="M760 70 H805"/></g><text x="500" y="145" text-anchor="middle" fill="#aab9ca" font-size="13">Data flow → No dashboard control flow to training or robot hardware.</text></svg></div><footer id="updated"></footer>
 <script>
 let data={runs:[],embodiments:[]};const $=id=>document.getElementById(id);const present=v=>v!==null&&v!==undefined;const number=(v,suffix='')=>present(v)?(typeof v==='number'&&!Number.isInteger(v)?v.toFixed(2):String(v))+suffix:'Unavailable';function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n}function badge(v){return el('span',v||'unavailable','status '+(['completed','passed','blocked','failed'].includes(v)?v:''))}function cell(row,text,sub){const c=el('td',text);if(sub)c.append(el('small',sub));row.append(c);return c}function options(id,key){const current=$(id).value;$(id).replaceChildren(el('option','All '+id+'s'));$(id).firstChild.value='';[...new Set(data.runs.map(r=>r[key]).filter(Boolean))].sort().forEach(v=>{const o=el('option',v);o.value=v;$(id).append(o)});$(id).value=current}
-function render(){const filtered=data.runs.filter(r=>['algorithm','embodiment','phase','status'].every(k=>!$(k).value||r[k]===$(k).value));$('runs').replaceChildren();$('empty').hidden=filtered.length>0;for(const r of filtered){const row=el('tr'),m=r.metrics||{},lat=m.latency_ms||{},b=r.budget||{};cell(row,r.algorithm||'Unavailable',r.method_fidelity||r.claim_scope||'Scope unavailable');cell(row,r.embodiment||'Unavailable',r.task);cell(row,r.run_id||'Unavailable',(r.phase||'phase unavailable')+' · seed '+number(r.seed));cell(row,present(m.successes)&&present(m.episodes)?`${m.successes} / ${m.episodes}`:'Unavailable');cell(row,number(lat.p50,' ms')+' / '+number(lat.p95,' ms'),m.latency_scope);cell(row,number(m.reward),number(m.completion_time_seconds,' s'));cell(row,number(b.wall_seconds,' s budget'),number(m.elapsed_seconds,' s elapsed')+' · '+number(m.simulation_steps??b.steps,' steps'));const c=cell(row);c.append(badge(r.status));for(const blocker of r.blockers||[])c.append(el('small',blocker));for(const a of r.artifacts||[]){if(!a.url)continue;const link=el('a',a.label||a.path);link.href=a.url;link.target='_blank';link.rel='noopener';c.append(el('br'),link)}if(r.checkpoint_path)c.append(el('small','Checkpoint: '+r.checkpoint_path));const details=el('details');details.append(el('summary','Run receipt'),el('pre',JSON.stringify(r,null,2)));c.append(details);$('runs').append(row)}}
+function render(){const filtered=data.runs.filter(r=>['algorithm','embodiment','phase','status'].every(k=>!$(k).value||r[k]===$(k).value));$('runs').replaceChildren();$('empty').hidden=filtered.length>0;for(const r of filtered){const row=el('tr'),m=r.metrics||{},lat=m.latency_ms||{},b=r.budget||{};cell(row,r.algorithm||'Unavailable',r.method_fidelity||r.claim_scope||'Scope unavailable');cell(row,r.embodiment||'Unavailable',r.task);cell(row,r.run_id||'Unavailable',(r.phase||'phase unavailable')+' · seed '+number(r.seed));cell(row,present(m.successes)&&present(m.episodes)?`${m.successes} / ${m.episodes}`:'Unavailable');cell(row,number(lat.p50,' ms')+' / '+number(lat.p95,' ms'),m.latency_scope);cell(row,number(m.reward),number(m.completion_time_seconds,' s'));cell(row,number(b.wall_seconds,' s budget'),number(m.elapsed_seconds,' s elapsed')+' · '+number(m.simulation_steps??b.steps,' steps'));const c=cell(row);c.append(badge(r.status));if(r._dashboard_rollout_progress){const p=r._dashboard_rollout_progress;c.append(el('small','Last rollout log · '+p.namespace+' · '+number(p.actual_world_steps)+' controls · '+number(p.physics_ticks)+' batched ticks'),el('small',number(p.completed_episodes)+' completed · '+number(p.active_worlds)+' active worlds · '+number(p.elapsed_collector_wall_s,' s in this batch')),el('small','Per batch, producer reported; may lag. Log modified '+p.log_modified_at));}for(const blocker of r.blockers||[])c.append(el('small',blocker));for(const a of r.artifacts||[]){if(!a.url)continue;const link=el('a',a.label||a.path);link.href=a.url;link.target='_blank';link.rel='noopener';c.append(el('br'),link)}if(r.checkpoint_path)c.append(el('small','Checkpoint: '+r.checkpoint_path));const details=el('details');details.append(el('summary','Run receipt'),el('pre',JSON.stringify(r,null,2)));c.append(details);$('runs').append(row)}}
 
 function renderVla(report){$('vla').hidden=false;const panel=$('vla-content');panel.replaceChildren();panel.append(el('p','Presentation of an externally approved, SHA-pinned CPU reader report. No policy or artifact validation runs here.'));if(report.status!=='available'){panel.append(el('p',report.error||'Report unavailable. No comparison is configured.'));return}panel.append(el('p',report.mode==='baseline'?'Retained frozen baseline · learned comparison unavailable':'Descriptive fixed-development comparison · native YAM only'));panel.append(el('small','Report SHA-256: '+report.report_sha256));const table=el('table'),header=el('tr');for(const label of ['Policy','History success / 50','Native-current success / 50','Success-only mean controls','Failure-inclusive mean controls','Native-current-only mean controls'])header.append(el('th',label));table.append(header);for(const [name,summary] of [['Frozen baseline',report.baseline],['Learned policy',report.learned]]){const row=el('tr');cell(row,name);cell(row,summary?number(summary.successes)+' / 50':'Unavailable');cell(row,summary?number(summary.native_successes)+' / 50':'Unavailable');for(const key of ['mean_successful_episode_length','failure_inclusive_mean_control_steps','native_current_success_only_mean_control_steps'])cell(row,number(summary?.[key]));table.append(row)}const scroll=el('div',undefined,'scroll');scroll.append(table);panel.append(scroll);for(const [label,pair] of [['History success',report.history_success_pairing],['Native-current success',report.native_current_success_pairing]]){panel.append(el('h3',label+' · paired outcomes'));if(!pair){panel.append(el('p','Wins, losses, common successes, and length changes: Unavailable'));continue}const counts=pair.counts;panel.append(el('p',`Learned wins: ${counts.win} · Learned losses: ${counts.loss} · Both succeed: ${counts.both} · Neither succeeds: ${counts.neither}`));panel.append(el('p','Common-success mean learned minus baseline: '+number(pair.common_success_mean_length_change,' controls')+'. A negative change uses fewer controls.'));const details=el('details');details.append(el('summary','Common-success lengths by seed'));const pairedTable=el('table'),h=el('tr');for(const title of ['Seed','Baseline controls','Learned controls','Learned − baseline'])h.append(el('th',title));pairedTable.append(h);for(const change of pair.common_success_length_changes){const row=el('tr');for(const key of ['seed','baseline_control_steps','learned_control_steps','learned_minus_baseline'])cell(row,number(change[key]));pairedTable.append(row)}details.append(pairedTable);panel.append(details)}for(const limit of report.limits)panel.append(el('p',limit));}
 async function loadVla(){try{if(window.BENCHMARK_SNAPSHOT){renderVla(window.VLA_COMPARISON_SNAPSHOT||{status:'unavailable'});return}const response=await fetch('/api/vla-comparison',{cache:'no-store'});if(!response.ok)throw Error('VLA report request failed: '+response.status);renderVla(await response.json())}catch(error){renderVla({status:'unavailable',error:String(error)})}}
 
-async function load(){try{if(window.BENCHMARK_SNAPSHOT){data=window.BENCHMARK_SNAPSHOT}else{const response=await fetch('/api/results',{cache:'no-store'});if(!response.ok)throw Error('Evidence request failed: '+response.status);data=await response.json()}$('error').textContent=(data.errors||[]).join(' · ');$('embodiments').replaceChildren();for(const e of data.embodiments){const card=el('div',undefined,'card');card.append(el('h2',e.label||e.id),badge(e.status));for(const b of e.blockers||[])card.append(el('p',b));$('embodiments').append(card)}['algorithm','embodiment','status'].forEach(k=>options(k,k));render();$('updated').textContent='Read at '+new Date().toLocaleString()+'. Receipts remain the source of evidence. STE guidance used; full ASD-STE100 compliance was not checked.'}catch(e){$('error').textContent=String(e)}}['algorithm','embodiment','phase','status'].forEach(k=>$(k).onchange=render);$('refresh').onclick=()=>{load();loadVla()};load();loadVla();
+async function load(){try{if(window.BENCHMARK_SNAPSHOT){data=window.BENCHMARK_SNAPSHOT}else{const response=await fetch('/api/results',{cache:'no-store'});if(!response.ok)throw Error('Evidence request failed: '+response.status);data=await response.json()}$('error').textContent=(data.errors||[]).join(' · ');$('embodiments').replaceChildren();for(const e of data.embodiments){const card=el('div',undefined,'card');card.append(el('h2',e.label||e.id),badge(e.status));for(const b of e.blockers||[])card.append(el('p',b));$('embodiments').append(card)}['algorithm','embodiment','status'].forEach(k=>options(k,k));render();$('updated').textContent='Read at '+new Date().toLocaleString()+'. Live receipts refresh every 30 seconds; offline snapshots stay fixed. Rollout logs show per-batch diagnostics. Receipts remain the source of evidence. STE guidance used; full ASD-STE100 compliance was not checked.'}catch(e){$('error').textContent=String(e)}}['algorithm','embodiment','phase','status'].forEach(k=>$(k).onchange=render);$('refresh').onclick=()=>{load();loadVla()};load();loadVla();if(!window.BENCHMARK_SNAPSHOT)setInterval(load,30000);
 </script></html>"""
 
 
@@ -47,6 +48,82 @@ def artifact_path(root: Path, raw: str) -> Path | None:
     if not candidate.is_relative_to(root.resolve()) or not candidate.is_file():
         return None
     return candidate
+
+
+ROLLOUT_LOG_LIMIT = 64 * 1024
+ROLLOUT_COUNTS = (
+    "actual_world_steps",
+    "physics_ticks",
+    "completed_episodes",
+    "successes",
+    "first_placements",
+    "active_worlds",
+)
+
+
+def rollout_log_progress(path: Path) -> dict | None:
+    """Read the latest valid heartbeat in a bounded tail, without auditing it.
+
+    These counts describe one collector batch. They are neither cumulative
+    training progress nor independently admitted performance measurements.
+    The caller supplies an existing, receipt-listed artifact inside its root.
+    """
+    try:
+        with path.open("rb") as stream:
+            size = stream.seek(0, os.SEEK_END)
+            start = max(0, size - ROLLOUT_LOG_LIMIT)
+            stream.seek(start)
+            tail = stream.read(ROLLOUT_LOG_LIMIT)
+            modified = os.fstat(stream.fileno()).st_mtime
+        lines = tail.splitlines(keepends=True)
+        if start and lines:
+            lines = lines[1:]  # The first line may start before the bounded tail.
+        for line in reversed(lines):
+            if not line.endswith(b"\n"):
+                continue  # A writer may still be appending its last record.
+            try:
+                row = json.loads(
+                    line,
+                    object_pairs_hook=_report_object,
+                    parse_constant=reject_nonfinite,
+                    parse_float=_report_float,
+                )
+            except (UnicodeError, ValueError, RecursionError):
+                continue
+            if not isinstance(row, dict) or row.get("event") != "qf3_rollout_progress":
+                continue
+            namespace = row.get("namespace")
+            if not isinstance(namespace, str) or not re.fullmatch(
+                r"(?:(?:warmup|train)-[0-9]+|evaluate-(?:learned|frozen)-[0-9]+-[0-9]+)",
+                namespace,
+            ):
+                continue
+            if any(type(row.get(k)) is not int or row[k] < 0 for k in ROLLOUT_COUNTS):
+                continue
+            elapsed = row.get("elapsed_collector_wall_s")
+            worlds = row["active_worlds"] + row["completed_episodes"]
+            if (
+                not _display_number(elapsed)
+                or elapsed < 0
+                or worlds < 1
+                or row["successes"] > row["completed_episodes"]
+                or not row["physics_ticks"]
+                <= row["actual_world_steps"]
+                <= row["physics_ticks"] * worlds
+            ):
+                continue
+            return {
+                "namespace": namespace,
+                **{k: row[k] for k in ROLLOUT_COUNTS},
+                "elapsed_collector_wall_s": elapsed,
+                "log_modified_at": datetime.fromtimestamp(
+                    modified, timezone.utc
+                ).isoformat(),
+                "scope": "Last valid rollout log record; per batch; producer reported; may lag",
+            }
+    except (OSError, OverflowError, ValueError):
+        return None
+    return None
 
 
 def load_results(root: Path) -> tuple[dict, dict[str, Path]]:
@@ -87,6 +164,7 @@ def load_results(root: Path) -> tuple[dict, dict[str, Path]]:
             result["errors"].append(f"Cannot read {path.name}: {exc}")
     artifacts: dict[str, Path] = {}
     for run in result["runs"]:
+        run.pop("_dashboard_rollout_progress", None)
         supplied = run.get("artifacts", [])
         if not isinstance(supplied, list):
             result["errors"].append("Ignored invalid artifacts list")
@@ -103,6 +181,15 @@ def load_results(root: Path) -> tuple[dict, dict[str, Path]]:
                 ).hexdigest()[:24]
                 artifacts[token] = path
                 clean["url"] = f"/artifacts/{token}"
+                if (
+                    run.get("status") == "running"
+                    and run.get("algorithm")
+                    in {"QF3 ABC-VLA train", "QF3 ABC-VLA evaluate"}
+                    and item.get("label") == "Execution log"
+                ):
+                    progress = rollout_log_progress(path)
+                    if progress is not None:
+                        run["_dashboard_rollout_progress"] = progress
             safe.append(clean)
         run["artifacts"] = safe
     return result, artifacts

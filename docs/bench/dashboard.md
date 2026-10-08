@@ -32,7 +32,7 @@ A run contains:
 - `blockers`, `checkpoint_path`, and `artifacts` with `label` and `path`.
 
 Use JSON null for unavailable metrics. Never insert zero for an unmeasured value.
-Embodiment IDs are `native_yam`, `r1lite`, and `r1pro`.
+The current embodiment IDs are `native_yam` and `r1lite`.
 Each embodiment records `id`, `label`, `status`, and `blockers`.
 
 Artifact paths must identify existing files inside the results directory.
@@ -51,11 +51,36 @@ flowchart LR
     H -->|data: metrics, blockers, evidence links| B[Browser]
     B -->|control: filter or refresh only| H
     J -->|data: evidence| V[Independent reviewer]
+    R -->|data: per-batch rollout log| L[Receipt-listed execution log]
+    L -->|data: bounded diagnostic tail| H
 ```
 
 The diagram shows the implemented dashboard interface. It does not assert that all methods or embodiments have run.
 The dashboard has no control connection to training or hardware.
 Jev is absent from this interface. The dashboard does not send review requests.
+
+## Live QF3 diagnostics
+
+Live receipts refresh every 30 seconds. The refresh button also reads the optional development report.
+An offline export is a fixed snapshot. It does not poll the server.
+
+A running QF3 ABC-VLA receipt can show its last valid rollout log record.
+The log must be an existing `Execution log` artifact inside the results directory.
+The reader reads at most 64 KiB from the end of that file per refresh.
+It ignores partial lines, malformed JSON, duplicate keys, nonfinite numbers and invalid counts.
+Missing or rejected log records leave the diagnostic absent.
+The dashboard does not search for unlisted logs, checkpoints or model data.
+
+Counts describe one batch: its namespace, controls, batched ticks, completed episodes and active worlds.
+The elapsed time applies to that collector batch. The displayed timestamp is the file's modification time.
+These are producer-reported diagnostics. They may lag behind the worker.
+They do not establish cumulative training progress, admitted task success or benchmark completion.
+The dashboard does not change stored receipts or their canonical metrics.
+Terminal receipts do not retain this live diagnostic.
+
+The coordinator owns the runner and the diagnostic parser. The independent reviewer checks the display contract.
+The browser owns filtering and refresh. It cannot start or stop training.
+This explanation uses STE guidance. A full ASD-STE100 compliance check was not performed.
 
 ## Verification
 
