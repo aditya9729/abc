@@ -184,7 +184,7 @@ def load_results(root: Path) -> tuple[dict, dict[str, Path]]:
                 if (
                     run.get("status") == "running"
                     and run.get("algorithm")
-                    in {"QF3 ABC-VLA train", "QF3 ABC-VLA evaluate"}
+                    in ("QF3 ABC-VLA train", "QF3 ABC-VLA evaluate")
                     and item.get("label") == "Execution log"
                 ):
                     progress = rollout_log_progress(path)

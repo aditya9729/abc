@@ -167,6 +167,16 @@ def test_missing_terminal_unlisted_and_unrelated_logs_have_no_live_diagnostic(tm
         assert "_dashboard_rollout_progress" not in row
 
 
+@pytest.mark.parametrize("algorithm", [[], {}, ["QF3 ABC-VLA train"], None, 1])
+def test_non_string_algorithm_does_not_crash_receipt_loading(tmp_path, algorithm):
+    receipt(tmp_path, algorithm=algorithm)
+    (tmp_path / "run.log").write_text(json.dumps(heartbeat()) + "\n")
+    data, _ = load_results(tmp_path)
+    assert data["runs"][0]["algorithm"] == algorithm
+    assert "_dashboard_rollout_progress" not in data["runs"][0]
+    assert data["errors"] == []
+
+
 def test_external_and_symlink_escape_logs_are_not_read(tmp_path):
     outside = tmp_path.parent / (tmp_path.name + "-external.log")
     outside.write_text(json.dumps(heartbeat()) + "\n")
