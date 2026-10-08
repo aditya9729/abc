@@ -62,9 +62,29 @@ class RunCancelled(RuntimeError):
 
 
 def execute_command(
-    command: list[str], log_path: Path, timeout: float, *, gpu_uuid: str | None = None
+    command: list[str],
+    log_path: Path,
+    timeout: float,
+    *,
+    gpu_uuid: str | None = None,
+    visual_spec: dict | None = None,
+    lease_fd: int | None = None,
 ) -> int:
     """Reap the job's process group on timeout, SIGTERM or keyboard cancellation."""
+
+    if visual_spec is not None:
+        from abc_bench.visual_evaluation_bootstrap import execute_guarded
+
+        if lease_fd is None:
+            raise ValueError("Matched evaluator requires the original inherited lease")
+        return execute_guarded(
+            command,
+            log_path,
+            timeout,
+            gpu_uuid=gpu_uuid or "",
+            spec=visual_spec,
+            lease_fd=lease_fd,
+        )
 
     def cancelled(signum: int, frame: Any) -> None:
         raise RunCancelled(f"Received cancellation signal {signum}")
@@ -258,6 +278,9 @@ def execution_provenance() -> dict[str, Any]:
 
 def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
     import fcntl
+
+    if getattr(args, "algorithm", "baseline") == "visual-method-evaluation":
+        return run_visual_evaluation(args)
 
     results = args.results.resolve()
     results.mkdir(parents=True, exist_ok=True)
@@ -970,6 +993,354 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         return receipt
 
 
+def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
+    """One root-pinned evaluator through the original lease and common executor."""
+    import fcntl
+
+    from abc_bench import visual_evaluation_dispatch as visual
+    from abc_bench.visual_evaluation_bootstrap import (
+        artifact,
+        exclusive_json,
+        finish_guard,
+        process_identity,
+    )
+
+    total_started = time.monotonic()
+    total_timeout = visual.positive(args.timeout_seconds, "outer timeout")
+    old_term = signal.signal(signal.SIGTERM, _visual_cancelled)
+    old_alarm = signal.signal(signal.SIGALRM, _visual_cancelled)
+    old_timer = signal.setitimer(signal.ITIMER_REAL, total_timeout)
+    try:
+        campaign = visual.CANONICAL_CAMPAIGN
+        visual.require(
+            args.results.absolute() == campaign
+            and ROOT.resolve() == campaign.parent.parent,
+            "Matched evaluator requires original absolute campaign/results and ABC_BENCH_REPO",
+        )
+        pin = {
+            "path": str(args.evaluation_request.absolute()),
+            "bytes": args.evaluation_request_bytes,
+            "sha256": args.evaluation_request_sha256,
+        }
+        request = visual.load_request(pin, campaign)
+        with (campaign / ".gpu-budget.lock").open("rb") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            ledger_path = campaign / "gpu_budget.json"
+            ledger = visual.read_json(ledger_path)
+            visual.require(
+                type(ledger.get("gpu")) is int
+                and ledger["gpu"] == 0
+                and not any(
+                    key in ledger
+                    for key in (
+                        "active_parent_pid",
+                        "active_gpu_uuid",
+                        "active_visual_lease",
+                    )
+                ),
+                "Original campaign has unresolved/active ownership",
+            )
+            limit = visual.positive(
+                ledger.get("limit_seconds"), "allocated admission credit"
+            )
+            charged = ledger.get("charged_seconds")
+            visual.require(
+                type(charged) in (int, float) and 0 <= charged < float("inf"),
+                "Finite prior campaign charges required",
+            )
+            timeout = min(
+                limit - charged, total_timeout - (time.monotonic() - total_started)
+            )
+            cleanup_s = float(request.value["cleanup_s"])
+            visual.require(
+                timeout > 2 * cleanup_s + request.config["max_wall_s"],
+                "Insufficient finite parent allocation for evaluation and cleanup",
+            )
+            binding = inspect_reserved_gpu(0)
+            run_id = (
+                "visual-method-evaluation-"
+                + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
+                + "-"
+                + uuid.uuid4().hex[:8]
+            )
+            out = campaign / run_id
+            out.mkdir()
+            control = out / "control"
+            control.mkdir()
+            config_path = out / "evaluation_config.json"
+            with config_path.open("xb") as stream:
+                stream.write(visual.verify_pin(request.value["config"]))
+            parent = process_identity(os.getpid())
+            nonce = uuid.uuid4().hex
+            started = time.monotonic()
+            timeout = min(timeout, total_started + total_timeout - started)
+            visual.require(
+                timeout > 2 * cleanup_s + request.config["max_wall_s"],
+                "Parent admission deadline was consumed before reservation",
+            )
+            lock_stat = os.fstat(lock.fileno())
+            spec = {
+                "schema_version": 1,
+                "kind": "abc_matched_visual_direct_exec",
+                "nonce": nonce,
+                "parent": parent,
+                "campaign_directory": str(campaign),
+                "control_directory": str(control),
+                "lease_fd": lock.fileno(),
+                "lock_identity": [lock_stat.st_dev, lock_stat.st_ino],
+                "cancel_deadline": started + timeout - 2 * cleanup_s,
+                "terminate_deadline": started + timeout - cleanup_s,
+                "hard_deadline": started + timeout,
+                "cleanup_s": cleanup_s,
+                "worker_python": request.value["worker"]["python"]["path"],
+                "worker_prefix": request.value["worker"]["prefix"],
+                "worker_version": request.value["worker"]["version"],
+                "evaluator_origin": request.value["worker"]["nrh_files"][
+                    "nrh/visual_method_evaluation.py"
+                ]["path"],
+                "startup_pins": request.startup_pins
+                + [
+                    request.pin,
+                    request.value["native_admission"],
+                    request.value["software_binding"],
+                    request.value["native_resources"]["admission"],
+                    artifact(config_path),
+                ]
+                + [
+                    {
+                        "path": str(Path(__file__).with_name(name + ".py")),
+                        "bytes": Path(__file__).with_name(name + ".py").stat().st_size,
+                        "sha256": expected,
+                    }
+                    for name, expected in request.value["coordinator_sources"].items()
+                ],
+                "worker_command": visual.worker_command(
+                    request, config_path, out / "evaluation", campaign
+                ),
+                "native_resources": request.value["native_resources"],
+            }
+            spec_path = control / "launch-spec.json"
+            exclusive_json(spec_path, spec)
+            spec_pin = artifact(spec_path)
+            command = [
+                spec["worker_python"],
+                "-I",
+                "-B",
+                str(Path(__file__).with_name("visual_evaluation_bootstrap.py")),
+                "--spec",
+                spec_pin["path"],
+                "--spec-sha256",
+                spec_pin["sha256"],
+                "--spec-bytes",
+                str(spec_pin["bytes"]),
+            ]
+            spec["bootstrap_command"] = command
+            receipt = {
+                "schema_version": 1,
+                "run_id": run_id,
+                "algorithm": request.config["protocol"],
+                "embodiment": "native_yam",
+                "task": visual.TASK,
+                "phase": "benchmark",
+                "status": "running",
+                "seed": request.config["seed"],
+                "method_fidelity": "declared ABC/YAM recipe; producer matched-development evidence pending independent reader/root",
+                "claim_scope": "no author reproduction, real-time or R1 Lite admission",
+                "request": pin,
+                "protocol_id": request.protocol_id,
+                "scientific_recipe": request.identity["scientific_recipe"],
+                "coordinator_sources": request.value["coordinator_sources"],
+                "original_public_abc_root": str(ROOT),
+                "isolated_coordinator_origin": str(Path(__file__).absolute()),
+                "worker_binding": request.value["worker"],
+                "lease": {
+                    "nonce": nonce,
+                    "parent": parent,
+                    "campaign_directory": str(campaign),
+                    "lock_identity": spec["lock_identity"],
+                },
+                "budget": {
+                    "wall_seconds": timeout,
+                    "steps": 50 * request.config["control_cap"],
+                },
+                "metrics": {
+                    "successes": None,
+                    "episodes": None,
+                    "simulation_steps": None,
+                    "latency_ms": {"p50": None, "p95": None},
+                },
+                "blockers": [],
+                "artifacts": [
+                    {
+                        "label": "Pinned evaluation configuration",
+                        "path": str(config_path.relative_to(campaign)),
+                    }
+                ],
+                "performance_admission": "pending_independent_reader_and_root",
+            }
+            publish(receipt, campaign)
+            ledger["charged_seconds"] += timeout
+            ledger["active_parent_pid"] = parent["pid"]
+            ledger["active_gpu_uuid"] = binding["uuid"]
+            ledger["active_visual_lease"] = {
+                "schema_version": 1,
+                "nonce": nonce,
+                "parent": parent,
+                "status": "running",
+                "request": pin,
+                "reserved_seconds": timeout,
+                "started_monotonic": started,
+                "hard_deadline": spec["hard_deadline"],
+                "control_directory": str(control),
+                "lock_identity": spec["lock_identity"],
+            }
+            write_json(ledger_path, ledger)
+            code = None
+            first = None
+            try:
+                code = execute_command(
+                    command,
+                    out / "run.log",
+                    timeout,
+                    gpu_uuid=binding["uuid"],
+                    visual_spec=spec,
+                    lease_fd=lock.fileno(),
+                )
+                receipt["worker_exit_code"] = code
+                worker_path = out / "evaluation" / "receipt.json"
+                visual.require(
+                    worker_path.stat().st_size <= request.value["receipt_max_bytes"],
+                    "Worker receipt exceeds root byte admission",
+                )
+                worker_pin = artifact(worker_path)
+                visual.require(
+                    worker_pin["bytes"] <= request.value["receipt_max_bytes"],
+                    "Worker receipt exceeds root byte admission",
+                )
+                receipt["worker_receipt"] = worker_pin
+                receipt["artifacts"].append(
+                    {
+                        "label": "Preserved matched evaluator receipt",
+                        "path": str(worker_path.relative_to(campaign)),
+                    }
+                )
+                worker = visual.read_json(
+                    worker_path, request.value["receipt_max_bytes"]
+                )
+                receipt.update(visual.summarize_worker(request, worker, code))
+                if receipt["status"] == "failed":
+                    receipt["blockers"].append(
+                        worker.get("error") or "Evaluator failed"
+                    )
+            except BaseException as error:  # noqa: BLE001 - record cancellation, then close the owned lease
+                first = error
+                receipt["status"] = (
+                    "cancelled"
+                    if isinstance(error, (RunCancelled, KeyboardInterrupt))
+                    else "failed"
+                )
+                receipt["blockers"].append(f"{type(error).__name__}: {error}")
+                receipt["blockers"].extend(getattr(error, "__notes__", []))
+                worker_path = out / "evaluation" / "receipt.json"
+                if (
+                    worker_path.exists()
+                    and worker_path.stat().st_size > request.value["receipt_max_bytes"]
+                ):
+                    receipt["rejected_worker_receipt"] = {
+                        "path": str(worker_path.absolute()),
+                        "observed_bytes": worker_path.stat().st_size,
+                        "reason": "root receipt byte admission exceeded; raw file retained without parsing",
+                    }
+                if (
+                    worker_path.exists()
+                    and worker_path.stat().st_size <= request.value["receipt_max_bytes"]
+                ):
+                    receipt["worker_receipt"] = artifact(worker_path)
+                    receipt["artifacts"].append(
+                        {
+                            "label": "Preserved evaluator failure evidence",
+                            "path": str(worker_path.relative_to(campaign)),
+                        }
+                    )
+                    try:
+                        receipt.update(
+                            visual.summarize_worker(
+                                request,
+                                visual.read_json(
+                                    worker_path, request.value["receipt_max_bytes"]
+                                ),
+                                code,
+                            )
+                        )
+                        receipt["status"] = "failed"
+                    except (ValueError, KeyError, TypeError) as invalid:
+                        receipt["blockers"].append(
+                            "Invalid worker evidence: " + str(invalid)
+                        )
+            finally:
+                clean = False
+                try:
+                    outcome = finish_guard(spec)
+                    receipt["guardian_outcome"] = outcome
+                    clean = True
+                except BaseException as error:  # noqa: BLE001 - cleanup failure must retain the reservation
+                    if first is not None:
+                        first.__notes__ = [
+                            *getattr(first, "__notes__", []),
+                            "guardian cleanup: " + str(error),
+                        ]
+                    receipt["status"] = "failed"
+                    receipt["blockers"].append("Guardian cleanup: " + str(error))
+                elapsed = time.monotonic() - started
+                current = visual.read_json(ledger_path)
+                visual.require(
+                    current.get("active_visual_lease", {}).get("nonce") == nonce
+                    and current.get("active_visual_lease", {}).get("parent") == parent,
+                    "Cannot settle another process lifetime's lease",
+                )
+                if clean:
+                    current["charged_seconds"] += elapsed - timeout
+                    for key in (
+                        "active_parent_pid",
+                        "active_gpu_uuid",
+                        "active_visual_lease",
+                    ):
+                        current.pop(key, None)
+                else:
+                    current["active_visual_lease"]["status"] = "unresolved"
+                    current["active_visual_lease"]["reason"] = "parent_cleanup_failed"
+                    current["active_visual_lease"]["owned_group_cleanup_complete"] = (
+                        False
+                    )
+                if receipt["status"] not in {"completed", "incomplete"}:
+                    receipt.pop("producer_evaluation_metrics", None)
+                    receipt["metrics"]["accepted_complete_control_steps"] = 0
+                receipt["metrics"]["elapsed_seconds"] = elapsed
+                receipt["total_controller_wall_s"] = time.monotonic() - total_started
+                receipt["charge_settlement"] = (
+                    "actual_owned_lease_wall"
+                    if clean
+                    else "full_reservation_unresolved_no_refund"
+                )
+                write_json(ledger_path, current)
+                publish(receipt, campaign)
+            return receipt
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGTERM, old_term)
+        signal.signal(signal.SIGALRM, old_alarm)
+        if old_timer[0] > 0:
+            signal.setitimer(
+                signal.ITIMER_REAL,
+                max(0.001, old_timer[0] - (time.monotonic() - total_started)),
+                old_timer[1],
+            )
+
+
+def _visual_cancelled(signum: int, frame: Any) -> None:
+    raise RunCancelled(f"Matched evaluation received cancellation signal {signum}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -989,6 +1360,7 @@ def main() -> None:
             "qf3-vla",
             "realtime-expoft-abc",
             "resfit-abc-vla",
+            "visual-method-evaluation",
         ),
         default="baseline",
     )
@@ -1001,6 +1373,9 @@ def main() -> None:
     parser.add_argument("--qf3-state", type=Path)
     parser.add_argument("--resfit-state", type=Path)
     parser.add_argument("--training-config", type=Path)
+    parser.add_argument("--evaluation-request", type=Path)
+    parser.add_argument("--evaluation-request-sha256")
+    parser.add_argument("--evaluation-request-bytes", type=int)
     parser.add_argument("--expoft-resume-pin", type=Path)
     parser.add_argument("--resfit-resume-pin", type=Path)
     parser.add_argument("--task", default="put_plastic_bottles_in_bin")
@@ -1011,15 +1386,58 @@ def main() -> None:
     parser.add_argument("--results", type=Path, default=RESULTS)
     parser.add_argument("--video", action="store_true")
     args = parser.parse_args()
+    if args.algorithm == "visual-method-evaluation":
+        if any(
+            value is None
+            for value in (
+                args.evaluation_request,
+                args.evaluation_request_sha256,
+                args.evaluation_request_bytes,
+            )
+        ):
+            parser.error(
+                "matched evaluation needs the explicit root request path/hash/bytes trio"
+            )
+        legacy = {
+            "--checkpoint",
+            "--training-config",
+            "--qf3-state",
+            "--resfit-state",
+            "--expoft-resume-pin",
+            "--resfit-resume-pin",
+            "--video",
+            "--worlds",
+            "--chunks",
+            "--task",
+            "--seed",
+            "--eval-horizon",
+        }
+        import sys
+
+        if any(item.split("=", 1)[0] in legacy for item in sys.argv[1:]):
+            parser.error(
+                "matched evaluation uses only its pinned request; legacy overrides are forbidden"
+            )
+    elif any(
+        value is not None
+        for value in (
+            args.evaluation_request,
+            args.evaluation_request_sha256,
+            args.evaluation_request_bytes,
+        )
+    ):
+        parser.error("evaluation request options require visual-method-evaluation")
     if args.worlds < 1 or args.chunks < 1 or args.timeout_seconds <= 0:
         parser.error("worlds, chunks and timeout must be positive")
     try:
         comparison_plan(args.eval_horizon)
     except ValueError as error:
         parser.error(str(error))
-    if args.algorithm not in {"resfit-abc-vla", "realtime-expoft-abc"} and not (
-        args.checkpoint.is_file()
-    ):
+    if args.algorithm not in {
+        "resfit-abc-vla",
+        "realtime-expoft-abc",
+        "visual-method-evaluation",
+    } and not (args.checkpoint.is_file()):
         parser.error("checkpoint missing; run prepare.py --checkpoint first")
     receipt = run_baseline(args)
     print(json.dumps(receipt, indent=2))

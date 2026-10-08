@@ -1,0 +1,32 @@
+flowchart LR
+  subgraph R[Root ownership]
+    Req[Immutable request and separate release/native/checkpoint/resource trust]
+    Reader[Later independent reader and root performance admission]
+  end
+  subgraph A[Isolated ABC coordinator package]
+    Runner[python -m abc_bench.runner\nnew visual-method-evaluation route]
+    Dispatch[Stdlib request and receipt validator]
+    Boot[Stdlib pinned bootstrap\nverify inherited lock and direct parent]
+    Guard[Bounded inherited-lock guardian\nowned lifetime checks only]
+  end
+  subgraph C[Original public ABC campaign]
+    Lock[One original GPU0 flock and ledger\nfull reservation before dispatch]
+    Evidence[Producer receipt and unresolved tombstone\nno automatic performance credit]
+  end
+  subgraph S[Separate isolated NRH worker]
+    Eval[Unchanged revision-2 public CLI\nsix matched evaluation protocols]
+    Native[Actual native/model execution\nnot launched or admitted by these CPU tests]
+  end
+  Req -->|Pinned data| Dispatch
+  Dispatch -->|Validated request| Runner
+  Runner -->|Control: reserve and retain| Lock
+  Runner -->|Control: exactly one Popen| Boot
+  Boot -->|Control: fork outside worker group| Guard
+  Guard -->|Control: inherited same lock| Lock
+  Runner -->|Control: exact lifetime acknowledgment| Boot
+  Boot -->|Control: direct exec, same runner parent| Eval
+  Eval -.->|Later separate native gates| Native
+  Eval -->|Pinned raw receipt| Dispatch
+  Dispatch -->|Current invocation physical counts| Evidence
+  Guard -->|Death/watchdog: kill verified owned group, retain reservation| Evidence
+  Evidence -->|Later review data| Reader
