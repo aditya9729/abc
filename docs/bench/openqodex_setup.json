@@ -1,0 +1,16 @@
+{
+  "node_version": "v22.16.0",
+  "node_archive_sha256": "f4cb75bb036f0d0eddf6b79d9596df1aaab9ddccd6a20bf489be5abe9467e84e",
+  "source_commit": "549d3301702a739d62bd7296e2b9c94ce17af1ce",
+  "openqodex_version": "0.8.1",
+  "npm_tarball_sha256": "4d13aa47e825573e1c4286265e4dc7ff277886714bb7c73f08e91cabe900c3cc",
+  "npm_sha512_integrity": "sha512-KieAb5+zKVQcvHmeARNR/CUo0Si01WfHbldACMFcrzyEmtxprsjgSduKu8LXz0VENOgIADIpZV2CUjH2+egDkQ==",
+  "installed_package_members_verified": 103,
+  "cli_bundle_sha256": "ccd0070bf9ab2b9db0d608bad9bcdbcba006b9939e8d0dfcaca124be45dc2afd",
+  "skill_path": "/home/user/aditya/.agents/skills/openqodex/SKILL.md",
+  "skill_sha256": "d2a42b606fee0a4ee93d86141ad702a3e507e85e923de881f3b01914e6f48cc6",
+  "source_skill_identical": true,
+  "auto_update": false,
+  "state_home": "/home/user/aditya/.openqodex",
+  "api_credentials_read_or_printed": false
+}

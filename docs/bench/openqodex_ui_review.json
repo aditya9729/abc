@@ -1,0 +1,188 @@
+{
+  "schema_version": 1,
+  "scope": "Manual advisory OpenQodex review; no code fix, push, GitHub comment, GPU job, or benchmark acceptance.",
+  "exit_code": 0,
+  "kind": "review",
+  "verdict": "passed",
+  "summary": "Adds an optional SHA-pinned ABC-VLA reader report to the dashboard, served at a new API route and embedded in offline exports. Adds validation of the report shape and tests for it.",
+  "finding_count": 1,
+  "reviewed_base": "192ae8b554a6c8f0b4e4389a99d480dd49faa6b0",
+  "reviewed_head": "c453f946b9055eaed3a9dfd30de46f43e0340010",
+  "diff_sha256": "a400d252c74e995d9559ed828903de435bb0686a2d8c98da292d355616ec6cab",
+  "completion": {
+    "version": 1,
+    "contract": "openqodex-review-2",
+    "status": "complete",
+    "missing": [],
+    "reviewer": {
+      "driver": "claude",
+      "version": "2.1.294",
+      "pid": 2413531,
+      "started_at": "2026-10-08T15:00:34.950Z",
+      "ended_at": "2026-10-08T15:02:36.887Z",
+      "duration_ms": 121936,
+      "rounds": 1,
+      "usage": {
+        "turns": 12,
+        "input_tokens": 282994,
+        "output_tokens": 9749,
+        "cost_usd": 1.56313725
+      }
+    },
+    "snapshot": {
+      "change_id": "e62f0504198e748e409286cd083a263216f839aafc59ce8547538b0bd1435084",
+      "tree": "54d47be0f61aa10c8d94923bbb7ded8a05bb38d2",
+      "before": "ed2e320ddcf46bf04aa6b2e56020e5ae447328e31c510a861617c6e5a97b319c",
+      "after": "ed2e320ddcf46bf04aa6b2e56020e5ae447328e31c510a861617c6e5a97b319c"
+    },
+    "candidates": {
+      "total": 36,
+      "disposed": 36
+    },
+    "coverage": {
+      "hunks": 16,
+      "covered": 16,
+      "unread": [],
+      "files_read": [
+        "abc_bench/dashboard.py",
+        "abc_bench/vla_comparison.py",
+        "tests/bench/test_dashboard.py",
+        "tests/bench/test_paired_review.py"
+      ],
+      "files_not_read": [
+        "docs/bench/dashboard.md",
+        "tests/bench/test_dashboard_vla.py"
+      ]
+    },
+    "outside_reads": [],
+    "trace_complete": true
+  },
+  "scanners": [
+    {
+      "scanner": "semgrep",
+      "status": "ran",
+      "version": "1.94.0",
+      "rawCount": 3,
+      "keptCount": 3,
+      "durationMs": 18171,
+      "reason": null
+    },
+    {
+      "scanner": "gitleaks",
+      "status": "ran",
+      "version": "8.21.2",
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 170,
+      "reason": null
+    },
+    {
+      "scanner": "sqllint",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 0,
+      "reason": null
+    },
+    {
+      "scanner": "osv-scanner",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 0,
+      "reason": null
+    },
+    {
+      "scanner": "actionlint",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 1,
+      "reason": null
+    },
+    {
+      "scanner": "hadolint",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 0,
+      "reason": null
+    },
+    {
+      "scanner": "shellcheck",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 0,
+      "reason": null
+    },
+    {
+      "scanner": "ruff",
+      "status": "ran",
+      "version": "0.8.4",
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 110,
+      "reason": null
+    },
+    {
+      "scanner": "brakeman",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 1,
+      "reason": null
+    },
+    {
+      "scanner": "rubocop",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 0,
+      "reason": null
+    },
+    {
+      "scanner": "bandit",
+      "status": "ran",
+      "version": "1.9.4",
+      "rawCount": 33,
+      "keptCount": 33,
+      "durationMs": 485,
+      "reason": null
+    },
+    {
+      "scanner": "oxlint",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 0,
+      "reason": null
+    },
+    {
+      "scanner": "golangci",
+      "status": "no_matching_files",
+      "version": null,
+      "rawCount": 0,
+      "keptCount": 0,
+      "durationMs": 0,
+      "reason": null
+    }
+  ],
+  "frozen_tracked_files_preserved": 282,
+  "setup_only_broader_mode_run": "full_review/report.md",
+  "final_report": "exact_three_file_review/report.md",
+  "final_report_sha256": "de48940594b3a60c01ed79f5d328446ccfd128c569c8663b076281efcc13e435",
+  "report_json_sha256": "3990974364dfee7ed6df09087224a5bef86724580aab4d56d62fd786bb8ce924",
+  "setup_proof_sha256": "0791a73e131461b0b098b10b9086bddd9bed5aadd76c8eb959d009d202c042db",
+  "skill_sha256": "d2a42b606fee0a4ee93d86141ad702a3e507e85e923de881f3b01914e6f48cc6",
+  "wrapper_sha256": "46eae0e587f45ae71da371ec0add319ce19ce70c4f1a7edf5d6295fff5772ed6",
+  "note": "Default warning-only verdict passed; minor malformed/uppercase pin error-message finding remains unmodified."
+}
