@@ -27,6 +27,10 @@ These native deployment and resource checks remain pending.
 
 Run the command only after those checks and the current GPU job exits:
 
+The worker uses `artifacts.checkpoint_path` from the reviewed training configuration.
+The `--checkpoint` option applies to legacy routes and is unused for visual ResFiT and EXPO.
+These two routes do not require the legacy `cache/bottles_75k.pt` file.
+
 ```sh
 python -m abc_bench.runner \
   --algorithm resfit-abc-vla \

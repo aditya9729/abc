@@ -973,7 +973,10 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--checkpoint", type=Path, default=ROOT / "cache/bottles_75k.pt"
+        "--checkpoint",
+        type=Path,
+        default=ROOT / "cache/bottles_75k.pt",
+        help="Legacy evaluation checkpoint; visual ResFiT and EXPO use their training configuration's artifacts.checkpoint_path",
     )
     parser.add_argument(
         "--algorithm",
@@ -1014,7 +1017,9 @@ def main() -> None:
         comparison_plan(args.eval_horizon)
     except ValueError as error:
         parser.error(str(error))
-    if not args.checkpoint.is_file():
+    if args.algorithm not in {"resfit-abc-vla", "realtime-expoft-abc"} and not (
+        args.checkpoint.is_file()
+    ):
         parser.error("checkpoint missing; run prepare.py --checkpoint first")
     receipt = run_baseline(args)
     print(json.dumps(receipt, indent=2))

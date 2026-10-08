@@ -10,6 +10,53 @@ import pytest
 from abc_bench import resfit_dispatch, runner
 
 
+@pytest.mark.parametrize("algorithm", ["resfit-abc-vla", "realtime-expoft-abc"])
+def test_main_dispatches_config_owned_checkpoint_without_legacy_candidate(
+    monkeypatch, tmp_path, capsys, algorithm
+):
+    """Exercise the real CLI; the dispatch sentinel never launches a worker."""
+    candidate = tmp_path / "reviewed-vla.pt"
+    candidate.write_bytes(b"explicit non-model fixture")
+    config_path = tmp_path / "config.json"
+    config_path.write_text(
+        json.dumps({"artifacts": {"checkpoint_path": str(candidate)}})
+    )
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    calls = []
+
+    def dispatch(args):
+        calls.append(args)
+        assert args.training_config == config_path
+        assert not args.checkpoint.is_file()
+        return {"status": "completed", "scope": "CLI dispatch fixture only"}
+
+    monkeypatch.setattr(runner, "run_baseline", dispatch)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["abc-bench", "--algorithm", algorithm, "--training-config", str(config_path)],
+    )
+    runner.main()
+    assert len(calls) == 1 and calls[0].algorithm == algorithm
+    assert json.loads(capsys.readouterr().out)["status"] == "completed"
+
+
+@pytest.mark.parametrize(
+    "algorithm",
+    ["baseline", "qf3", "resfit", "comparison", "sustained-resfit", "qf3-vla"],
+)
+def test_main_keeps_legacy_candidate_precondition(monkeypatch, tmp_path, algorithm):
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+
+    def unexpected_dispatch(args):
+        raise AssertionError("A missing legacy candidate must fail before dispatch")
+
+    monkeypatch.setattr(runner, "run_baseline", unexpected_dispatch)
+    monkeypatch.setattr("sys.argv", ["abc-bench", "--algorithm", algorithm])
+    with pytest.raises(SystemExit) as exc:
+        runner.main()
+    assert exc.value.code == 2
+
+
 def input_config():
     return {
         "schema_version": 1,
