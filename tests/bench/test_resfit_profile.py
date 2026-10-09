@@ -6,10 +6,19 @@ import json
 from argparse import Namespace
 
 import pytest
+
 from abc_bench import runner
 
 
-def test_fixed_command_and_separate_destination(tmp_path):
+def test_fixed_command_and_separate_destination(monkeypatch, tmp_path):
+    launcher = tmp_path / "profile_launcher.py"
+    launcher.write_text("explicit CPU transport fixture\n")
+    monkeypatch.setattr(runner, "RESFIT_PROFILE_LAUNCHER", launcher)
+    monkeypatch.setattr(
+        runner,
+        "RESFIT_PROFILE_SHA256",
+        hashlib.sha256(launcher.read_bytes()).hexdigest(),
+    )
     original = [
         "original-python",
         "-m",

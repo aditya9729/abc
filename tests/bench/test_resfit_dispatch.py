@@ -6,6 +6,7 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
+
 from abc_bench import resfit_dispatch, runner
 
 
@@ -164,6 +165,17 @@ def worker_record(config, status="completed"):
 def test_dispatch_lease_watchdog_partial_work_and_exit_semantics(
     monkeypatch, tmp_path, status, exit_code, expected, profile_enabled
 ):
+    if profile_enabled:
+        import hashlib
+
+        launcher = tmp_path / "profile_launcher.py"
+        launcher.write_text("explicit CPU transport fixture\n")
+        monkeypatch.setattr(runner, "RESFIT_PROFILE_LAUNCHER", launcher)
+        monkeypatch.setattr(
+            runner,
+            "RESFIT_PROFILE_SHA256",
+            hashlib.sha256(launcher.read_bytes()).hexdigest(),
+        )
     campaign = tmp_path / "campaign"
     monkeypatch.setattr(runner, "RESULTS", campaign)
     runner.write_json(
