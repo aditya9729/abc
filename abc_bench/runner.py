@@ -1000,6 +1000,7 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
     from abc_bench import visual_evaluation_dispatch as visual
     from abc_bench.visual_evaluation_bootstrap import (
         artifact,
+        cancellation_scope,
         exclusive_json,
         finish_guard,
         process_identity,
@@ -1007,10 +1008,16 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
 
     total_started = time.monotonic()
     total_timeout = visual.positive(args.timeout_seconds, "outer timeout")
-    old_term = signal.signal(signal.SIGTERM, _visual_cancelled)
-    old_alarm = signal.signal(signal.SIGALRM, _visual_cancelled)
-    old_timer = signal.setitimer(signal.ITIMER_REAL, total_timeout)
-    try:
+    with cancellation_scope(
+        handler=_visual_cancelled, timeout=total_timeout
+    ) as cancelled:
+
+        def checkpoint():
+            cancelled()
+            if time.monotonic() >= total_started + total_timeout:
+                raise RunCancelled("Matched evaluation outer absolute deadline expired")
+
+        checkpoint()
         campaign = visual.CANONICAL_CAMPAIGN
         visual.require(
             args.results.absolute() == campaign
@@ -1022,7 +1029,10 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
             "bytes": args.evaluation_request_bytes,
             "sha256": args.evaluation_request_sha256,
         }
-        request = visual.load_request(pin, campaign)
+        request = visual.load_request(
+            pin, campaign, deadline=total_started + total_timeout
+        )
+        checkpoint()
         with (campaign / ".gpu-budget.lock").open("rb") as lock:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             ledger_path = campaign / "gpu_budget.json"
@@ -1056,7 +1066,9 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
                 timeout > 2 * cleanup_s + request.config["max_wall_s"],
                 "Insufficient finite parent allocation for evaluation and cleanup",
             )
+            checkpoint()
             binding = inspect_reserved_gpu(0)
+            checkpoint()
             run_id = (
                 "visual-method-evaluation-"
                 + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S")
@@ -1095,6 +1107,10 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
                 "worker_python": request.value["worker"]["python"]["path"],
                 "worker_prefix": request.value["worker"]["prefix"],
                 "worker_version": request.value["worker"]["version"],
+                "nrh_package_origin": request.value["worker"]["nrh_files"][
+                    "nrh/__init__.py"
+                ]["path"],
+                "interpreter_probe": request.worker_probe,
                 "evaluator_origin": request.value["worker"]["nrh_files"][
                     "nrh/visual_method_evaluation.py"
                 ]["path"],
@@ -1207,12 +1223,14 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
                     lease_fd=lock.fileno(),
                 )
                 receipt["worker_exit_code"] = code
+                checkpoint()
                 worker_path = out / "evaluation" / "receipt.json"
                 visual.require(
                     worker_path.stat().st_size <= request.value["receipt_max_bytes"],
                     "Worker receipt exceeds root byte admission",
                 )
                 worker_pin = artifact(worker_path)
+                checkpoint()
                 visual.require(
                     worker_pin["bytes"] <= request.value["receipt_max_bytes"],
                     "Worker receipt exceeds root byte admission",
@@ -1227,7 +1245,9 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
                 worker = visual.read_json(
                     worker_path, request.value["receipt_max_bytes"]
                 )
+                checkpoint()
                 receipt.update(visual.summarize_worker(request, worker, code))
+                checkpoint()
                 if receipt["status"] == "failed":
                     receipt["blockers"].append(
                         worker.get("error") or "Evaluator failed"
@@ -1325,16 +1345,6 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
                 write_json(ledger_path, current)
                 publish(receipt, campaign)
             return receipt
-    finally:
-        signal.setitimer(signal.ITIMER_REAL, 0)
-        signal.signal(signal.SIGTERM, old_term)
-        signal.signal(signal.SIGALRM, old_alarm)
-        if old_timer[0] > 0:
-            signal.setitimer(
-                signal.ITIMER_REAL,
-                max(0.001, old_timer[0] - (time.monotonic() - total_started)),
-                old_timer[1],
-            )
 
 
 def _visual_cancelled(signum: int, frame: Any) -> None:

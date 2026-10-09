@@ -102,6 +102,27 @@ There is no automatic refund, score promotion, stale-lock reset, or ledger migra
 The guardian cannot survive its own SIGKILL or host failure. Such events require external root recovery.
 Uninterruptible kernel tasks can prevent proved cleanup; the unresolved tombstone remains the admission gate.
 
+The controller requires the main Python thread, one Python thread, and one kernel thread.
+It refuses a threaded caller before it changes shared signal, timer, or subreaper state.
+TERM, INT, and ALRM are retained during child birth, identity binding, and bounded cleanup.
+Normal wait checkpoints raise retained cancellation without extending absolute deadlines.
+Handler installation and restoration use a temporary signal mask.
+Partial startup also restores caller handlers, mask, timer schedule, and subreaper state.
+An expired one-shot timer is not rearmed.
+Standard signals can coalesce; these records do not count every signal delivery.
+The scope ends when the original caller mask and handlers become active.
+Later cancellation and hard death follow caller semantics; this is not arbitrary signal immunity.
+
+Before reservation, a fixed `python -I -S -B -c` probe reads isolated interpreter metadata.
+Site is disabled for that probe. It imports no NRH or test dependency.
+The probe uses protected ownership assignment, finite cleanup, and a 32 KiB output bound.
+Its output hash, paths, interpreter identity, and closed lifetime enter bootstrap provenance.
+Its CPU and wall cost consume the original aggregate deadline before lease arming.
+The parent resolves effective startup modules across stdlib, worker site, and admitted plain `.pth` paths.
+Importable `sitecustomize` and `usercustomize` modules, packages, bytecode, and extensions are forbidden.
+The exact NRH package root and evaluator entry origin must match the source pins.
+Runtime filesystem immutability and final repaired NRH release admission remain root duties.
+
 ## Receipt and resource accounting
 
 | Worker result | Coordinator evidence |
@@ -126,6 +147,12 @@ The reader checks size before reading, rejects duplicate/nonfinite JSON, and val
 QF3 can retain large proposal arrays and command records. A legitimate 50-episode receipt can exceed 64 MiB.
 Root therefore admits an explicit finite receipt bound up to 512 MiB.
 Hashing, JSON decoding, validation, and resumed-prefix checks consume parent time and host memory.
+Each host sample has exact `iteration`, `returned_control_index`, `selection_dispatch`, `step`, `capture`, and `whole_loop` fields.
+Indices are ordered exact integers. Durations are finite nonnegative numbers, and booleans are forbidden.
+All returned controls retain a sample. At most one additional failed loop can follow them.
+Only partial step/capture phases can be null, with physical-return causality checked.
+The phase sum cannot exceed the enclosing loop beyond a 10 ns rounding allowance.
+These checks validate retained schema and causality; they do not authenticate native timing measurements.
 The watchdog covers that work. Large native receipt costs still need root profiling.
 
 `root_abc_visual_native_resource_admission` binds status `accepted_for_serial_native_development_evaluation` and exact `limits`.

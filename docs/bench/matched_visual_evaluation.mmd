@@ -6,6 +6,8 @@ flowchart LR
   subgraph A[Isolated ABC coordinator package]
     Runner[python -m abc_bench.runner\nnew visual-method-evaluation route]
     Dispatch[Stdlib request and receipt validator]
+    Probe[Fixed site-disabled interpreter metadata probe\nprotected birth and bounded reap]
+    Signals[Single-thread cancellation scope\nTERM INT ALRM retained and caller state restored]
     Boot[Stdlib pinned bootstrap\nverify inherited lock and direct parent]
     Guard[Bounded inherited-lock guardian\nowned lifetime checks only]
   end
@@ -18,9 +20,12 @@ flowchart LR
     Native[Actual native/model execution\nnot launched or admitted by these CPU tests]
   end
   Req -->|Pinned data| Dispatch
+  Dispatch -->|Before reservation: fixed stdlib probe| Probe
+  Probe -->|Pinned effective paths and exact NRH origins| Dispatch
   Dispatch -->|Validated request| Runner
+  Runner -->|Protected ownership and cleanup| Signals
   Runner -->|Control: reserve and retain| Lock
-  Runner -->|Control: exactly one Popen| Boot
+  Runner -->|Control: exactly one evaluator Popen| Boot
   Boot -->|Control: fork outside worker group| Guard
   Guard -->|Control: inherited same lock| Lock
   Runner -->|Control: exact lifetime acknowledgment| Boot

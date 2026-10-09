@@ -45,7 +45,7 @@ for pin in cfg['resume']:
 prefix=len(rows);new_count=50-prefix if seed in (910,913,914,916) else (1 if prefix<50 else 0)
 for n in range(prefix,prefix+new_count):
  complete=seed in (910,913,914,916);returned=0 if seed==917 else 1;captured=0 if seed in (912,917) else returned
- row={'id':cohort[n]['id'],'requested_seed':cohort[n]['seed'],'complete':complete,'status':'success' if complete else 'failed_partial' if status=='failed' else 'development_cap_partial','returned_controls':returned,'captured_judged_controls':captured,'unknown_physical_attempts':1 if seed==917 else 0,'success':True if complete else None if status=='failed' else False,'native_success':False,'policy_unchanged':complete or status=='incomplete','commands':[{'index':1,'physical':[0.0]*14,'u':[0.0]*14,'z':[0.0]*14}] if returned else [],'proposals':[],'control_wall_samples':[{'iteration':1}] if returned else [],'media':None}
+ row={'id':cohort[n]['id'],'requested_seed':cohort[n]['seed'],'complete':complete,'status':'success' if complete else 'failed_partial' if status=='failed' else 'development_cap_partial','returned_controls':returned,'captured_judged_controls':captured,'unknown_physical_attempts':1 if seed==917 else 0,'success':True if complete else None if status=='failed' else False,'native_success':False,'policy_unchanged':complete or status=='incomplete','commands':[{'index':1,'physical':[0.0]*14,'u':[0.0]*14,'z':[0.0]*14}] if returned else [],'proposals':[],'control_wall_samples':[{'iteration':1,'returned_control_index':1,'selection_dispatch':0.01,'step':0.02,'capture':0.03 if captured else None,'whole_loop':0.07}] if returned else [],'media':None}
  if cfg['protocol'].startswith('qf3'):row['qf3_policy']={'selection_rng':None,'preservation_before':'a'*64,'preservation_after':'a'*64}
  rows.append(row)
 new=rows[prefix:];returned=sum(r['returned_controls'] for r in new);captured=sum(r['captured_judged_controls'] for r in new);unknown=sum(r['unknown_physical_attempts'] for r in new)
@@ -544,7 +544,9 @@ def test_parent_deadline_cannot_be_extended_by_slow_occupancy_boundary(
         return original(ordinal)
 
     monkeypatch.setattr(runner, "inspect_reserved_gpu", slow)
-    with pytest.raises(ValueError, match="deadline was consumed"):
+    with pytest.raises(
+        ValueError, match="deadline was consumed|Insufficient finite parent allocation"
+    ):
         runner.run_baseline(args(request_factory, pin, timeout=1.1))
     ledger = json.loads((request_factory.campaign / "gpu_budget.json").read_text())
     assert ledger["charged_seconds"] == 10 and "active_parent_pid" not in ledger

@@ -16,11 +16,218 @@ import os
 import signal
 import subprocess
 import sys
+import tempfile
+import threading
 import time
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 MAX_METADATA_BYTES = 16 * 1024**2
+CANCELLATION_SIGNALS = (signal.SIGTERM, signal.SIGINT, signal.SIGALRM)
+
+
+def failure_note(error: BaseException, message: str) -> None:
+    error.__notes__ = [*getattr(error, "__notes__", []), message]
+
+
+def single_threaded() -> None:
+    require(
+        threading.current_thread() is threading.main_thread()
+        and threading.active_count() == 1
+        and len(list(Path("/proc/self/task").iterdir())) == 1,
+        "Matched controller requires one Python and kernel thread",
+    )
+
+
+@contextmanager
+def cancellation_scope(*, handler=None, timeout=None):
+    """Defer cancellation through ownership/cleanup; restore partial startup too."""
+    single_threaded()
+    started = time.monotonic()
+    mask = signal.pthread_sigmask(signal.SIG_BLOCK, CANCELLATION_SIGNALS)
+    handlers = {s: signal.getsignal(s) for s in CANCELLATION_SIGNALS}
+    timer = signal.getitimer(signal.ITIMER_REAL)
+    pending = []
+    first = None
+    delivery = {}
+    for signum, original in handlers.items():
+        while callable(original) and hasattr(original, "_matched_handlers"):
+            original = original._matched_handlers[signum]
+        delivery[signum] = (
+            handler if handler is not None and signum != signal.SIGINT else original
+        )
+
+    def retain(signum, frame):
+        pending.append(signum)
+
+    retain._matched_handlers = delivery
+
+    def checkpoint():
+        while pending:
+            signum = pending.pop(0)
+            original = delivery[signum]
+            if callable(original):
+                original(signum, None)
+            elif original != signal.SIG_IGN:
+                raise InterruptedError(
+                    f"Matched controller cancellation signal {signum}"
+                )
+
+    def failure(error, label):
+        nonlocal first
+        if first is None:
+            first = error
+        else:
+            failure_note(first, label + ": " + str(error))
+
+    try:
+        for signum in CANCELLATION_SIGNALS:
+            signal.signal(signum, retain)
+        if timeout is not None:
+            signal.setitimer(signal.ITIMER_REAL, timeout)
+        signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+        yield checkpoint
+    except BaseException as error:  # noqa: BLE001 - preserve cancellation and cleanup failures
+        first = error
+    finally:
+        signal.pthread_sigmask(signal.SIG_BLOCK, CANCELLATION_SIGNALS)
+        # Consume coalesced pending signals while restoration is protected.
+        for signum in CANCELLATION_SIGNALS:
+            if signum in signal.sigpending():
+                signal.sigwait({signum})
+                pending.append(signum)
+        try:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+        except BaseException as error:  # noqa: BLE001
+            failure(error, "timer disable")
+        for signum, original in handlers.items():
+            try:
+                signal.signal(signum, original)
+            except BaseException as error:  # noqa: BLE001
+                failure(error, "handler restoration")
+        try:
+            remaining = timer[0] - (time.monotonic() - started)
+            if timer[0] > 0 and remaining > 0:
+                signal.setitimer(signal.ITIMER_REAL, remaining, timer[1])
+            elif timer[0] > 0 and timer[1] > 0:
+                # Preserve the original periodic schedule; never restart an expired one-shot.
+                signal.setitimer(
+                    signal.ITIMER_REAL, timer[1] - ((-remaining) % timer[1]), timer[1]
+                )
+        except BaseException as error:  # noqa: BLE001
+            failure(error, "timer restoration")
+        for signum in CANCELLATION_SIGNALS:
+            if signum in signal.sigpending():
+                signal.sigwait({signum})
+                pending.append(signum)
+        try:
+            signal.pthread_sigmask(signal.SIG_SETMASK, mask)
+        except BaseException as error:  # noqa: BLE001 - a signal at unmask cannot replace the first cause
+            failure(error, "deferred restoration cancellation")
+        if pending:
+            if first is None:
+                try:
+                    checkpoint()
+                except BaseException as error:  # noqa: BLE001
+                    first = error
+            if first is not None:
+                for signum in pending:
+                    failure_note(first, f"deferred cancellation signal {signum}")
+    if first is not None:
+        raise first
+
+
+INTERPRETER_PROBE = (
+    "import json,sys,sysconfig; "
+    "print(json.dumps({'executable':sys.executable,'version':sys.version,"
+    "'base_prefix':sys.base_prefix,'paths':sys.path,"
+    "'stdlib':sysconfig.get_path('stdlib')}))"
+)
+
+
+def interpreter_probe(python: str, deadline: float) -> dict:
+    """Read only fixed, site-disabled interpreter metadata from one owned child."""
+    with cancellation_scope() as checkpoint:
+        previous = subreaper(1)
+        process = worker = None
+        first = None
+        raw = None
+        try:
+            with tempfile.TemporaryFile() as output:
+                process = subprocess.Popen(
+                    [python, "-I", "-S", "-B", "-c", INTERPRETER_PROBE],
+                    stdin=subprocess.DEVNULL,
+                    stdout=output,
+                    stderr=output,
+                    start_new_session=True,
+                )
+                worker = process_identity(process.pid)
+                checkpoint()
+                while time.monotonic() < deadline:
+                    checkpoint()
+                    require(
+                        os.fstat(output.fileno()).st_size <= 32768,
+                        "Interpreter probe output exceeds bound",
+                    )
+                    if os.waitid(
+                        os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT
+                    ):
+                        break
+                    time.sleep(0.005)
+                else:
+                    raise TimeoutError("Interpreter probe consumed controller deadline")
+                require(
+                    time.monotonic() < deadline,
+                    "Interpreter probe consumed controller deadline",
+                )
+                output.seek(0)
+                raw = output.read(32769)
+                require(len(raw) <= 32768, "Interpreter probe output exceeds bound")
+        except BaseException as error:  # noqa: BLE001 - reap even during birth/identity cancellation
+            first = error
+        finally:
+            try:
+                if process is not None:
+                    worker = worker or process_identity(process.pid)
+                    signal_owned(worker, signal.SIGKILL, group=True)
+                    process.wait(timeout=max(0.01, min(1, deadline - time.monotonic())))
+                    until = deadline
+                    while time.monotonic() < until:
+                        try:
+                            pid, _ = os.waitpid(-worker["pgid"], os.WNOHANG)
+                            if pid:
+                                continue
+                        except ChildProcessError:
+                            pass
+                        if not group_exists(worker["pgid"]):
+                            break
+                        time.sleep(0.005)
+                    require(
+                        not group_exists(worker["pgid"]),
+                        "Interpreter probe group cleanup failed",
+                    )
+                    if first is None:
+                        require(
+                            process.returncode == 0, "Interpreter identity probe failed"
+                        )
+            except BaseException as error:  # noqa: BLE001
+                if first is None:
+                    first = error
+                else:
+                    failure_note(first, "interpreter probe cleanup: " + str(error))
+            finally:
+                subreaper(previous)
+        if first is not None:
+            raise first
+        value = json.loads(raw)
+        require(isinstance(value, dict), "Interpreter metadata object required")
+        return {
+            "value": value,
+            "bytes": len(raw),
+            "sha256": hashlib.sha256(raw).hexdigest(),
+            "worker": worker,
+        }
 
 
 def require(value: bool, message: str) -> None:
@@ -336,9 +543,10 @@ def _guardian(spec: dict, lease_fd: int, worker: dict) -> None:
         os.close(lease_fd)
 
 
-def _wait_ready(spec: dict) -> dict:
+def _wait_ready(spec: dict, checkpoint=lambda: None) -> dict:
     path = Path(spec["control_directory"]) / "guardian-ready.json"
     while time.monotonic() < spec["cancel_deadline"]:
+        checkpoint()
         if path.exists():
             ready = read_json(path)
             require(
@@ -354,7 +562,20 @@ def _wait_ready(spec: dict) -> dict:
     raise TimeoutError("Guardian did not arm before the evaluator deadline")
 
 
-def execute_guarded(
+def execute_guarded(command, log_path, timeout, *, gpu_uuid, spec, lease_fd) -> int:
+    with cancellation_scope() as checkpoint:
+        return _execute_guarded(
+            command,
+            log_path,
+            timeout,
+            gpu_uuid=gpu_uuid,
+            spec=spec,
+            lease_fd=lease_fd,
+            checkpoint=checkpoint,
+        )
+
+
+def _execute_guarded(
     command: list[str],
     log_path: Path,
     timeout: float,
@@ -362,6 +583,7 @@ def execute_guarded(
     gpu_uuid: str,
     spec: dict,
     lease_fd: int,
+    checkpoint,
 ) -> int:
     """Run one worker, retain its zombie identity until group termination, then reap."""
     require(
@@ -399,7 +621,12 @@ def execute_guarded(
             )
             worker = process_identity(process.pid)
             spec["worker"] = worker
-            ready = _wait_ready(spec)
+            checkpoint()
+            require(
+                time.monotonic() < spec["cancel_deadline"],
+                "Child birth consumed evaluator deadline",
+            )
+            ready = _wait_ready(spec, checkpoint)
             require(
                 ready["worker"] == worker, "Guardian bound a different worker lifetime"
             )
@@ -435,6 +662,7 @@ def execute_guarded(
                 },
             )
             while time.monotonic() < spec["cancel_deadline"]:
+                checkpoint()
                 found = os.waitid(
                     os.P_PID, process.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT
                 )
@@ -453,12 +681,12 @@ def execute_guarded(
     except BaseException as error:  # noqa: BLE001 - always reap owned children before propagating cancellation
         first = error
     finally:
-        # A second watchdog TERM must not interrupt the bounded group cleanup.
-        cleanup_handler = signal.signal(signal.SIGTERM, signal.SIG_IGN)
+        # The enclosing cancellation scope defers all raising cancellation here.
         if process is not None:
             # The leader has not been reaped, so this original group ID cannot be recycled.
-            worker = spec["worker"]
             try:
+                worker = spec.get("worker") or process_identity(process.pid)
+                spec["worker"] = worker
                 signal_owned(worker, signal.SIGTERM, group=True)
                 time.sleep(min(0.1, spec["cleanup_s"] / 4))
                 signal_owned(worker, signal.SIGKILL, group=True)
@@ -514,7 +742,6 @@ def execute_guarded(
                     *getattr(first, "__notes__", []),
                     "execution outcome publication: " + str(error),
                 ]
-        signal.signal(signal.SIGTERM, cleanup_handler)
         if "guardian" not in spec:
             subreaper(spec["previous_subreaper"])
     if first is not None:
@@ -524,6 +751,11 @@ def execute_guarded(
 
 
 def finish_guard(spec: dict) -> dict:
+    with cancellation_scope():
+        return _finish_guard(spec)
+
+
+def _finish_guard(spec: dict) -> dict:
     """Finish supervision after receipt validation; the runner still owns its lock."""
     directory = Path(spec["control_directory"])
     ready = None
@@ -665,7 +897,10 @@ def main() -> int:
         )
     )
     require(
-        module is not None
+        package is not None
+        and package.origin == spec["nrh_package_origin"]
+        and Path(package.origin).resolve() == Path(spec["nrh_package_origin"]).resolve()
+        and module is not None
         and module.origin is not None
         and Path(module.origin).absolute() == Path(spec["evaluator_origin"]),
         "Isolated evaluator import origin differs",
@@ -677,6 +912,9 @@ def main() -> int:
             "python_resolved": str(Path(sys.executable).resolve()),
             "prefix": sys.prefix,
             "version": sys.version,
+            "nrh_package_origin_literal": package.origin,
+            "nrh_package_origin_resolved": str(Path(package.origin).resolve()),
+            "interpreter_probe": spec["interpreter_probe"],
             "nrh_origin_literal": module.origin,
             "nrh_origin_resolved": str(Path(module.origin).resolve()),
             "parent": spec["parent"],

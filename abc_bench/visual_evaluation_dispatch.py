@@ -12,14 +12,17 @@ import hashlib
 import io
 import math
 import re
+import time
 from dataclasses import dataclass
 from email.parser import BytesParser
+from importlib.machinery import PathFinder
 from pathlib import Path
 from typing import Any
 
 from abc_bench.visual_evaluation_bootstrap import (
     artifact,
     canonical,
+    interpreter_probe,
     read_json,
     require,
     verify_pin,
@@ -71,7 +74,7 @@ def source_binding() -> dict[str, str]:
     }
 
 
-def _worker(worker: dict) -> list[dict]:
+def _worker(worker: dict, deadline: float) -> tuple[list[dict], dict]:
     require(
         isinstance(worker, dict)
         and set(worker)
@@ -201,6 +204,7 @@ def _worker(worker: dict) -> list[dict]:
         and {p["path"] for p in worker["pth"]} == {str(p) for p in site.glob("*.pth")},
         "Unpinned worker startup path file",
     )
+    dependency_paths = []
     for pin in worker["pth"]:
         for line in verify_pin(pin).decode().splitlines():
             if line and not line.startswith("#"):
@@ -211,12 +215,13 @@ def _worker(worker: dict) -> list[dict]:
                 )
                 directory = Path(line)
                 require(
-                    directory.is_dir() and not any(directory.glob("*customize.*")),
-                    "Worker dependency paths cannot execute startup customization",
+                    directory.is_dir(),
+                    "Worker dependency path must exist",
                 )
+                dependency_paths.append(str(directory))
         pins.append(pin)
     require(
-        worker["startup"] == [] and not list(site.glob("*customize.py")),
+        worker["startup"] == [],
         "Worker startup customization is forbidden before lease arming",
     )
     require(
@@ -226,7 +231,47 @@ def _worker(worker: dict) -> list[dict]:
     for pin in [*worker["startup"], *worker["dependency_metadata"].values()]:
         verify_pin(pin)
         pins.append(pin)
-    return pins
+    probe = interpreter_probe(worker["python"]["path"], deadline)
+    metadata = probe["value"]
+    require(
+        set(metadata) == {"executable", "version", "base_prefix", "paths", "stdlib"}
+        and metadata["executable"] == worker["python"]["path"]
+        and metadata["version"] == worker["version"]
+        and isinstance(metadata["base_prefix"], str)
+        and Path(metadata["base_prefix"]).is_absolute()
+        and isinstance(metadata["stdlib"], str)
+        and Path(metadata["stdlib"]).is_absolute()
+        and isinstance(metadata["paths"], list)
+        and 1 <= len(metadata["paths"]) <= 16
+        and all(
+            isinstance(p, str) and len(p) <= 4096 and Path(p).is_absolute()
+            for p in metadata["paths"]
+        ),
+        "Isolated interpreter startup metadata differs",
+    )
+    paths = [*metadata["paths"], str(site), *dependency_paths]
+    for name in ("sitecustomize", "usercustomize"):
+        require(
+            PathFinder.find_spec(name, paths) is None,
+            "Worker startup customization is forbidden before lease arming",
+        )
+    package = PathFinder.find_spec("nrh", paths)
+    require(
+        package is not None
+        and package.origin == str(files["nrh/__init__.py"])
+        and list(package.submodule_search_locations or []) == [str(site / "nrh")]
+        and Path(package.origin).resolve() == files["nrh/__init__.py"].resolve(),
+        "Installed NRH package import origin differs",
+    )
+    entry = PathFinder.find_spec(
+        "nrh.visual_method_evaluation", package.submodule_search_locations
+    )
+    require(
+        entry is not None
+        and entry.origin == str(files["nrh/visual_method_evaluation.py"]),
+        "Installed evaluator import origin differs",
+    )
+    return pins, probe
 
 
 @dataclass(frozen=True)
@@ -237,13 +282,18 @@ class EvaluationRequest:
     cohort: dict
     identity: dict
     startup_pins: list[dict]
+    worker_probe: dict
 
     @property
     def protocol_id(self) -> str:
         return hashlib.sha256(canonical(self.identity)).hexdigest()
 
 
-def load_request(pin: dict, campaign: Path = CANONICAL_CAMPAIGN) -> EvaluationRequest:
+def load_request(
+    pin: dict, campaign: Path = CANONICAL_CAMPAIGN, *, deadline: float | None = None
+) -> EvaluationRequest:
+    if deadline is None:
+        deadline = time.monotonic() + 5
     verify_pin(pin)
     value = read_json(pin["path"])
     require(
@@ -416,7 +466,7 @@ def load_request(pin: dict, campaign: Path = CANONICAL_CAMPAIGN) -> EvaluationRe
         and recipe.get("author_initializer_confirmed") is False,
         "Explicit nonreproduction recipe required",
     )
-    startup_pins = _worker(value["worker"])
+    startup_pins, worker_probe = _worker(value["worker"], deadline)
     verify_pin(value["software_binding"])
     software = read_json(value["software_binding"]["path"])
     require(
@@ -471,7 +521,9 @@ def load_request(pin: dict, campaign: Path = CANONICAL_CAMPAIGN) -> EvaluationRe
     if learned:
         verify_pin(value["checkpoint_admission"])
         verify_pin(config["export"])
-    request = EvaluationRequest(pin, value, config, cohort, identity, startup_pins)
+    request = EvaluationRequest(
+        pin, value, config, cohort, identity, startup_pins, worker_probe
+    )
     resume_rows(request)
     return request
 
@@ -506,6 +558,62 @@ def worker_command(
                 str(pin["bytes"]),
             ]
     return command
+
+
+def _timing_samples(row: dict) -> None:
+    """Validate the shared evaluator's retained host-phase samples, not speed."""
+    samples = row["control_wall_samples"]
+    returned = row["returned_controls"]
+    require(
+        returned <= len(samples) <= returned + (not row["complete"]),
+        "Timing samples must retain every returned control and at most one failed loop",
+    )
+    phases = ("selection_dispatch", "step", "capture", "whole_loop")
+    for index, sample in enumerate(samples, 1):
+        require(
+            isinstance(sample, dict)
+            and set(sample) == {"iteration", "returned_control_index", *phases}
+            and type(sample["iteration"]) is int
+            and sample["iteration"] == index,
+            "Exact typed ordered timing sample required",
+        )
+        control = sample["returned_control_index"]
+        require(
+            (type(control) is int and control == index and control <= returned)
+            or (
+                control is None
+                and not row["complete"]
+                and index == len(samples) == returned + 1
+            ),
+            "Timing returned-control causal index differs",
+        )
+        for phase in phases:
+            value = sample[phase]
+            require(
+                (value is None and not row["complete"] and phase in {"step", "capture"})
+                or (
+                    type(value) in (int, float) and math.isfinite(value) and value >= 0
+                ),
+                "Finite nonnegative host timing or legitimate partial phase null required",
+            )
+        require(
+            (
+                sample["step"] is not None
+                or (control is None and sample["capture"] is None)
+            )
+            and (sample["capture"] is None or control is not None)
+            and (control is None or sample["step"] is not None)
+            and (
+                sample["step"] is None
+                or control is not None
+                or row["unknown_physical_attempts"] == 1
+            ),
+            "Timing phase/physical-return causality differs",
+        )
+        require(
+            sum(sample[p] or 0 for p in phases[:-1]) <= sample["whole_loop"] + 1e-8,
+            "Host phase timings exceed their enclosing whole loop",
+        )
 
 
 def _rows(request: EvaluationRequest, receipt: dict) -> list[dict]:
@@ -553,6 +661,7 @@ def _rows(request: EvaluationRequest, receipt: dict) -> list[dict]:
             and len(row["control_wall_samples"]) <= request.config["control_cap"],
             "Bounded worker commands/latency required",
         )
+        _timing_samples(row)
         for index, command in enumerate(row["commands"], 1):
             require(
                 type(command.get("index")) is int and command["index"] == index,

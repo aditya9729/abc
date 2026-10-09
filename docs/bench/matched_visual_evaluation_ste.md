@@ -41,3 +41,23 @@ Keep the full reservation until root reconciliation is complete.
 Do not copy the ledger into a worktree.
 Do not treat virtual address space as allocated physical memory.
 Do not treat software fixtures as native performance evidence.
+
+The repair owner preserved the first frozen failure packet.
+The owner repaired child birth, cancellation cleanup, and partial startup restoration.
+The controller requires one Python thread and one kernel thread.
+It retains TERM, INT, and ALRM during ownership and cleanup.
+It checks cancellation during normal waits.
+It restores the caller state before it returns or raises.
+The original deadline does not restart.
+Later cancellation follows caller semantics after the scope ends.
+
+The owner added a site-disabled interpreter metadata probe.
+The probe runs before reservation and reads no NRH implementation.
+The parent rejects importable unpinned startup customization.
+The parent checks the exact NRH package and evaluator origins.
+The parent checks timing sample types, order, phases, and allowed partial nulls.
+These checks grant no native timing or scientific performance credit.
+
+The independent reviewer must review the repaired frozen package.
+Root must bind the final repaired NRH release separately.
+Keep the original failures and all additive repair evidence.
