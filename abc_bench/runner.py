@@ -31,7 +31,7 @@ HEAD_CHECK_CHILD = Path(
     "/home/user/aditya/RL/sadhana-qf3-head-check/harness/nrh/qf3_head_check.py"
 )
 HEAD_CHECK_CHILD_SHA256 = (
-    "8c8dc3a7ac78b36d58cef349443de30679a806d3430d2ba3e1b3d4a23f12097b"
+    "eb159bfaf9aae74c5e466572b4be926afd683b8eb6e9ea3c67380f5320c0d172"
 )
 HEAD_CHECK_CAMPAIGN = Path("/home/user/aditya/RL/abc/outputs/bench")
 
