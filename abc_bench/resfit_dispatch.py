@@ -86,7 +86,7 @@ def training_input(path: Path) -> dict[str, Any]:
     )
     _require(
         type(config["schema_version"]) is int and config["schema_version"] in (1, 2),
-        "ResFiT coordinator requires schema1",
+        "ResFiT coordinator requires schema1 or schema2",
     )
     _require(
         config["domain"] == "sim"
