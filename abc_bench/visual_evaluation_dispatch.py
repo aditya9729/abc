@@ -30,7 +30,7 @@ from abc_bench.visual_evaluation_bootstrap import (
 
 CANONICAL_CAMPAIGN = Path("/home/user/aditya/RL/abc/outputs/bench")
 REVISION = "sadhana.visual-methods-matched-evaluation/2"
-NRH_VERSION = "0.4.13"
+NRH_VERSION = "0.4.15"
 TASK = "put_plastic_bottles_in_bin"
 PROTOCOLS = {
     "resfit-frozen-nominal": False,
@@ -179,9 +179,19 @@ def _worker(worker: dict, deadline: float) -> tuple[list[dict], dict]:
         )
         relative, encoded, size = row
         target = site / relative
+        # A normal wheel installer records this unused console entry point.
+        # It remains hashed with all other artifacts; the worker exec uses -m.
+        own_console = (
+            relative == "../../../bin/nrh"
+            and target.resolve() == prefix.resolve() / "bin/nrh"
+            and not (prefix / "bin/nrh").is_symlink()
+        )
         require(
-            target.resolve().is_relative_to(site.resolve())
-            and relative.startswith(("nrh/", metadata.parent.name + "/")),
+            own_console
+            or (
+                target.resolve().is_relative_to(site.resolve())
+                and relative.startswith(("nrh/", metadata.parent.name + "/"))
+            ),
             "Worker RECORD path escape",
         )
         seen.add(relative)

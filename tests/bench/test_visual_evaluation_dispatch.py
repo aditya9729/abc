@@ -9,6 +9,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -108,10 +109,10 @@ def request_factory(tmp_path, monkeypatch):
             if name == "visual_method_evaluation"
             else '"""Owned CPU package fixture; no native/model implementation."""\n'
         )
-    dist = site / "nirvana_rl_harness-0.4.13.dist-info"
+    dist = site / "nirvana_rl_harness-0.4.15.dist-info"
     dist.mkdir()
     (dist / "METADATA").write_text(
-        "Metadata-Version: 2.1\nName: nirvana-rl-harness\nVersion: 0.4.13\n"
+        "Metadata-Version: 2.1\nName: nirvana-rl-harness\nVersion: 0.4.15\n"
     )
     records = []
     for path in [*nrh.glob("*.py"), dist / "METADATA"]:
@@ -137,7 +138,7 @@ def request_factory(tmp_path, monkeypatch):
         "version": sys.version,
         "pyvenv": artifact(prefix / "pyvenv.cfg"),
         "site_packages": str(site),
-        "nrh_version": "0.4.13",
+        "nrh_version": "0.4.15",
         "metadata": artifact(dist / "METADATA"),
         "record": artifact(dist / "RECORD"),
         "nrh_files": {str(p.relative_to(site)): artifact(p) for p in nrh.glob("*.py")},
@@ -154,7 +155,7 @@ def request_factory(tmp_path, monkeypatch):
         {
             "kind": "root_abc_visual_worker_release_binding",
             "status": "accepted_cpu_source_wheel_install",
-            "nrh_version": "0.4.13",
+            "nrh_version": "0.4.15",
             "nrh_sources": {n: p["sha256"] for n, p in worker["nrh_files"].items()},
             "source_admission": software_report,
         },
@@ -420,6 +421,191 @@ def test_invalid_admission_fails_before_query_or_dispatch(request_factory, fault
     )
     with pytest.raises((ValueError, KeyError, FileNotFoundError)):
         runner.run_baseline(invocation)
+    assert request_factory.calls == []
+    assert not list(request_factory.campaign.glob("visual-method-evaluation-*"))
+
+
+def test_current_exact_release_keeps_learned_export_trust_explicit(request_factory):
+    pin, value = request_factory("resfit-learned-mean")
+    request = visual.load_request(pin, request_factory.campaign)
+    assert visual.NRH_VERSION == request.value["worker"]["nrh_version"] == "0.4.15"
+    assert request.value["checkpoint_admission"] == value["checkpoint_admission"]
+    assert request.config["export"] is not None
+    assert request.cohort["split"] == "development"
+    assert request.identity["scientific_recipe"]["author_reproduction"] is False
+
+
+def add_console_record(worker, script):
+    """Install one hashed, unused console artifact in an owned stdlib fixture."""
+    path = Path(worker["record"]["path"])
+    rows = list(csv.reader(io.StringIO(path.read_text())))
+    body = script.read_bytes()
+    rows.append(
+        [
+            "../../../bin/nrh",
+            "sha256="
+            + base64.urlsafe_b64encode(hashlib.sha256(body).digest())
+            .decode()
+            .rstrip("="),
+            str(len(body)),
+        ]
+    )
+    stream = io.StringIO()
+    csv.writer(stream).writerows(rows)
+    path.write_text(stream.getvalue())
+    worker["record"] = artifact(path)
+
+
+def test_normal_console_record_is_pinned_but_never_executed(request_factory, tmp_path):
+    _, value = request_factory()
+    script = request_factory.prefix / "bin/nrh"
+    marker = tmp_path / "console-was-executed"
+    script.write_text(f"from pathlib import Path\nPath({str(marker)!r}).touch()\n")
+    add_console_record(value["worker"], script)
+    pins, _ = visual._worker(value["worker"], time.monotonic() + 4)
+    assert any(
+        Path(pin["path"]).resolve() == script
+        and pin["sha256"] == artifact(script)["sha256"]
+        for pin in pins
+    )
+    assert not marker.exists()
+    script.write_text(script.read_text() + "# changed after admission\n")
+    console_pin = next(pin for pin in pins if Path(pin["path"]).resolve() == script)
+    with pytest.raises(ValueError, match="Evaluation artifact pin changed"):
+        visual.verify_pin(console_pin)
+
+
+@pytest.mark.parametrize(
+    "fault,error",
+    [
+        ("other_command", "Worker RECORD path escape"),
+        ("absolute", "Worker RECORD path escape"),
+        ("dot_alias", "Worker RECORD path escape"),
+        ("parent_alias", "Worker RECORD path escape"),
+        ("outside_prefix", "Worker RECORD path escape"),
+        ("script_symlink", "Worker RECORD path escape"),
+        ("bin_symlink", "Worker RECORD path escape"),
+        ("changed_body", "Evaluation artifact pin changed"),
+        ("unhashed", "Every nonself worker RECORD file must be hashed"),
+        ("duplicate", "Duplicate/malformed worker RECORD entry"),
+    ],
+)
+def test_console_record_exception_remains_narrow(
+    request_factory, tmp_path, fault, error
+):
+    _, value = request_factory()
+    worker = value["worker"]
+    script = request_factory.prefix / "bin/nrh"
+    script.write_text('"""Owned unused console fixture."""\n')
+    add_console_record(worker, script)
+    record = Path(worker["record"]["path"])
+    rows = list(csv.reader(io.StringIO(record.read_text())))
+    row = rows[-1]
+    if fault == "other_command":
+        row[0] = "../../../bin/other"
+        script.rename(script.with_name("other"))
+    elif fault == "absolute":
+        row[0] = str(script)
+    elif fault == "dot_alias":
+        row[0] = "../../../bin/./nrh"
+    elif fault == "parent_alias":
+        row[0] = "../../../bin/../bin/nrh"
+    elif fault == "outside_prefix":
+        row[0] = "../../../../outside-command"
+    elif fault == "script_symlink":
+        other = tmp_path / "outside-command"
+        other.write_bytes(script.read_bytes())
+        script.unlink()
+        script.symlink_to(other)
+    elif fault == "bin_symlink":
+        directory = request_factory.prefix / "bin"
+        directory.rename(directory.with_name("real-bin"))
+        directory.symlink_to("real-bin", target_is_directory=True)
+    elif fault == "changed_body":
+        script.write_text(script.read_text() + "# tampered\n")
+    elif fault == "unhashed":
+        row[1:] = ["", ""]
+    else:
+        rows.append(row.copy())
+    stream = io.StringIO()
+    csv.writer(stream).writerows(rows)
+    record.write_text(stream.getvalue())
+    worker["record"] = artifact(record)
+    with pytest.raises(ValueError, match=error):
+        visual._worker(worker, time.monotonic() + 4)
+    assert request_factory.calls == []
+    assert not list(request_factory.campaign.glob("visual-method-evaluation-*"))
+
+
+@pytest.mark.parametrize(
+    "fault,error",
+    [
+        ("stale_worker", "worker release/version"),
+        ("future_worker", "worker release/version"),
+        ("local_worker", "worker release/version"),
+        ("stale_metadata", "distribution differs"),
+        ("stale_software", "worker source/wheel binding"),
+        ("software_source", "worker source/wheel binding"),
+        ("record_omits_source", "RECORD omits NRH source"),
+        ("unlisted_source", "inventory or unpinned bytecode"),
+        ("interpreter_origin", "Literal worker interpreter differs"),
+        ("coordinator_source", "coordinator source binding"),
+        ("final_split", "development episodes required"),
+        ("missing_checkpoint_trust", "checkpoint/export trust"),
+    ],
+)
+def test_current_release_keeps_exact_provenance_and_split_gates(
+    request_factory, fault, error
+):
+    pin, value = request_factory("resfit-learned-mean")
+    worker = value["worker"]
+    if fault in {"stale_worker", "future_worker", "local_worker"}:
+        worker["nrh_version"] = {
+            "stale_worker": "0.4.13",
+            "future_worker": "0.4.16",
+            "local_worker": "0.4.15+local",
+        }[fault]
+    elif fault == "stale_metadata":
+        path = Path(worker["metadata"]["path"])
+        path.write_text(path.read_text().replace("Version: 0.4.15", "Version: 0.4.13"))
+        worker["metadata"] = artifact(path)
+    elif fault in {"stale_software", "software_source"}:
+        path = Path(value["software_binding"]["path"])
+        software = json.loads(path.read_text())
+        if fault == "stale_software":
+            software["nrh_version"] = "0.4.13"
+        else:
+            software["nrh_sources"]["nrh/visual_policy_export.py"] = "f" * 64
+        value["software_binding"] = write(path, software)
+    elif fault == "record_omits_source":
+        path = Path(worker["record"]["path"])
+        entries = list(csv.reader(io.StringIO(path.read_text())))
+        stream = io.StringIO()
+        csv.writer(stream).writerows(
+            row for row in entries if row[0] != "nrh/__init__.py"
+        )
+        path.write_text(stream.getvalue())
+        worker["record"] = artifact(path)
+    elif fault == "unlisted_source":
+        path = Path(worker["site_packages"]) / "nrh/unlisted.py"
+        path.write_text('"""Owned unpinned CPU fixture source."""\n')
+    elif fault == "interpreter_origin":
+        worker["python_resolved"] = "/owned-fixture/wrong-python"
+    elif fault == "coordinator_source":
+        value["coordinator_sources"]["visual_evaluation_dispatch"] = "f" * 64
+    elif fault == "final_split":
+        config_path = Path(value["config"]["path"])
+        config = json.loads(config_path.read_text())
+        cohort_path = Path(config["cohort"]["path"])
+        cohort = json.loads(cohort_path.read_text())
+        cohort["split"] = "final"
+        config["cohort"] = write(cohort_path, cohort)
+        value["config"] = write(config_path, config)
+    else:
+        value["checkpoint_admission"] = None
+    pin = write(Path(pin["path"]), value)
+    with pytest.raises(ValueError, match=error):
+        runner.run_baseline(args(request_factory, pin))
     assert request_factory.calls == []
     assert not list(request_factory.campaign.glob("visual-method-evaluation-*"))
 

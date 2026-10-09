@@ -91,3 +91,26 @@ A raised invocation grants no acceptance, even if that older receipt exists.
 Kernel refusal can leave a partial mask. Root must inspect the actual state.
 A different reviewer must verify the frozen third repair.
 This explanation uses STE guidance. A full compliance check was not available.
+
+The compatibility owner changed the exact required worker release to NRH 0.4.15.
+The owner kept the historical NRH 0.4.13 reader in its original worktree.
+The new reader still checks every installed source and RECORD entry.
+It still checks the interpreter, coordinator, startup and root trust pins.
+The worker interface and development split remain unchanged.
+The training environment is not automatically eligible for this route.
+The route still refuses NRH bytecode and executable startup path files.
+The change includes no traversal cache or native runtime update.
+An accepted learned ResFiT export still needs a healthy ready checkpoint.
+Root must verify zero debt, actual actor updates, canonical state and the closed queue.
+CPU fixtures do not prove that a real checkpoint is eligible.
+A different reviewer must check the frozen compatibility change.
+Root owns external review, publication and any later native admission.
+Do not report this development evaluator as final held-out qualification.
+
+The normal wheel installer adds a RECORD row for the `nrh` command.
+The reader accepts only the exact path to the worker's own command file.
+The file and its directory cannot use a symbolic link.
+The reader checks and saves the file size and SHA256.
+The evaluator uses the pinned interpreter and module. It does not run this command file.
+Other command paths and missing hashes remain errors.
+The owner kept the official wheel and its metadata unchanged.

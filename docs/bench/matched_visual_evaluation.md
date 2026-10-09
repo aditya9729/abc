@@ -1,7 +1,8 @@
 # Matched visual evaluator coordinator
 
 The isolated ABC package adds `visual-method-evaluation` to the common runner.
-The route supports six declared ABC/YAM protocol names in NRH 0.4.13, evaluator revision 2.
+This isolated route requires exactly NRH 0.4.15, evaluator revision 2.
+It supports six declared ABC/YAM protocol names. Historical NRH 0.4.13 readers remain unchanged in their original worktrees.
 It sends one worker through `execute_command`. It keeps the existing training routes unchanged.
 
 | Protocol | Learned export needed |
@@ -47,7 +48,7 @@ The protocol, export, video selection, and resume pins remain in the pinned conf
 | `config` | Absolute path, byte count, SHA256 for the unchanged NRH configuration |
 | `identity` | Exact resolved revision-2 protocol identity; protocol ID is its canonical JSON digest |
 | `worker` | Literal isolated venv Python pin, resolved binary, prefix/version, pyvenv config, own NRH sources, METADATA/RECORD, plain `.pth` and selected dependency metadata pins |
-| `software_binding` | Root release binding for NRH 0.4.13; accepted source/wheel/install report pin and every installed NRH source hash |
+| `software_binding` | Root release binding for exactly NRH 0.4.15; accepted source/wheel/install report pin and every installed NRH source hash |
 | `native_admission` | Existing root NRH native admission plus coordinator source, worker, and resource bindings |
 | `checkpoint_admission` | Separate complete-checkpoint trust pin for a learned protocol; null for a frozen protocol |
 | `coordinator_sources` | Exact hashes of the actual installed runner, dispatch, and bootstrap |
@@ -58,7 +59,22 @@ The protocol, export, video selection, and resume pins remain in the pinned conf
 | `schema_version`, `kind` | Exact schema and request kind |
 
 Every pin has exactly `path`, `bytes`, and `sha256`. No mutable `latest` alias grants trust.
-`root_abc_visual_worker_release_binding` must have status `accepted_cpu_source_wheel_install` and version `0.4.13`.
+`root_abc_visual_worker_release_binding` must have status `accepted_cpu_source_wheel_install` and version `0.4.15`.
+Stale, future and local-suffix releases remain refused. Every installed NRH source, RECORD entry, interpreter and coordinator source stays pinned.
+This compatibility change adds no runtime admission. It does not include the rejected traversal cache.
+Learned ResFiT evaluation still needs a separately accepted healthy ready checkpoint and inference export.
+The current schema-2 ResFiT training configuration emits a schema-1 checkpoint with an inline learner and replay manifest.
+The unchanged NRH exporter checks ready phase, zero debt and actual actor updates after canonical whole-checkpoint admission.
+The coordinator supports development evaluation only. It does not qualify a final held-out cohort.
+The training environment is not automatically an eligible evaluation worker.
+The existing gate still refuses NRH bytecode and executable `.pth` startup files.
+Root must admit an isolated worker that satisfies every existing provenance check before any launch.
+An official wheel installation records the `nrh` console command as `../../../bin/nrh`.
+The reader accepts exactly that record when it resolves to the worker's own `bin/nrh`, with no script or directory symlink.
+The script's size and SHA256 are verified and retained for later integrity checks, like every other nonself RECORD artifact.
+Other commands, absolute paths, alternate traversal spellings, escapes and unhashed entries remain refused.
+The evaluator invokes the module through the pinned interpreter; it does not execute the console command.
+The official NRH wheel and its metadata stay unchanged.
 Its `nrh_sources` map must match all installed Python sources. Its `source_admission` is separately pinned.
 The native admission must bind `worker_binding`, `coordinator_sources`, and `native_resources` to this request.
 These coordinator-only fields extend the root certificate. They do not change the accepted NRH CLI or lease rule.
