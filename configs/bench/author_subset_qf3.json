@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "label": "QF3 paper implementation: one outer iteration and three layouts",
+  "python": "/home/user/aditya/RL/abc/.venv/bin/python",
+  "module": "nrh.qf3_training",
+  "max_wall_s": 3600,
+  "arguments": [
+    "--config",
+    "/home/user/aditya/RL/sadhana-qf3-early-stopping/harness/configs/qf3_abc_vla.bottles.small_comparison_video.json"
+  ]
+}

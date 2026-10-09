@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "label": "Original ResFiT: frozen evaluation on three matched layouts",
+  "python": "/home/user/aditya/RL/abc/.venv/bin/python",
+  "module": "abc_bench.subset_worker",
+  "max_wall_s": 2100,
+  "arguments": [
+    "--config",
+    "/home/user/aditya/RL/abc/configs/bench/author_subset_resfit_evaluate_supervisor.json"
+  ]
+}

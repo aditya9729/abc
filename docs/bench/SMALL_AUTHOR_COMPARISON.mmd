@@ -1,0 +1,15 @@
+flowchart LR
+    C[Root: serial GPU0 coordinator and watchdog] -->|control| B[Original ABC-VLA host: frozen baseline]
+    C -->|control| R[Separate Python3.10 original ResFiT learner]
+    C -->|control| Q[QF3 paper implementation: Python3.12]
+    D[Local immutable ABC TRAIN sample] --> J[Original ABC source judge]
+    J -->|successful prefix only| R
+    W[Same local ABC-VLA checkpoint] --> B
+    W --> Q
+    B <-->|raw observations and physical actions: local RPC| R
+    B <-->|same MJWarp physics, layouts and success rule| E[Original ABC simulator]
+    Q <-->|observations and physical actions| E
+    B --> O[Measured scores, action traces and actual camera clips]
+    R --> O
+    Q --> O
+    O --> V[Local comparison viewer]

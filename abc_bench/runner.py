@@ -799,6 +799,7 @@ def main() -> None:
             "comparison",
             "sustained-resfit",
             "qf3-vla",
+            "author-subset",
         ),
         default="baseline",
     )
@@ -827,7 +828,12 @@ def main() -> None:
         parser.error(str(error))
     if not args.checkpoint.is_file():
         parser.error("checkpoint missing; run prepare.py --checkpoint first")
-    receipt = run_baseline(args)
+    if args.algorithm == "author-subset":
+        from abc_bench.subset import run_job
+
+        receipt = run_job(args)
+    else:
+        receipt = run_baseline(args)
     print(json.dumps(receipt, indent=2))
     if receipt["status"] != "completed":
         raise SystemExit(1)

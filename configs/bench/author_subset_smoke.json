@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "label": "Frozen original ABC-VLA: 8-control native smoke",
+  "python": "/home/user/aditya/RL/abc/.venv/bin/python",
+  "module": "abc_author_subset.host",
+  "max_wall_s": 600,
+  "arguments": [
+    "--mode", "smoke",
+    "--checkpoint", "/home/user/aditya/RL/abc/cache/vla_abc130k_200000_v2.pt",
+    "--metadata", "/home/user/aditya/RL/abc/cache/vla_abc130k_200000_v2.json",
+    "--norm-stats", "/home/user/aditya/RL/abc/cache/norm_stats.json",
+    "--seed", "9030",
+    "--horizon", "8",
+    "--policy-seed", "901",
+    "--execute-prefix", "15",
+    "--diffusion-steps", "5"
+  ]
+}
