@@ -29,6 +29,8 @@ def copy_video(ref: dict, output: Path) -> str:
 def read_condition(path: Path | None, output: Path, *, qf3: bool = False) -> dict:
     if path is None:
         return {"status": "Pending", "episodes": [], "score": None}
+    if qf3 and (path / "qf3").is_dir():
+        path = path / "qf3"
     worker_path = path / "receipt.json"
     worker = json.loads(worker_path.read_text()) if worker_path.is_file() else {}
     episodes = []
@@ -58,7 +60,7 @@ def read_condition(path: Path | None, output: Path, *, qf3: bool = False) -> dic
             rollout = record.get("rollout", {})
             for row in rollout.get("worlds", []):
                 seed = row.get("requested_seed")
-                if seed not in SEEDS or not row.get("completed"):
+                if seed not in SEEDS or row.get("completed") is not True:
                     continue
                 if row["actual_seed"] != seed:
                     raise ValueError("QF3 actual layout differs from the completed baseline layout")
@@ -66,6 +68,8 @@ def read_condition(path: Path | None, output: Path, *, qf3: bool = False) -> dic
                 if recording.get("actual_seed") != row["actual_seed"]:
                     raise ValueError("QF3 evaluation video and rollout layout differ")
                 video = recording.get("video")
+                if not video:
+                    raise ValueError("Completed QF3 evaluation is missing its actual video")
                 episodes.append(
                     {
                         "seed": seed,
@@ -73,7 +77,7 @@ def read_condition(path: Path | None, output: Path, *, qf3: bool = False) -> dic
                         "steps": row["steps"],
                         "success": row["paper_success"],
                         "native_success": row["native_success"],
-                        "video": copy_video(video, output) if video else None,
+                        "video": copy_video(video, output),
                     }
                 )
     else:
@@ -81,7 +85,7 @@ def read_condition(path: Path | None, output: Path, *, qf3: bool = False) -> dic
         for episode_path in sorted(host.glob("episode-*.json")):
             row = json.loads(episode_path.read_text())
             seed = row["requested_seed"]
-            if seed in SEEDS and row["completed"]:
+            if seed in SEEDS and row["completed"] is True:
                 if row["seed"] != seed:
                     raise ValueError("Host actual layout differs from the completed baseline layout")
                 episodes.append(
@@ -96,11 +100,15 @@ def read_condition(path: Path | None, output: Path, *, qf3: bool = False) -> dic
                 )
     if len({row["seed"] for row in episodes}) != len(episodes):
         raise ValueError("Duplicate matched evaluation layouts")
-    complete = {row["seed"] for row in episodes} == set(SEEDS)
+    complete = (
+        {row["seed"] for row in episodes} == set(SEEDS)
+        and worker.get("status") == "completed"
+    )
+    state = "Complete" if complete else f"Running: {len(episodes)}/3 episodes complete"
+    if worker.get("status") in {"failed", "budget_stopped", "early_stopped"}:
+        state = f"{worker['status']}: {len(episodes)}/3 episodes complete"
     return {
-        "status": "Complete"
-        if complete
-        else f"Running: {len(episodes)}/3 episodes complete",
+        "status": state,
         "episodes": episodes,
         "score": f"{sum(row['success'] for row in episodes)}/3" if complete else None,
         "source": str(path),

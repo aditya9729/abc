@@ -6,6 +6,6 @@
   "max_wall_s": 3600,
   "arguments": [
     "--config",
-    "/home/user/aditya/RL/sadhana-qf3-early-stopping/harness/configs/qf3_abc_vla.bottles.small_comparison_video.json"
+    "/home/user/aditya/RL/sadhana-qf3-early-stopping/harness/configs/qf3_abc_vla.bottles.small_comparison_video_assets_v2.json"
   ]
 }

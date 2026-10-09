@@ -122,6 +122,8 @@ def run_job(args: Any) -> dict[str, Any]:
         )
         out = RESULTS / run_id
         out.mkdir()
+        # The QF3 worker creates its output and refuses a pre-existing directory.
+        worker_out = out / "qf3" if job["module"] == "nrh.qf3_training" else out
         command = [
             job["python"],
             "-I",
@@ -130,7 +132,7 @@ def run_job(args: Any) -> dict[str, Any]:
             job["module"],
             *job["arguments"],
             "--out" if job["module"] == "nrh.qf3_training" else "--output",
-            str(out),
+            str(worker_out),
         ]
         write_json(out / "job.json", job)
         receipt = {
@@ -169,7 +171,7 @@ def run_job(args: Any) -> dict[str, Any]:
             receipt["worker_exit_code"] = code
             if code != 0:
                 raise RuntimeError(f"Worker exited {code}; see run.log")
-            worker_path = out / "receipt.json"
+            worker_path = worker_out / "receipt.json"
             worker = json.loads(worker_path.read_text())
             if worker.get("status") != "completed":
                 raise RuntimeError("Worker did not finish its declared stage")

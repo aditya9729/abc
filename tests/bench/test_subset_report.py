@@ -85,6 +85,43 @@ class ReportFixture:
 
 
 class SubsetReportTests(unittest.TestCase):
+    def test_nested_worker_needs_completed_receipt_and_actual_video(self):
+        for condition in ("completed", "budget_stopped", "missing_video"):
+            with (
+                self.subTest(condition=condition),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                parent = Path(directory) / "coordinator"
+                parent.mkdir()
+                fixture = ReportFixture(parent)
+                nested = parent / "qf3"
+                fixture.run.rename(nested)
+                fixture.run = nested
+                fixture.worker["evaluation_events"] = [
+                    {"head": "learned", "reason": "final"}
+                ]
+                fixture.cohort(0, success=(True, False, True))
+                if condition == "budget_stopped":
+                    fixture.worker["status"] = "budget_stopped"
+                elif condition == "missing_video":
+                    fixture.worker["subset_video_recordings"][0].pop("video")
+                fixture.publish_receipt()
+                if condition == "missing_video":
+                    with self.assertRaisesRegex(ValueError, "missing its actual video"):
+                        read_condition(parent, fixture.output, qf3=True)
+                    self.assertEqual(list(fixture.output.iterdir()), [])
+                else:
+                    result = read_condition(parent, fixture.output, qf3=True)
+                    self.assertEqual(result["source"], str(nested))
+                    self.assertEqual(len(result["episodes"]), 3)
+                    if condition == "completed":
+                        self.assertEqual(result["score"], "2/3")
+                        self.assertEqual(result["status"], "Complete")
+                    else:
+                        self.assertIsNone(result["score"])
+                        self.assertNotEqual(result["status"], "Complete")
+                        self.assertEqual(result["worker_status"], "budget_stopped")
+
     def test_intermediate_learned_event_never_scores_final(self):
         with tempfile.TemporaryDirectory() as directory:
             fixture = ReportFixture(Path(directory))

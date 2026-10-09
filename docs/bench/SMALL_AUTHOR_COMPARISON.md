@@ -12,7 +12,7 @@ Use the same placement-history success rule, plus the original current-success
 metric. Each evaluation episode has at most 1,000 controls. Train on other layouts.
 These settings select one explicit comparison; they do not establish paper results.
 
-The physical task is `put_plastic_bottles_in_bin`. Released checkpoint metadata
+The physical task is `put_plastic_bottles_in_bin`. Released shared training-mixture metadata
 maps that scene to `sim throw plastic bottles in bin`. This is the recorded
 training prompt remap. The physical throw scene is a different task.
 
@@ -34,6 +34,34 @@ head LoRA, and causal chunk Bellman target. Its unresolved critic settings are
 explicit local choices. The two methods have different training costs. A small
 sample can show execution and observed outcomes; it cannot establish a reliable
 improvement or a full paper reproduction.
+
+ResFiT used 258 actual warmup controls and 32 training controls. It made
+160 critic updates and 32 actor updates. Its 716 demo transitions produce
+714 stored three-step replay rows. A single successful demonstration supplies
+the action ranges and state statistics. It has three bottles; evaluation has five.
+This data change affects the original action scaler. It can clip the base before
+the residual acts. The tiny demo pool is not the original paper's expert dataset.
+QF3 uses one complete warmup episode and one collection episode. It makes
+128 critic updates and 16 actor updates. These interaction budgets differ.
+
+Run each configuration with the installed coordinator:
+
+```sh
+ABC_BENCH_REPO=/home/user/aditya/RL/abc /home/user/aditya/RL/abc/.venv/bin/python -I -B -m abc_bench.runner --algorithm author-subset --checkpoint /home/user/aditya/RL/abc/cache/vla_abc130k_200000_v2.pt --training-config /home/user/aditya/RL/abc/configs/bench/author_subset_baseline.json --timeout-seconds 3600
+```
+
+Select `author_subset_resfit_train.json` for original-author training.
+For another evaluation, bind its actual completed checkpoint and hash in
+`author_subset_resfit_evaluate_supervisor.json`. The checked-in evaluation job
+pins the checkpoint from this measured run. Select `author_subset_qf3.json`
+for the QF3 diagnostic. Do not launch workers directly.
+
+These jobs use existing normal installations. The native environment includes
+original ABC model assets copied into its installed package. The complete
+QF3 asset manifest contains 933 files, including the original `models/README.md`.
+Keep this complete inventory after rebuilding the ABC wheel. Reinstalling the
+wheel can remove separately copied assets. Its code and tokenizer remain in
+the wheel. A failed inventory check must stop before model construction.
 
 Root runs GPU0 jobs through `python -m abc_bench.runner --algorithm author-subset
 --training-config JOB.json`. Each job has an explicit interpreter, module,
