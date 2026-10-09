@@ -62,6 +62,7 @@ def refuse_final_mask(factory, monkeypatch, error):
                 for number, handler in handlers.items()
             )
             and receipts
+            and "terminal_publication" in boot.read_json(receipts[0])
         ):
             calls.append("refused before side effect")
             raise error
