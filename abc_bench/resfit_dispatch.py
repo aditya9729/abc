@@ -78,9 +78,14 @@ def _same(left: Any, right: Any) -> bool:
 
 def training_input(path: Path) -> dict[str, Any]:
     config = read_json(path)
-    _require(set(config) == CONFIG_FIELDS, "ResFiT coordinator config schema differs")
     _require(
-        type(config["schema_version"]) is int and config["schema_version"] == 1,
+        set(config)
+        == CONFIG_FIELDS
+        | ({"storage"} if config.get("schema_version") == 2 else set()),
+        "ResFiT coordinator config schema differs",
+    )
+    _require(
+        type(config["schema_version"]) is int and config["schema_version"] in (1, 2),
         "ResFiT coordinator requires schema1",
     )
     _require(
@@ -111,6 +116,17 @@ def training_input(path: Path) -> dict[str, Any]:
     for key in ("artifacts", "sources", "native_inventory"):
         _require(
             isinstance(config[key], dict), "ResFiT explicit local pin mappings required"
+        )
+    if config["schema_version"] == 2:
+        _require(
+            _same(
+                config["storage"],
+                {
+                    "rgb_codec": "lossless_rgb_zlib/1",
+                    "complete_milestone_controls": 10000,
+                },
+            ),
+            "ResFiT storage profile differs",
         )
     candidate = config["artifacts"].get("checkpoint_path")
     _require(

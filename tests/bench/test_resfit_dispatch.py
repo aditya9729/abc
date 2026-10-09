@@ -6,7 +6,6 @@ from argparse import Namespace
 from pathlib import Path
 
 import pytest
-
 from abc_bench import resfit_dispatch, runner
 
 
@@ -422,3 +421,39 @@ def test_json_boundary_rejects_ambiguous_nonfinite_inputs(tmp_path, text):
     path.write_text(text)
     with pytest.raises(ValueError):
         resfit_dispatch.read_json(path)
+
+
+def test_explicit_storage_schema2_input(tmp_path):
+    value = input_config()
+    value.update(
+        schema_version=2,
+        storage={
+            "rgb_codec": "lossless_rgb_zlib/1",
+            "complete_milestone_controls": 10000,
+        },
+    )
+    path = tmp_path / "input.json"
+    path.write_text(json.dumps(value))
+    assert resfit_dispatch.training_input(path) == value
+    value["storage"]["complete_milestone_controls"] = 9999
+    path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="storage"):
+        resfit_dispatch.training_input(path)
+
+
+def test_storage_milestone_type_coordinator(tmp_path):
+    value = input_config()
+    value.update(
+        schema_version=2,
+        storage={
+            "rgb_codec": "lossless_rgb_zlib/1",
+            "complete_milestone_controls": 10000,
+        },
+    )
+    path = tmp_path / "strict-storage.json"
+    path.write_text(json.dumps(value))
+    assert resfit_dispatch.training_input(path) == value
+    value["storage"]["complete_milestone_controls"] = 10000.0
+    path.write_text(json.dumps(value))
+    with pytest.raises(ValueError, match="storage"):
+        resfit_dispatch.training_input(path)
