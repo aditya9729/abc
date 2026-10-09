@@ -8,7 +8,9 @@ import json
 import os
 import re
 import signal
+import stat
 import subprocess
+import sys
 import time
 import uuid
 from datetime import datetime, timezone
@@ -23,6 +25,69 @@ ROOT = (
     .resolve()
 )
 RESULTS = ROOT / "outputs" / "bench"
+
+
+HEAD_CHECK_CHILD = Path(
+    "/home/user/aditya/RL/sadhana-qf3-head-check/harness/nrh/qf3_head_check.py"
+)
+HEAD_CHECK_CHILD_SHA256 = (
+    "8c8dc3a7ac78b36d58cef349443de30679a806d3430d2ba3e1b3d4a23f12097b"
+)
+HEAD_CHECK_CAMPAIGN = Path("/home/user/aditya/RL/abc/outputs/bench")
+
+
+def head_check_plan(args: argparse.Namespace, timeout: float) -> tuple[dict, list[str]]:
+    """Only the frozen public NRH diagnostic can use this inference-only route."""
+    if (
+        RESULTS.resolve() != HEAD_CHECK_CAMPAIGN.resolve()
+        or args.results.resolve() != HEAD_CHECK_CAMPAIGN.resolve()
+    ):
+        raise ValueError("Head-check requires the canonical original campaign")
+    if args.training_config is None or args.head_check_config_sha256 is None:
+        raise ValueError("Head-check requires a root-pinned --training-config")
+    if Path(sys.prefix) != Path("/home/user/aditya/RL/abc/.venv"):
+        raise ValueError("Head-check requires original frozen runtime Python")
+    metadata = args.training_config.stat()
+    if (
+        args.training_config.is_symlink()
+        or not stat.S_ISREG(metadata.st_mode)
+        or metadata.st_size > 65536
+    ):
+        raise ValueError("Head-check requires a bounded regular config")
+    raw = args.training_config.read_bytes()
+    if (
+        len(raw) > 65536
+        or hashlib.sha256(raw).hexdigest() != args.head_check_config_sha256
+    ):
+        raise ValueError("Head-check config pin differs")
+    if (
+        HEAD_CHECK_CHILD.is_symlink()
+        or hashlib.sha256(HEAD_CHECK_CHILD.read_bytes()).hexdigest()
+        != HEAD_CHECK_CHILD_SHA256
+    ):
+        raise ValueError("Head-check child source pin differs")
+    config = json.loads(raw)
+    if (
+        config.get("stage") != "head_check"
+        or config.get("device") != "cuda:0"
+        or config.get("campaign_directory") != str(HEAD_CHECK_CAMPAIGN)
+    ):
+        raise ValueError("Head-check stage/device/campaign differs")
+    wall = config.get("max_wall_s")
+    if (
+        type(wall) not in {int, float}
+        or not 0 < wall < float("inf")
+        or wall > timeout - 60
+    ):
+        raise ValueError(
+            "Head-check requires finite child budget inside parent cleanup reserve"
+        )
+    return config, [
+        sys.executable,
+        str(HEAD_CHECK_CHILD),
+        "--config",
+        str(args.training_config.resolve()),
+    ]
 
 
 MAX_EVAL_HORIZON = 3540
@@ -247,6 +312,9 @@ def execution_provenance() -> dict[str, Any]:
 def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
     import fcntl
 
+    # Refuse a disconnected diagnostic route before any output or ledger mutation.
+    if getattr(args, "algorithm", None) == "qf3-head-check":
+        head_check_plan(args, args.timeout_seconds)
     results = args.results.resolve()
     results.mkdir(parents=True, exist_ok=True)
     RESULTS.mkdir(parents=True, exist_ok=True)
@@ -358,6 +426,10 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 "--out",
                 str(out / "training"),
             ]
+        elif algorithm == "qf3-head-check":
+            training, command = head_check_plan(args, timeout)
+            child_config = args.training_config.resolve()
+            command.extend(["--out", str(out / "training")])
         elif algorithm == "qf3-vla":
             if args.training_config is None:
                 raise ValueError("QF3 VLA requires --training-config")
@@ -489,6 +561,20 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     "path": str(child_config.relative_to(results)),
                 }
             )
+        elif algorithm == "qf3-head-check":
+            stage = "head_check"
+            receipt["algorithm"] = "QF3 head diagnostic"
+            receipt["phase"] = "diagnostic"
+            receipt["method_fidelity"] = (
+                "retained common-input reference/online/target head check"
+            )
+            receipt["claim_scope"] = (
+                "single retained input; zero controls and optimizer updates; no performance claim"
+            )
+            receipt["training_stage"] = "head_check"
+            receipt["diagnostic_child_sha256"] = HEAD_CHECK_CHILD_SHA256
+            receipt["training_config_sha256"] = args.head_check_config_sha256
+            receipt["budget"]["steps"] = 0
         elif algorithm == "qf3-vla":
             stage = training["stage"]
             receipt["algorithm"] = "QF3 ABC-VLA " + stage
@@ -554,7 +640,10 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         write_json(ledger_path, ledger)
         try:
             code = execute_command(
-                command, out / "run.log", timeout, gpu_uuid=gpu_binding["uuid"]
+                command,
+                out / "run.log",
+                training["max_wall_s"] if algorithm == "qf3-head-check" else timeout,
+                gpu_uuid=gpu_binding["uuid"],
             )
             if code:
                 raise RuntimeError(
@@ -562,7 +651,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             summary_path = (
                 out / "training" / "receipt.json"
-                if algorithm in {"sustained-resfit", "qf3-vla"}
+                if algorithm in {"sustained-resfit", "qf3-vla", "qf3-head-check"}
                 else out
                 / (
                     "paired_eval.json"
@@ -649,6 +738,34 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                         "path": str(summary_path.relative_to(results)),
                     }
                 )
+            elif algorithm == "qf3-head-check":
+                if (
+                    summary.get("kind") != "qf3_head_diagnostic"
+                    or summary.get("stage") != "head_check"
+                    or summary.get("status") != "completed"
+                    or summary.get("child_source_sha256") != HEAD_CHECK_CHILD_SHA256
+                    or summary.get("performance_claim") is not False
+                    or summary.get("diagnostic_config_sha256")
+                    != args.head_check_config_sha256
+                ):
+                    raise RuntimeError(
+                        "Head-check diagnostic receipt identity/status differs"
+                    )
+                expected = {
+                    "simulation_steps": 0,
+                    "optimizer_steps": 0,
+                    "critic_updates": 0,
+                    "actor_updates": 0,
+                    "worlds_created": 0,
+                }
+                if json.dumps(summary.get("metrics"), sort_keys=True) != json.dumps(
+                    expected, sort_keys=True
+                ):
+                    raise RuntimeError(
+                        "Head-check diagnostic reported nonzero controls/updates"
+                    )
+                receipt["metrics"] = {**expected, "successes": None, "episodes": None}
+                receipt["worker_status"] = summary["status"]
             elif algorithm == "qf3-vla":
                 accepted = {"completed", "budget_stopped"}
                 if stage == "native_check":
@@ -697,7 +814,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             receipt["status"] = (
                 "partial"
-                if algorithm in {"sustained-resfit", "qf3-vla"}
+                if algorithm in {"sustained-resfit", "qf3-vla", "qf3-head-check"}
                 and summary["status"] == "budget_stopped"
                 else "completed"
             )
@@ -709,7 +826,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     "label": "Upstream summary"
                     if algorithm == "baseline"
                     else "Sadhana stage evidence"
-                    if algorithm in {"sustained-resfit", "qf3-vla"}
+                    if algorithm in {"sustained-resfit", "qf3-vla", "qf3-head-check"}
                     else "Update smoke evidence",
                     "path": str(summary_path.relative_to(results)),
                 }
@@ -734,7 +851,7 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             receipt["blockers"] = [str(error)]
             worker_receipt = out / "training" / "receipt.json"
             if (
-                algorithm in {"sustained-resfit", "qf3-vla"}
+                algorithm in {"sustained-resfit", "qf3-vla", "qf3-head-check"}
                 and worker_receipt.is_file()
             ):
                 receipt["artifacts"].append(
@@ -750,6 +867,12 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     failed_worker = json.loads(worker_receipt.read_text())
                 except (OSError, ValueError):
                     failed_worker = None
+                if (
+                    algorithm == "qf3-head-check"
+                    and isinstance(failed_worker, dict)
+                    and isinstance(failed_worker.get("first_error"), dict)
+                ):
+                    receipt["worker_first_error"] = failed_worker["first_error"]
                 if (
                     isinstance(failed_worker, dict)
                     and failed_worker.get("stage") == stage
@@ -799,6 +922,7 @@ def main() -> None:
             "comparison",
             "sustained-resfit",
             "qf3-vla",
+            "qf3-head-check",
         ),
         default="baseline",
     )
@@ -811,6 +935,7 @@ def main() -> None:
     parser.add_argument("--qf3-state", type=Path)
     parser.add_argument("--resfit-state", type=Path)
     parser.add_argument("--training-config", type=Path)
+    parser.add_argument("--head-check-config-sha256")
     parser.add_argument("--task", default="put_plastic_bottles_in_bin")
     parser.add_argument("--worlds", type=int, default=1)
     parser.add_argument("--chunks", type=int, default=2)
