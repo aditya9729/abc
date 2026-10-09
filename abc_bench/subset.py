@@ -127,6 +127,7 @@ def run_job(args: Any) -> dict[str, Any]:
         command = [
             job["python"],
             "-I",
+            "-u",
             "-B",
             "-m",
             job["module"],

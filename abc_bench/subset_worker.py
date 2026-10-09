@@ -49,6 +49,7 @@ def main() -> None:
     host_command = [
         sys.executable,
         "-I",
+        "-u",
         "-B",
         "-m",
         "abc_author_subset.host",
@@ -63,6 +64,7 @@ def main() -> None:
     learner_command = [
         str(python),
         "-I",
+        "-u",
         "-B",
         "-m",
         "sadhana_resfit_author_abc.diagnostic",
