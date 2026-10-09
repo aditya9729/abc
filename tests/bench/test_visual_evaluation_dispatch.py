@@ -109,10 +109,10 @@ def request_factory(tmp_path, monkeypatch):
             if name == "visual_method_evaluation"
             else '"""Owned CPU package fixture; no native/model implementation."""\n'
         )
-    dist = site / "nirvana_rl_harness-0.4.15.dist-info"
+    dist = site / "nirvana_rl_harness-0.4.16.dist-info"
     dist.mkdir()
     (dist / "METADATA").write_text(
-        "Metadata-Version: 2.1\nName: nirvana-rl-harness\nVersion: 0.4.15\n"
+        "Metadata-Version: 2.1\nName: nirvana-rl-harness\nVersion: 0.4.16\n"
     )
     records = []
     for path in [*nrh.glob("*.py"), dist / "METADATA"]:
@@ -138,7 +138,7 @@ def request_factory(tmp_path, monkeypatch):
         "version": sys.version,
         "pyvenv": artifact(prefix / "pyvenv.cfg"),
         "site_packages": str(site),
-        "nrh_version": "0.4.15",
+        "nrh_version": "0.4.16",
         "metadata": artifact(dist / "METADATA"),
         "record": artifact(dist / "RECORD"),
         "nrh_files": {str(p.relative_to(site)): artifact(p) for p in nrh.glob("*.py")},
@@ -155,7 +155,7 @@ def request_factory(tmp_path, monkeypatch):
         {
             "kind": "root_abc_visual_worker_release_binding",
             "status": "accepted_cpu_source_wheel_install",
-            "nrh_version": "0.4.15",
+            "nrh_version": "0.4.16",
             "nrh_sources": {n: p["sha256"] for n, p in worker["nrh_files"].items()},
             "source_admission": software_report,
         },
@@ -428,7 +428,7 @@ def test_invalid_admission_fails_before_query_or_dispatch(request_factory, fault
 def test_current_exact_release_keeps_learned_export_trust_explicit(request_factory):
     pin, value = request_factory("resfit-learned-mean")
     request = visual.load_request(pin, request_factory.campaign)
-    assert visual.NRH_VERSION == request.value["worker"]["nrh_version"] == "0.4.15"
+    assert visual.NRH_VERSION == request.value["worker"]["nrh_version"] == "0.4.16"
     assert request.value["checkpoint_admission"] == value["checkpoint_admission"]
     assert request.config["export"] is not None
     assert request.cohort["split"] == "development"
@@ -561,13 +561,13 @@ def test_current_release_keeps_exact_provenance_and_split_gates(
     worker = value["worker"]
     if fault in {"stale_worker", "future_worker", "local_worker"}:
         worker["nrh_version"] = {
-            "stale_worker": "0.4.13",
-            "future_worker": "0.4.16",
-            "local_worker": "0.4.15+local",
+            "stale_worker": "0.4.15",
+            "future_worker": "0.4.17",
+            "local_worker": "0.4.16+local",
         }[fault]
     elif fault == "stale_metadata":
         path = Path(worker["metadata"]["path"])
-        path.write_text(path.read_text().replace("Version: 0.4.15", "Version: 0.4.13"))
+        path.write_text(path.read_text().replace("Version: 0.4.16", "Version: 0.4.13"))
         worker["metadata"] = artifact(path)
     elif fault in {"stale_software", "software_source"}:
         path = Path(value["software_binding"]["path"])

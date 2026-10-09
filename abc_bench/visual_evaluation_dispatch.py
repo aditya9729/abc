@@ -30,7 +30,7 @@ from abc_bench.visual_evaluation_bootstrap import (
 
 CANONICAL_CAMPAIGN = Path("/home/user/aditya/RL/abc/outputs/bench")
 REVISION = "sadhana.visual-methods-matched-evaluation/2"
-NRH_VERSION = "0.4.15"
+NRH_VERSION = "0.4.16"
 TASK = "put_plastic_bottles_in_bin"
 PROTOCOLS = {
     "resfit-frozen-nominal": False,

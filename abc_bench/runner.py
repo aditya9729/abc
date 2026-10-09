@@ -327,6 +327,200 @@ def execution_provenance() -> dict[str, Any]:
     }
 
 
+def qf3_stopping_result(
+    config: dict[str, Any], summary: dict[str, Any]
+) -> dict[str, Any]:
+    """Authenticate the intentional stop; do not award target or benchmark credit."""
+    profile = {
+        "profile": "user-requested-development-early-stopping/v1",
+        "split_role": "development",
+        "patience": 3,
+        "min_success_improvement": 1,
+    }
+
+    def require(condition: bool, message: str) -> None:
+        if not condition:
+            raise ValueError(message)
+
+    def digest(value: Any) -> str:
+        return hashlib.sha256(
+            json.dumps(
+                value, sort_keys=True, separators=(",", ":"), allow_nan=False
+            ).encode()
+        ).hexdigest()
+
+    def read_pin(pin: dict[str, Any]) -> dict[str, Any]:
+        path = Path(pin["path"])
+        require(
+            path.is_absolute() and path.is_file() and not path.is_symlink(),
+            "QF3 stop artifact must be regular",
+        )
+        body = path.read_bytes()
+        require(
+            len(body) == pin["bytes"]
+            and hashlib.sha256(body).hexdigest() == pin["sha256"],
+            "QF3 stop artifact pin differs",
+        )
+        return json.loads(body)
+
+    def verify_checkpoint(pin: dict[str, Any]) -> None:
+        path = Path(pin["path"])
+        require(
+            path.is_absolute() and path.is_file() and not path.is_symlink(),
+            "QF3 selected checkpoint must be regular",
+        )
+        hasher = hashlib.sha256()
+        size = 0
+        with path.open("rb") as stream:
+            for body in iter(lambda: stream.read(1024 * 1024), b""):
+                size += len(body)
+                hasher.update(body)
+        require(
+            size == pin["bytes"]
+            and hasher.hexdigest() == pin["sha256"]
+            and pin["kind"] == "qf3_completed_boundary_checkpoint",
+            "QF3 selected checkpoint pin differs",
+        )
+
+    require(
+        config.get("early_stopping") == profile
+        and summary.get("stopping_profile") == profile,
+        "QF3 stop profile differs",
+    )
+    for received in (config["early_stopping"], summary["stopping_profile"]):
+        require(
+            type(received["patience"]) is int
+            and type(received["min_success_improvement"]) is int,
+            "QF3 stopping profile counters must be exact integers",
+        )
+    require(
+        summary["stage"] == config["stage"] == "train",
+        "QF3 early stop requires training",
+    )
+    wrapper, state = summary["wrapper"], summary["early_stopping"]
+    require(
+        wrapper["early_stopping"] == state
+        and digest(wrapper["early_stopping"]) == digest(state)
+        and type(state["schema_version"]) is int
+        and state["schema_version"] == 1
+        and type(state["stale_checks"]) is int
+        and state["profile"] == profile["profile"]
+        and state["policy_sha256"] == digest(profile),
+        "QF3 stop state identity differs",
+    )
+    require(
+        wrapper["partial"] is False
+        and wrapper["boundary"] == "completed_outer"
+        and type(wrapper["warmup_batches"]) is int
+        and wrapper["warmup_batches"] == config["training"]["warmup_episodes_per_world"]
+        and type(summary["metrics"]["actor_updates"]) is int
+        and summary["metrics"]["actor_updates"] > 0,
+        "QF3 stop lacks healthy completed warmup/updates",
+    )
+    history = wrapper["evaluation_state"]["history"]
+    require(
+        len(history) == len(state["checks"]) >= 4
+        and wrapper["evaluation_state"]["pending_validation"] is None,
+        "QF3 stop checks/history differ",
+    )
+    best, stale, seen = None, 0, set()
+    for ordinal, (check, event) in enumerate(
+        zip(state["checks"], history, strict=True)
+    ):
+        score = event["summary"]
+        require(
+            type(check["ordinal"]) is int
+            and check["ordinal"] == ordinal
+            and event["head"] == "learned"
+            and event["reason"] == "periodic"
+            and score["partial"] is False
+            and all(
+                type(score[key]) is int
+                for key in (
+                    "requested_episodes",
+                    "attempted_episodes",
+                    "completed_episodes",
+                    "actor_updates",
+                )
+            )
+            and score["requested_episodes"]
+            == score["attempted_episodes"]
+            == score["completed_episodes"]
+            == 50
+            and score["actor_updates"] > 0
+            and score["training_state_before"] == score["training_state_after"],
+            "QF3 stop includes an unhealthy learned check",
+        )
+        require(
+            type(score["successes"]) is int
+            and type(check["successes"]) is int
+            and 0 <= score["successes"] <= 50
+            and check["successes"] == score["successes"],
+            "QF3 stop success count differs",
+        )
+        validation = event["validation"]
+        manifest = read_pin(validation["manifest"])
+        layout = config["evaluation"]["layout_sampling"]
+        seeds = [
+            layout["seed_start"] + (ordinal * 50 + i) * layout["seed_stride"]
+            for i in range(50)
+        ]
+        require(
+            manifest["cursor"] == ordinal
+            and manifest["requested_seeds"] == seeds
+            and manifest["noise_seed"]
+            == config["evaluation"]["sampler_seed"] + ordinal + 1
+            and manifest["policy_state_sha256"] == check["policy_sha256"]
+            and digest(seeds) == score["configured_seed_sha256"],
+            "QF3 stop development identity differs",
+        )
+        rows = []
+        for pin in validation["reset_evidence"]:
+            reset = read_pin(pin)
+            require(
+                reset["manifest_sha256"] == validation["manifest"]["sha256"]
+                and reset["start"] == len(rows),
+                "QF3 stop reset ordering differs",
+            )
+            rows.extend(reset["worlds"])
+        require(
+            len(rows) == 50
+            and [r["requested_seed"] for r in rows] == seeds
+            and len({r["actual_seed"] for r in rows})
+            == len({r["geometry_sha256"] for r in rows})
+            == 50,
+            "QF3 stop requires 50 distinct DEVELOPMENT episode identities",
+        )
+        document = read_pin(check["event"])
+        require(
+            document
+            == {"schema_version": 1, "domain": summary["domain"], "event": event}
+            and check["event"]["sha256"] not in seen,
+            "QF3 stop event changed or consumed twice",
+        )
+        seen.add(check["event"]["sha256"])
+        improved = best is None or score["successes"] >= best["successes"] + 1
+        require(
+            type(check["improved"]) is bool
+            and check["improved"] == improved
+            and stale < 3,
+            "QF3 stop decision differs",
+        )
+        stale = 0 if improved else stale + 1
+        if improved:
+            best = check
+    require(
+        stale == state["stale_checks"] == 3
+        and state["best"] == best
+        and digest(state["best"]) == digest(best)
+        and state["stop_reason"] == "development_success_plateau",
+        "QF3 stop is not a patience-three plateau",
+    )
+    verify_checkpoint(best["checkpoint"])
+    verify_checkpoint(summary["latest_complete"])
+    return state
+
+
 def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
     import fcntl
 
@@ -872,6 +1066,13 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                 )
             elif algorithm == "qf3-vla":
                 accepted = {"completed", "budget_stopped"}
+                if "early_stopping" in training:
+                    receipt["stopping_profile"] = training["early_stopping"]
+                    receipt["early_stopping"] = summary.get("early_stopping")
+                if summary.get("status") == "early_stopped":
+                    receipt["early_stopping"] = qf3_stopping_result(training, summary)
+                    receipt["stopping_profile"] = training["early_stopping"]
+                    accepted.add("early_stopped")
                 if stage == "native_check":
                     accepted.add("native_check_completed")
                 if (
@@ -917,7 +1118,9 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
                     }
                 )
             receipt["status"] = (
-                "partial"
+                "early_stopped"
+                if algorithm == "qf3-vla" and summary["status"] == "early_stopped"
+                else "partial"
                 if algorithm == "realtime-expoft-abc"
                 and summary["status"] in {"budget_stopped", "deadline_missed_partial"}
                 or algorithm in {"sustained-resfit", "qf3-vla", "resfit-abc-vla"}
