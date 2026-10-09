@@ -37,6 +37,57 @@ ROOT = (
 RESULTS = ROOT / "outputs" / "bench"
 
 
+RESFIT_PROFILE_LAUNCHER = Path(
+    "/home/user/aditya/RL/sadhana-resfit-native-profiler/harness/nrh/resfit_profile.py"
+)
+RESFIT_PROFILE_SHA256 = (
+    "3a1202b24fc998754636af1b8ef7ad36747ffcbef9eada928a87317518043707"
+)
+
+
+def resfit_profile_command(command: list[str], destination: Path) -> list[str]:
+    if command[1:3] != ["-m", "nrh.resfit_abc_vla_run"]:
+        raise ValueError("Profiling requires the fixed ResFiT worker")
+    if RESFIT_PROFILE_LAUNCHER.is_symlink() or not RESFIT_PROFILE_LAUNCHER.is_file():
+        raise ValueError("Profile launcher must be a regular file")
+    if (
+        hashlib.sha256(RESFIT_PROFILE_LAUNCHER.read_bytes()).hexdigest()
+        != RESFIT_PROFILE_SHA256
+    ):
+        raise ValueError("Profile launcher source pin differs")
+    return [
+        command[0],
+        str(RESFIT_PROFILE_LAUNCHER),
+        "--profile-directory",
+        str(destination.resolve()),
+        *command[3:],
+    ]
+
+
+def resfit_profile_evidence(destination: Path) -> dict[str, Any]:
+    """Separate profile completeness from the unchanged worker/training status."""
+    import pstats
+
+    try:
+        evidence = json.loads((destination / "receipt.json").read_text())
+        path = destination / "worker.pstats"
+        if evidence.get("complete") is not True:
+            raise ValueError("Profile export incomplete")
+        if (
+            path.stat().st_size != evidence["bytes"]
+            or hashlib.sha256(path.read_bytes()).hexdigest() != evidence["sha256"]
+        ):
+            raise ValueError("Profile bytes differ")
+        pstats.Stats(str(path))
+        return {"complete": True, "directory": str(destination), "worker": evidence}
+    except Exception as error:  # noqa: BLE001 - Profile failure must not mask worker evidence.
+        return {
+            "complete": False,
+            "directory": str(destination),
+            "error": f"{type(error).__name__}: {error}",
+        }
+
+
 MAX_EVAL_HORIZON = 3540
 
 
@@ -279,6 +330,12 @@ def execution_provenance() -> dict[str, Any]:
 def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
     import fcntl
 
+    if (
+        getattr(args, "resfit_profile", False)
+        and getattr(args, "algorithm", None) != "resfit-abc-vla"
+    ):
+        raise ValueError("--resfit-profile requires resfit-abc-vla")
+
     if getattr(args, "algorithm", "baseline") == "visual-method-evaluation":
         return run_visual_evaluation(args)
 
@@ -447,6 +504,8 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
             ]
             if getattr(args, "resfit_resume_pin", None) is not None:
                 command += ["--resume-pin", str(args.resfit_resume_pin.resolve())]
+            if getattr(args, "resfit_profile", False):
+                command = resfit_profile_command(command, out / "profile")
         elif algorithm == "realtime-expoft-abc":
             if args.training_config is None:
                 raise ValueError("Real-Time EXPO-FT requires --training-config")
@@ -679,9 +738,13 @@ def run_baseline(args: argparse.Namespace) -> dict[str, Any]:
         write_json(ledger_path, ledger)
         code = None
         try:
-            code = execute_command(
-                command, out / "run.log", timeout, gpu_uuid=gpu_binding["uuid"]
-            )
+            try:
+                code = execute_command(
+                    command, out / "run.log", timeout, gpu_uuid=gpu_binding["uuid"]
+                )
+            finally:
+                if getattr(args, "resfit_profile", False):
+                    receipt["profile"] = resfit_profile_evidence(out / "profile")
             if algorithm in {"realtime-expoft-abc", "resfit-abc-vla"}:
                 receipt["worker_exit_code"] = code
             if code and not (
@@ -1420,6 +1483,7 @@ def main() -> None:
     parser.add_argument("--evaluation-request-bytes", type=int)
     parser.add_argument("--expoft-resume-pin", type=Path)
     parser.add_argument("--resfit-resume-pin", type=Path)
+    parser.add_argument("--resfit-profile", action="store_true")
     parser.add_argument("--task", default="put_plastic_bottles_in_bin")
     parser.add_argument("--worlds", type=int, default=1)
     parser.add_argument("--chunks", type=int, default=2)

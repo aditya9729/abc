@@ -160,8 +160,9 @@ def worker_record(config, status="completed"):
         ("failed", 2, "failed"),
     ],
 )
+@pytest.mark.parametrize("profile_enabled", [False, True])
 def test_dispatch_lease_watchdog_partial_work_and_exit_semantics(
-    monkeypatch, tmp_path, status, exit_code, expected
+    monkeypatch, tmp_path, status, exit_code, expected, profile_enabled
 ):
     campaign = tmp_path / "campaign"
     monkeypatch.setattr(runner, "RESULTS", campaign)
@@ -187,7 +188,29 @@ def test_dispatch_lease_watchdog_partial_work_and_exit_semantics(
     runner.write_json(config_path, config)
 
     def fixture_child(command, log_path, timeout, *, gpu_uuid):
-        assert command[1:3] == ["-m", "nrh.resfit_abc_vla_run"]
+        if profile_enabled:
+            assert command[1] == str(runner.RESFIT_PROFILE_LAUNCHER)
+            profile_out = Path(command[command.index("--profile-directory") + 1])
+            assert profile_out.name == "profile"
+            import cProfile
+            import hashlib
+
+            profile_out.mkdir()
+            profiler = cProfile.Profile()
+            profiler.runcall(sum, [1, 2])
+            path = profile_out / "worker.pstats"
+            profiler.dump_stats(str(path))
+            runner.write_json(
+                profile_out / "receipt.json",
+                {
+                    "complete": True,
+                    "bytes": path.stat().st_size,
+                    "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                    "worker_return_code": exit_code,
+                },
+            )
+        else:
+            assert command[1:3] == ["-m", "nrh.resfit_abc_vla_run"]
         assert timeout == 100 and gpu_uuid == "GPU-00000000-0000-0000-0000-000000000000"
         assert command[command.index("--campaign-directory") + 1] == str(
             campaign.resolve()
@@ -221,8 +244,13 @@ def test_dispatch_lease_watchdog_partial_work_and_exit_semantics(
         seed=0,
         video=False,
         resfit_resume_pin=tmp_path / "resume.json",
+        resfit_profile=profile_enabled,
     )
     receipt = runner.run_baseline(args)
+    if profile_enabled:
+        assert receipt["profile"]["complete"] is True
+    else:
+        assert "profile" not in receipt
     assert (
         receipt["status"] == expected
         and receipt["phase"] == "training"
