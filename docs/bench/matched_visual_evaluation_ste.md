@@ -47,7 +47,7 @@ The owner repaired child birth, cancellation cleanup, and partial startup restor
 The controller requires one Python thread and one kernel thread.
 It retains TERM, INT, and ALRM during ownership and cleanup.
 It checks cancellation during normal waits.
-It restores the caller state before it returns or raises.
+It attempts to restore the caller state before it returns or raises.
 The original deadline does not restart.
 Later cancellation follows caller semantics after the scope ends.
 
@@ -76,3 +76,18 @@ The final pending-signal check is the cancellation cutoff.
 Later signals use the original caller behavior.
 A new independent reviewer must verify the frozen second repair.
 Root must complete the native and benchmark gates.
+
+The third repair owner used a separate worktree.
+The owner kept the earlier tests and failure evidence unchanged.
+The final mask operation can fail before it changes the kernel state.
+The scope keeps the first exception and attempts one failure receipt publication.
+A failed publication adds a secondary note to the first exception.
+The scope does not collect later signals or retry a refused mask operation.
+A restored caller handler can raise during the final mask operation.
+That exception fails the invocation and removes aggregate credit when publication succeeds.
+The raw producer metrics and settled wall charge remain available.
+Storage failure can leave an older completed receipt on disk.
+A raised invocation grants no acceptance, even if that older receipt exists.
+Kernel refusal can leave a partial mask. Root must inspect the actual state.
+A different reviewer must verify the frozen third repair.
+This explanation uses STE guidance. A full compliance check was not available.

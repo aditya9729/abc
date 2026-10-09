@@ -178,6 +178,14 @@ def cancellation_scope(*, handler=None, timeout=None):
             signal.pthread_sigmask(signal.SIG_SETMASK, mask)
         except BaseException as error:  # noqa: BLE001 - a signal at unmask cannot replace the first cause
             failure(error, "deferred restoration cancellation")
+            # A refused syscall or raising restored caller handler fails this
+            # invocation. Revoke tentative credit without collecting later
+            # caller-owned signals or retrying a refused mask restoration.
+            if finalize is not None:
+                try:
+                    finalize(first)
+                except BaseException as publication_error:  # noqa: BLE001
+                    failure(publication_error, "failure receipt publication")
     if first is not None:
         raise first
 

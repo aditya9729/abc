@@ -11,7 +11,8 @@ flowchart LR
 original exec dispositions and caller pending bits preserved]
     Terminal[Terminal publication in retained scope
 late cancellation revokes complete-control credit
-explicit final pending cutoff]
+explicit final pending cutoff
+terminal mask error attempts failure publication]
     Boot[Stdlib pinned bootstrap\nverify inherited lock and direct parent]
     Guard[Bounded inherited-lock guardian\nowned lifetime checks only]
   end

@@ -124,6 +124,13 @@ The terminal callback checks the original absolute deadline before and after ten
 The last owned pending snapshot after publication and handler restoration is the explicit cancellation cutoff.
 Signals after that snapshot follow restored caller semantics, including pending caller-blocked bits.
 This cutoff precedes the final mask restore. It does not promise immunity from later cancellation or hard death.
+If final mask restoration raises, the invocation fails and attempts one failure receipt publication.
+This also applies if a restored caller handler raises during the final unmask operation.
+The original first exception remains primary; a publication error becomes a secondary note.
+The failure path does not collect later caller signals or retry a refused restoration syscall.
+Successful failure publication revokes aggregate credit and retains raw producer metrics and settled wall charge.
+If failure publication also fails, an older disk receipt can remain. The raised invocation grants no acceptance.
+Kernel refusal can leave a partial signal mask. External recovery must use the actual observed state.
 
 Before reservation, a fixed `python -I -S -B -c` probe reads isolated interpreter metadata.
 Site is disabled for that probe. It imports no NRH or test dependency.
