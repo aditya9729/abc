@@ -61,3 +61,18 @@ These checks grant no native timing or scientific performance credit.
 The independent reviewer must review the repaired frozen package.
 Root must bind the final repaired NRH release separately.
 Keep the original failures and all additive repair evidence.
+
+
+The second repair owner used a new worktree and a new artifact directory.
+The owner kept the first repair and its review unchanged.
+Nested children keep the original ignored signal handlers and blocked mask.
+The controller does not change handlers for originally blocked signals.
+Those pending signals remain with the caller.
+The metadata probe stops before birth if its absolute deadline has expired.
+The parent keeps terminal publication inside its cancellation scope.
+Late cancellation removes accepted complete-control credit.
+The parent keeps the raw producer evidence and actual elapsed charges.
+The final pending-signal check is the cancellation cutoff.
+Later signals use the original caller behavior.
+A new independent reviewer must verify the frozen second repair.
+Root must complete the native and benchmark gates.

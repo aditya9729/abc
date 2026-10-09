@@ -1343,7 +1343,39 @@ def run_visual_evaluation(args: argparse.Namespace) -> dict[str, Any]:
                     else "full_reservation_unresolved_no_refund"
                 )
                 write_json(ledger_path, current)
-                publish(receipt, campaign)
+
+                def terminal_publish(error):
+                    if error is None and receipt["status"] in {
+                        "completed",
+                        "incomplete",
+                    }:
+                        checkpoint()
+                    if error is not None:
+                        receipt["status"] = (
+                            "cancelled"
+                            if isinstance(error, (RunCancelled, KeyboardInterrupt))
+                            else "failed"
+                        )
+                        receipt["metrics"]["accepted_complete_control_steps"] = 0
+                        message = f"{type(error).__name__}: {error}"
+                        if message not in receipt["blockers"]:
+                            receipt["blockers"].append(message)
+                        receipt["terminal_failure_notes"] = getattr(
+                            error, "__notes__", []
+                        )
+                    receipt["terminal_publication"] = {
+                        "cancellation_cutoff": "final owned pending snapshot after terminal publication and handler restoration",
+                        "later_signals": "restored caller semantics; not owned by this invocation",
+                        "producer_evidence": "raw worker receipt retained; late cancellation revokes aggregate credit",
+                    }
+                    publish(receipt, campaign)
+                    if error is None and receipt["status"] in {
+                        "completed",
+                        "incomplete",
+                    }:
+                        checkpoint()
+
+                cancelled.on_finish(terminal_publish)
             return receipt
 
 

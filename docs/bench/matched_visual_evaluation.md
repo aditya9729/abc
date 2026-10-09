@@ -110,12 +110,25 @@ Handler installation and restoration use a temporary signal mask.
 Partial startup also restores caller handlers, mask, timer schedule, and subreaper state.
 An expired one-shot timer is not rearmed.
 Standard signals can coalesce; these records do not count every signal delivery.
-The scope ends when the original caller mask and handlers become active.
-Later cancellation and hard death follow caller semantics; this is not arbitrary signal immunity.
+Each scope records original exec dispositions separately from cancellation callbacks.
+Nested probe and dispatch children inherit original SIG_IGN and the full caller mask.
+Only ignored dispositions need a child pre-exec callback. The controller is single-threaded.
+Originally blocked handlers stay untouched. Their pending bits remain caller-owned.
+The scope never drains or directly delivers those caller-blocked signals.
+
+Terminal receipt publication remains inside retained cancellation ownership.
+Cancellation during actual-wall settlement, tentative publication, or handler restoration revokes accepted complete-control credit.
+The raw worker receipt remains unchanged. A late-cancellation receipt also retains its producer summary.
+A failed replacement publication cannot prove a valid completed invocation; root must inspect the actual process result.
+The terminal callback checks the original absolute deadline before and after tentative success publication.
+The last owned pending snapshot after publication and handler restoration is the explicit cancellation cutoff.
+Signals after that snapshot follow restored caller semantics, including pending caller-blocked bits.
+This cutoff precedes the final mask restore. It does not promise immunity from later cancellation or hard death.
 
 Before reservation, a fixed `python -I -S -B -c` probe reads isolated interpreter metadata.
 Site is disabled for that probe. It imports no NRH or test dependency.
-The probe uses protected ownership assignment, finite cleanup, and a 32 KiB output bound.
+The probe refuses an expired absolute deadline before child birth, including expiry during setup.
+It uses protected ownership assignment, finite cleanup, and a 32 KiB output bound.
 Its output hash, paths, interpreter identity, and closed lifetime enter bootstrap provenance.
 Its CPU and wall cost consume the original aggregate deadline before lease arming.
 The parent resolves effective startup modules across stdlib, worker site, and admitted plain `.pth` paths.
@@ -177,3 +190,15 @@ Read [the architecture](matched_visual_evaluation.mmd) and [the STE handoff](mat
 The coordinator owner writes code and CPU evidence. The NRH owner defines the frozen public worker interface.
 An independent reviewer verifies the frozen result. Root admits software, runtime trust, native resources, and later launches.
 Manual OpenQodex review and publication are separate root gates. This implementation performs neither.
+
+
+## Additive second repair
+
+This repair changes cancellation ownership and evidence publication only.
+It preserves the previous 233 coordinator contracts and the legacy training/dispatch bodies.
+The first repair's source, wheel, tests, peer findings, and fixtures remain immutable.
+Owner regressions extend the sealed peer witnesses to all seven nonempty TERM/INT/ALRM sets.
+They cover actual nested child exec, blocked pending bits with SIG_IGN, deadline refusal, and terminal cancellation.
+Additional cases separate post-cutoff caller delivery from owned cancellation and verify publication error recovery.
+These are owner tests. Fresh independent source and installed-package review remains required.
+Actual NRH, native execution, models, datasets, GPU, and performance admission remain separate root gates.

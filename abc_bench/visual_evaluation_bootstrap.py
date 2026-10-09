@@ -50,8 +50,16 @@ def cancellation_scope(*, handler=None, timeout=None):
     timer = signal.getitimer(signal.ITIMER_REAL)
     pending = []
     first = None
+    finalize = None
     delivery = {}
+    exec_handlers = {}
     for signum, original in handlers.items():
+        exec_original = original
+        while callable(exec_original) and hasattr(
+            exec_original, "_matched_exec_handlers"
+        ):
+            exec_original = exec_original._matched_exec_handlers[signum]
+        exec_handlers[signum] = exec_original
         while callable(original) and hasattr(original, "_matched_handlers"):
             original = original._matched_handlers[signum]
         delivery[signum] = (
@@ -62,6 +70,7 @@ def cancellation_scope(*, handler=None, timeout=None):
         pending.append(signum)
 
     retain._matched_handlers = delivery
+    retain._matched_exec_handlers = exec_handlers
 
     def checkpoint():
         while pending:
@@ -81,9 +90,35 @@ def cancellation_scope(*, handler=None, timeout=None):
         else:
             failure_note(first, label + ": " + str(error))
 
+    def collect():
+        # Signals blocked by the caller remain caller-owned, including SIG_IGN.
+        for signum in CANCELLATION_SIGNALS:
+            if signum not in mask and signum in signal.sigpending():
+                signal.sigwait({signum})
+                pending.append(signum)
+
+    def deliver():
+        if first is None:
+            try:
+                checkpoint()
+            except BaseException as error:  # noqa: BLE001
+                failure(error, "deferred cancellation")
+        if first is not None:
+            while pending:
+                failure_note(first, f"deferred cancellation signal {pending.pop(0)}")
+
+    def on_finish(callback):
+        nonlocal finalize
+        require(finalize is None, "Only one terminal publication callback is allowed")
+        finalize = callback
+
+    checkpoint.on_finish = on_finish
+    checkpoint.exec_handlers = exec_handlers
+
     try:
         for signum in CANCELLATION_SIGNALS:
-            signal.signal(signum, retain)
+            if signum not in mask:
+                signal.signal(signum, retain)
         if timeout is not None:
             signal.setitimer(signal.ITIMER_REAL, timeout)
         signal.pthread_sigmask(signal.SIG_SETMASK, mask)
@@ -92,20 +127,11 @@ def cancellation_scope(*, handler=None, timeout=None):
         first = error
     finally:
         signal.pthread_sigmask(signal.SIG_BLOCK, CANCELLATION_SIGNALS)
-        # Consume coalesced pending signals while restoration is protected.
-        for signum in CANCELLATION_SIGNALS:
-            if signum in signal.sigpending():
-                signal.sigwait({signum})
-                pending.append(signum)
+        collect()
         try:
             signal.setitimer(signal.ITIMER_REAL, 0)
         except BaseException as error:  # noqa: BLE001
             failure(error, "timer disable")
-        for signum, original in handlers.items():
-            try:
-                signal.signal(signum, original)
-            except BaseException as error:  # noqa: BLE001
-                failure(error, "handler restoration")
         try:
             remaining = timer[0] - (time.monotonic() - started)
             if timer[0] > 0 and remaining > 0:
@@ -117,25 +143,56 @@ def cancellation_scope(*, handler=None, timeout=None):
                 )
         except BaseException as error:  # noqa: BLE001
             failure(error, "timer restoration")
-        for signum in CANCELLATION_SIGNALS:
-            if signum in signal.sigpending():
-                signal.sigwait({signum})
-                pending.append(signum)
+        collect()
+        deliver()
+        prior_error = first
+        if finalize is not None:
+            try:
+                finalize(first)
+            except BaseException as error:  # noqa: BLE001 - publication keeps the primary cause
+                failure(error, "terminal publication")
+            collect()
+            deliver()
+        for signum, original in handlers.items():
+            # Restoring SIG_IGN can discard an already pending bit. Consume
+            # scope-owned bits first; do not touch caller-blocked handlers.
+            collect()
+            try:
+                if signum not in mask:
+                    signal.signal(signum, original)
+            except BaseException as error:  # noqa: BLE001
+                failure(error, "handler restoration")
+        collect()
+        deliver()
+        if finalize is not None and prior_error is None and first is not None:
+            # Cancellation during tentative publication/restoration revokes credit.
+            try:
+                finalize(first)
+            except BaseException as error:  # noqa: BLE001
+                failure(error, "failure receipt publication")
+            collect()
+            deliver()
+        # This last owned pending snapshot is the cancellation cutoff. Signals
+        # after it follow restored caller semantics, including caller-blocked bits.
         try:
             signal.pthread_sigmask(signal.SIG_SETMASK, mask)
         except BaseException as error:  # noqa: BLE001 - a signal at unmask cannot replace the first cause
             failure(error, "deferred restoration cancellation")
-        if pending:
-            if first is None:
-                try:
-                    checkpoint()
-                except BaseException as error:  # noqa: BLE001
-                    first = error
-            if first is not None:
-                for signum in pending:
-                    failure_note(first, f"deferred cancellation signal {signum}")
     if first is not None:
         raise first
+
+
+def child_exec_options(checkpoint) -> dict:
+    """Preserve original ignored dispositions through nested retention callbacks."""
+    ignored = [s for s, h in checkpoint.exec_handlers.items() if h == signal.SIG_IGN]
+    if not ignored:
+        return {}
+
+    def restore_ignored():
+        for signum in ignored:
+            signal.signal(signum, signal.SIG_IGN)
+
+    return {"preexec_fn": restore_ignored}
 
 
 INTERPRETER_PROBE = (
@@ -149,18 +206,24 @@ INTERPRETER_PROBE = (
 def interpreter_probe(python: str, deadline: float) -> dict:
     """Read only fixed, site-disabled interpreter metadata from one owned child."""
     with cancellation_scope() as checkpoint:
+        if time.monotonic() >= deadline:
+            raise TimeoutError("Interpreter probe consumed controller deadline")
         previous = subreaper(1)
         process = worker = None
         first = None
         raw = None
         try:
             with tempfile.TemporaryFile() as output:
+                checkpoint()
+                if time.monotonic() >= deadline:
+                    raise TimeoutError("Interpreter probe consumed controller deadline")
                 process = subprocess.Popen(
                     [python, "-I", "-S", "-B", "-c", INTERPRETER_PROBE],
                     stdin=subprocess.DEVNULL,
                     stdout=output,
                     stderr=output,
                     start_new_session=True,
+                    **child_exec_options(checkpoint),
                 )
                 worker = process_identity(process.pid)
                 checkpoint()
@@ -618,6 +681,7 @@ def _execute_guarded(
                 env=environment,
                 start_new_session=True,
                 pass_fds=(lease_fd,),
+                **child_exec_options(checkpoint),
             )
             worker = process_identity(process.pid)
             spec["worker"] = worker

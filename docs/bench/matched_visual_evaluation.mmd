@@ -7,7 +7,11 @@ flowchart LR
     Runner[python -m abc_bench.runner\nnew visual-method-evaluation route]
     Dispatch[Stdlib request and receipt validator]
     Probe[Fixed site-disabled interpreter metadata probe\nprotected birth and bounded reap]
-    Signals[Single-thread cancellation scope\nTERM INT ALRM retained and caller state restored]
+    Signals[Single-thread cancellation scope\nTERM INT ALRM retained
+original exec dispositions and caller pending bits preserved]
+    Terminal[Terminal publication in retained scope
+late cancellation revokes complete-control credit
+explicit final pending cutoff]
     Boot[Stdlib pinned bootstrap\nverify inherited lock and direct parent]
     Guard[Bounded inherited-lock guardian\nowned lifetime checks only]
   end
@@ -32,6 +36,8 @@ flowchart LR
   Boot -->|Control: direct exec, same runner parent| Eval
   Eval -.->|Later separate native gates| Native
   Eval -->|Pinned raw receipt| Dispatch
-  Dispatch -->|Current invocation physical counts| Evidence
+  Dispatch -->|Current invocation physical counts| Terminal
+  Signals -->|Control: retained cancellation and final snapshot| Terminal
+  Terminal -->|Completed or failed producer evidence| Evidence
   Guard -->|Death/watchdog: kill verified owned group, retain reservation| Evidence
   Evidence -->|Later review data| Reader
