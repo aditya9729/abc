@@ -375,7 +375,11 @@ def _parent(
     allow_failed: bool = False,
 ) -> dict:
     parent = reader.record(record)
-    _same(parent.get("algorithm"), "qf3-vla", "controller algorithm differs")
+    _same(
+        parent.get("algorithm"),
+        "QF3 ABC-VLA " + config["stage"],
+        "controller algorithm differs",
+    )
     _same(
         parent.get("summary_sha256"), worker_pin["sha256"], "parent worker pin differs"
     )
@@ -386,7 +390,11 @@ def _parent(
     )
     _same(parent.get("training_stage"), config["stage"], "parent stage differs")
     _same(parent.get("worker_status"), worker["status"], "parent worker status differs")
-    _same(parent.get("seed"), config["seed"], "parent seed differs")
+    _same(
+        parent.get("seed"),
+        None if config["stage"] == "evaluate" else config["seed"],
+        "parent seed differs",
+    )
     _same(
         parent.get("policy_seed"), config["base"]["seed"], "parent policy seed differs"
     )

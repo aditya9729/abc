@@ -233,13 +233,13 @@ def preflight(store, worker, config):
 
 def parent(store, worker_pin, worker, config, time):
     value = {
-        "algorithm": "qf3-vla",
+        "algorithm": "QF3 ABC-VLA " + config["stage"],
         "status": "completed",
         "worker_status": worker["status"],
         "summary_sha256": worker_pin["sha256"],
         "training_config_sha256": worker["input_config"]["sha256"],
         "training_stage": config["stage"],
-        "seed": config["seed"],
+        "seed": None if config["stage"] == "evaluate" else config["seed"],
         "policy_seed": config["base"]["seed"],
         "task": q.TASK,
         "created_at": time,
@@ -1855,3 +1855,63 @@ def test_wrong_training_or_final_cadence_refuses(campaign, head):
     )
     with pytest.raises(q.ComparisonError, match="evaluation/cohort/noise protocol"):
         q._config(q._Reader(), report, 0, head=head)
+
+
+@pytest.mark.parametrize("stage", ["train", "evaluate"])
+def test_parent_frozen_controller_stage_label(tmp_path, stage):
+    """Producer runner25e3c270 emits this label; other metadata stays strict."""
+    store = Store(tmp_path)
+    config = {
+        "stage": stage,
+        "seed": 903,
+        "base": {"seed": 901},
+        "evaluation": {"heads": ["learned"], "sampler_seed": 902},
+    }
+    metrics = {
+        key: 0
+        for key in (
+            "training_steps",
+            "warmup_steps",
+            "outer_iterations",
+            "actor_updates",
+            "critic_updates",
+            "evaluation_steps",
+            "physics_ticks_evaluation",
+            "physics_ticks_training",
+            "completed_training_episodes",
+            "replay_total_added",
+        )
+    }
+    metrics["target_reached"] = False
+    worker = {
+        "status": "completed",
+        "input_config": {"sha256": "1" * 64},
+        "metrics": metrics,
+    }
+    worker_pin = store.save(worker)
+    record = parent(store, worker_pin, worker, config, "2026-10-09T00:00:00Z")
+    assert (
+        q._parent(q.legacy._Reader(), record, worker_pin, worker, config)["algorithm"]
+        == "QF3 ABC-VLA " + stage
+    )
+    for wrong in (
+        "qf3-vla",
+        "QF3 ABC-VLA wrong",
+        "QF3 ABC-VLA " + ("evaluate" if stage == "train" else "train"),
+    ):
+        bad = store.replace(
+            record, lambda value, wrong=wrong: value.update(algorithm=wrong)
+        )
+        with pytest.raises(q.ComparisonError, match="controller algorithm differs"):
+            q._parent(q.legacy._Reader(), bad, worker_pin, worker, config)
+    bad = store.replace(record, lambda value: value.update(training_stage="collect"))
+    with pytest.raises(q.ComparisonError, match="parent stage differs"):
+        q._parent(q.legacy._Reader(), bad, worker_pin, worker, config)
+    bad = store.replace(record, lambda value: value.update(status="running"))
+    with pytest.raises(q.ComparisonError, match="controller invocation incomplete"):
+        q._parent(q.legacy._Reader(), bad, worker_pin, worker, config)
+
+    wrong_seed = config["seed"] if stage == "evaluate" else None
+    bad = store.replace(record, lambda value: value.update(seed=wrong_seed))
+    with pytest.raises(q.ComparisonError, match="parent seed differs"):
+        q._parent(q.legacy._Reader(), bad, worker_pin, worker, config)
