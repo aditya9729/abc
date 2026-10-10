@@ -13,3 +13,7 @@ flowchart LR
     R --> O
     Q --> O
     O --> V[Local comparison viewer]
+    S[Frozen source and decision record] -->|data: advisory review| JEV[External Jev service]
+    S -->|data: separate code review| OQ[OpenQodex and read-only Claude]
+    JEV -->|data: uncalibrated judgment, no experiment acceptance| C
+    OQ -->|data: findings and coverage| C

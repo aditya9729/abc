@@ -1,0 +1,370 @@
+{
+  "schema_version": 1,
+  "scope": "One-seed, three-layout reduced-budget native ABC diagnostic; no full paper reproduction or reliable ranking",
+  "runs": {
+    "baseline": {
+      "run_id": "author-subset-20261009T232716-08435d",
+      "coordinator": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/runs/author-subset-20261009T232716-08435d.json",
+        "bytes": 1924,
+        "sha256": "ed36bd616efc1088585d6ca07090a3234f288e5558aeb7ce254a4582e4da619f"
+      },
+      "worker": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261009T232716-08435d/receipt.json",
+        "bytes": 12232,
+        "sha256": "c89a2302fe3cfbb5411c75e775757b875b5c5cac0db8591ed13385a1a68143ac"
+      },
+      "wall_seconds": 339.4056436540559,
+      "metrics": {
+        "successes": 0,
+        "episodes": 3,
+        "simulation_steps": 3000,
+        "base_inferences": 201,
+        "incomplete_episodes": 0
+      }
+    },
+    "resfit_train": {
+      "run_id": "author-subset-20261009T233503-a294e3",
+      "coordinator": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/runs/author-subset-20261009T233503-a294e3.json",
+        "bytes": 1665,
+        "sha256": "3e1074b5ee6679fa38b8280456a23514d0773d13e912ad348639de3541a519cb"
+      },
+      "worker": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261009T233503-a294e3/receipt.json",
+        "bytes": 4102,
+        "sha256": "c4b24e5832982bc5cba1a55bfa53bb7e6a900e1387af8fc3f69a70ef34af1f3e"
+      },
+      "wall_seconds": 96.23069053282961,
+      "metrics": {
+        "warmup_controls": 258,
+        "training_controls": 32,
+        "critic_updates": 160,
+        "actor_updates": 32,
+        "offline_paired_transitions": 716,
+        "online_stored_rows": 288,
+        "offline_stored_rows": 714
+      }
+    },
+    "resfit_evaluation": {
+      "run_id": "author-subset-20261009T233724-c251fc",
+      "coordinator": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/runs/author-subset-20261009T233724-c251fc.json",
+        "bytes": 1582,
+        "sha256": "352ad7376c00e3876e1b6cb31d228dea61763876c61dfe059d1ad7d6883b81c9"
+      },
+      "worker": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261009T233724-c251fc/receipt.json",
+        "bytes": 7683,
+        "sha256": "d4bc40bffb9b20545da00f8240bccef6ed2eecc3c8d762054cb848ae1accc641"
+      },
+      "wall_seconds": 316.7530630468391,
+      "metrics": {
+        "successes": 0,
+        "episodes": 3,
+        "success_rate": 0.0,
+        "actor_updates": 0,
+        "critic_updates": 0
+      }
+    },
+    "qf3": {
+      "run_id": "author-subset-20261009T234446-79c204",
+      "coordinator": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/runs/author-subset-20261009T234446-79c204.json",
+        "bytes": 2757,
+        "sha256": "5716e99e276d6aac9d8e115f69acfe58d88ecee0e4ccd934d3e205c8958d5cfc"
+      },
+      "worker": {
+        "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261009T234446-79c204/qf3/receipt.json",
+        "bytes": 43284,
+        "sha256": "72412330d78c2f11c2a8bc00e9512043c5722af7ece27537b87ec8edca40f480"
+      },
+      "wall_seconds": 516.1626085059252,
+      "metrics": {
+        "actor_updates": 16,
+        "completed_training_episodes": 2,
+        "critic_updates": 128,
+        "evaluation_steps": 2996,
+        "outer_iterations": 1,
+        "physics_ticks_evaluation": 2996,
+        "physics_ticks_training": 2000,
+        "replay_size": 134,
+        "replay_total_added": 134,
+        "simulation_steps": 4996,
+        "target_reached": true,
+        "training_steps": 1000,
+        "training_successes": 0,
+        "warmup_steps": 1000
+      }
+    }
+  },
+  "evaluation": [
+    {
+      "status": "Complete",
+      "episodes": [
+        {
+          "seed": 9011,
+          "actual_seed": 9011,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 3,
+          "video": "de0e129fcd1e3234.mp4"
+        },
+        {
+          "seed": 9012,
+          "actual_seed": 9012,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 4,
+          "video": "25c5daa69835e2e4.mp4"
+        },
+        {
+          "seed": 9013,
+          "actual_seed": 9013,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 4,
+          "video": "eb901e8b0e7ab034.mp4"
+        }
+      ],
+      "score": "0/3",
+      "source": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261009T232716-08435d",
+      "worker_status": "completed"
+    },
+    {
+      "status": "Complete",
+      "episodes": [
+        {
+          "seed": 9011,
+          "actual_seed": 9011,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 1,
+          "video": "d19a438ee09eca87.mp4"
+        },
+        {
+          "seed": 9012,
+          "actual_seed": 9012,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 1,
+          "video": "c6dc155e42398177.mp4"
+        },
+        {
+          "seed": 9013,
+          "actual_seed": 9013,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 0,
+          "video": "161541c2f56e06bd.mp4"
+        }
+      ],
+      "score": "0/3",
+      "source": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261009T233724-c251fc",
+      "worker_status": "completed"
+    },
+    {
+      "status": "Complete",
+      "episodes": [
+        {
+          "seed": 9011,
+          "actual_seed": 9011,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 4,
+          "video": "9d0efbe8fb2f53ad.mp4"
+        },
+        {
+          "seed": 9012,
+          "actual_seed": 9012,
+          "steps": 1000,
+          "success": false,
+          "native_success": false,
+          "bottles_ever": 4,
+          "video": "1a3d55b5e9350b20.mp4"
+        },
+        {
+          "seed": 9013,
+          "actual_seed": 9013,
+          "steps": 996,
+          "success": true,
+          "native_success": true,
+          "bottles_ever": 5,
+          "video": "26dc2cedb0e9d538.mp4"
+        }
+      ],
+      "score": "1/3",
+      "source": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261009T234446-79c204/qf3",
+      "worker_status": "completed"
+    }
+  ],
+  "shared_task": "put_plastic_bottles_in_bin",
+  "shared_physics": "original one-world MJWarp float32",
+  "bottles": 5,
+  "raw_camera_CHW": [
+    3,
+    168,
+    224
+  ],
+  "flow_steps": 5,
+  "plan_controls": 30,
+  "executed_prefix": 15,
+  "horizon": 1000,
+  "shared_requested_and_actual_seeds": [
+    9011,
+    9012,
+    9013
+  ],
+  "continuous_evaluation_noise_seed": 901,
+  "qf3_training_state_unchanged_by_evaluation": "14e84e5a680c9226dbd36eeb0ae2a7aa86a6c5e75645c681c08045bb949b1886",
+  "resfit_zero_residual_projection": [
+    {
+      "seed": 9011,
+      "controls": 1000,
+      "task_success": false,
+      "terminated": false,
+      "truncated": true,
+      "zero_residual_exact_changed_channels": 4979,
+      "zero_residual_material_changed_channels": 2165,
+      "zero_residual_changed_controls": 801,
+      "zero_residual_max_abs_difference": 0.6512207984924316,
+      "first_raw_base_physical": [
+        -0.20468658208847046,
+        0.4895927309989929,
+        0.9704628586769104,
+        -0.6704243421554565,
+        -0.2945054769515991,
+        -0.3432042598724365,
+        0.9834768772125244,
+        0.21171286702156067,
+        0.44283008575439453,
+        1.0997071266174316,
+        -0.8428540229797363,
+        0.12456110119819641,
+        0.4688728451728821,
+        0.9837284088134766
+      ],
+      "first_zero_residual_projected_physical": [
+        -0.20468658208847046,
+        0.8129299879074097,
+        0.9704628586769104,
+        -0.6704244017601013,
+        -0.2945054769515991,
+        -0.3432042598724365,
+        0.9834768772125244,
+        0.21171283721923828,
+        0.7791877388954163,
+        1.0997071266174316,
+        -0.8428540229797363,
+        0.12456107139587402,
+        0.4688728451728821,
+        0.9837284088134766
+      ]
+    },
+    {
+      "seed": 9012,
+      "controls": 1000,
+      "task_success": false,
+      "terminated": false,
+      "truncated": true,
+      "zero_residual_exact_changed_channels": 6902,
+      "zero_residual_material_changed_channels": 2853,
+      "zero_residual_changed_controls": 972,
+      "zero_residual_max_abs_difference": 0.35344189405441284,
+      "first_raw_base_physical": [
+        -0.2120058536529541,
+        0.48673689365386963,
+        0.9740442037582397,
+        -0.6787363886833191,
+        -0.30975431203842163,
+        -0.3333784341812134,
+        0.9898831248283386,
+        0.21151062846183777,
+        0.4257458448410034,
+        1.0683015584945679,
+        -0.8684714436531067,
+        0.11605864763259888,
+        0.4514078199863434,
+        0.9791910648345947
+      ],
+      "first_zero_residual_projected_physical": [
+        -0.2120058536529541,
+        0.8129299879074097,
+        0.9740442037582397,
+        -0.6787364482879639,
+        -0.30975431203842163,
+        -0.3333784341812134,
+        0.9898830652236938,
+        0.21151065826416016,
+        0.7791877388954163,
+        1.0683015584945679,
+        -0.8684713840484619,
+        0.11605864763259888,
+        0.45140784978866577,
+        0.9791910648345947
+      ]
+    },
+    {
+      "seed": 9013,
+      "controls": 1000,
+      "task_success": false,
+      "terminated": false,
+      "truncated": true,
+      "zero_residual_exact_changed_channels": 7298,
+      "zero_residual_material_changed_channels": 4415,
+      "zero_residual_changed_controls": 998,
+      "zero_residual_max_abs_difference": 0.6066756248474121,
+      "first_raw_base_physical": [
+        -0.20769524574279785,
+        0.5045723915100098,
+        0.9663911461830139,
+        -0.6855745315551758,
+        -0.2760721445083618,
+        -0.34710612893104553,
+        0.9839186072349548,
+        0.2068200409412384,
+        0.4485648274421692,
+        1.1257798671722412,
+        -0.8859612941741943,
+        0.06693778932094574,
+        0.40968382358551025,
+        0.9742757081985474
+      ],
+      "first_zero_residual_projected_physical": [
+        -0.20769530534744263,
+        0.8129299879074097,
+        0.9663911461830139,
+        -0.6855745911598206,
+        -0.2760721445083618,
+        -0.34710612893104553,
+        0.9839185476303101,
+        0.20682001113891602,
+        0.7791877388954163,
+        1.1257798671722412,
+        -0.8859612941741943,
+        0.06693780422210693,
+        0.40968385338783264,
+        0.9742757081985474
+      ]
+    }
+  ],
+  "browser_check": {
+    "path": "/home/user/aditya/RL/builds/abc-author-subset-20261009/COMPARISON_BROWSER_RESULT.json",
+    "bytes": 576,
+    "sha256": "2b232e19137a889de4261ed5cb849f4b36ed92898dab0f5f78506b10dfd1a0d1"
+  },
+  "limitations": [
+    "QF3 exact initializer and unpublished critic choices unresolved; no author code linked in scoped official-source check",
+    "Different short training budgets; ResFiT uses one successful three-bottle demonstration",
+    "Original ResFiT scaler materially modifies zero-residual base in 801/972/998 evaluation controls; residual benefit not isolated",
+    "Three development episodes, one training seed; no statistical reproduction claim"
+  ],
+  "baseline_and_learner_core_unchanged": true
+}
