@@ -743,6 +743,8 @@ def native_cohort(cohort):
             "early_stopping_reason": worker_episode["stop_reason"],
             "optimizer_counters_before": before,
             "optimizer_counters_after": after,
+            "sampler_rng_before": [31, 32] if name == "expo_eval" else [11, 12],
+            "sampler_rng_after": [91, 92] if name == "expo_eval" else [31, 32],
             "actual_parameter_hashes_before": copy.deepcopy(hashes),
             "actual_parameter_hashes_after": copy.deepcopy(hashes),
             "episodes": [worker_episode],
@@ -774,6 +776,7 @@ def native_cohort(cohort):
                     "optimizer_counters_before": before,
                     "optimizer_counters_after": after,
                     "original_metrics": {"critic_loss": 0.5},
+                    "parameter_probe_after": {key: [-1.0, 2.0, 3.0] for key in groups},
                 }
             ]
             checkpoint_root = run / "expoft/checkpoints/1"
@@ -782,6 +785,9 @@ def native_cohort(cohort):
         elif name == "expo_eval":
             parameters["expo_checkpoint_pin"] = data["expo_checkpoint_pin"]
             worker["expo_checkpoint_pin"] = data["expo_checkpoint_pin"]
+            worker["restored_parameter_probe"] = {
+                key: [-1.0, 2.0, 3.0] for key in groups
+            }
         bind_native(data, name)
         if train:
             data["expo_checkpoint_pin"] = tree_pin(
@@ -943,6 +949,23 @@ def test_native_artifact_mutation_is_rejected(native_cohort, change):
 def test_frozen_expo_requires_the_selected_training_export(native_cohort):
     with pytest.raises(ValueError, match="TRAIN export"):
         native_report(native_cohort, expo_train=None)
+
+
+@pytest.mark.parametrize("change", ["counters", "rng", "probe"])
+def test_frozen_expo_rejects_a_different_restored_training_state(native_cohort, change):
+    worker = native_cohort["expo_eval_worker"]
+    if change == "counters":
+        worker["optimizer_counters_before"] = {
+            key: 0 for key in worker["optimizer_counters_before"]
+        }
+        worker["optimizer_counters_after"] = dict(worker["optimizer_counters_before"])
+    elif change == "rng":
+        worker["sampler_rng_before"] = [99, 100]
+    else:
+        worker["restored_parameter_probe"]["actor"] = [9.0, 9.0, 9.0]
+    bind_native(native_cohort, "expo_eval")
+    with pytest.raises(ValueError, match="restored TRAIN state"):
+        native_report(native_cohort)
 
 
 def test_sft_tree_cannot_substitute_another_checkpoint_root(native_cohort):

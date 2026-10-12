@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "label": "Original ordinary EXPO-FT frozen evaluation after one native diagnostic update",
+  "claim_scope": "Exact captured ABC-YAM five-bottle development scene, original pi0.5/EXPO source, actual one-update B2/UTD1 TRAIN checkpoint; zero evaluation updates; synchronous simulation; not convergence, paper reproduction, realtime or R1Lite",
+  "python": "/home/user/aditya/RL/runtimes/expo-ft-author-py311/bin/python",
+  "module": "expo_abc_adapter.stage",
+  "max_wall_s": 4800,
+  "arguments": [
+    "--config",
+    "/home/user/aditya/RL/builds/expoft-author-setup-20261012/EXPO_FROZEN_NATIVE_CONFIG_V1.json"
+  ]
+}

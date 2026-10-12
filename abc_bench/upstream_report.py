@@ -587,6 +587,14 @@ def _native_counters(value: dict) -> dict:
     return value
 
 
+def _native_rng(value: list) -> list:
+    if type(value) is not list or len(value) != 2:
+        raise ValueError("Native sampler RNG requires two recorded uint32 words")
+    for word in value:
+        _integer(word, "native sampler RNG word", maximum=2**32 - 1)
+    return value
+
+
 def _native_admission(run: Path | None, phase: str, sft: dict) -> dict | None:
     if run is None:
         return None
@@ -866,6 +874,7 @@ def _native_training(admitted: dict | None, baseline_seed: int) -> dict:
         "diagnostic_changes": worker["diagnostic_changes"],
         "optimizer_counters_before": worker["optimizer_counters_before"],
         "optimizer_counters_after": counters,
+        "sampler_rng_after": _native_rng(worker["sampler_rng_after"]),
         "checkpoint_pin_identity": checkpoint_identity,
     }
 
@@ -928,6 +937,22 @@ def _native_evaluation(
             or admitted["input_identities"] != train["input_identities"]
         ):
             raise ValueError("Frozen EXPO checkpoint or TRAIN lineage differs")
+        restored = worker.get("restored_parameter_probe")
+        expected = train["updates"][-1].get("parameter_probe_after")
+        if (
+            worker["optimizer_counters_before"] != train["optimizer_counters_after"]
+            or _native_rng(worker.get("sampler_rng_before"))
+            != train["sampler_rng_after"]
+            or type(restored) is not dict
+            or set(restored) != groups
+            or restored != expected
+        ):
+            raise ValueError("Frozen EXPO restored TRAIN state differs")
+        for values in restored.values():
+            if type(values) is not list or len(values) != 3:
+                raise ValueError("Frozen EXPO restored TRAIN state probe differs")
+            for value in values:
+                _number(value, "restored parameter probe", minimum=-math.inf)
     reference = config["host"]["reference"]
     if (
         config["host"]["max_episode_steps"] != 3540

@@ -6,7 +6,8 @@ flowchart LR
     Fast["Original FastTD3: scratch pilot and author-bf16 frozen evaluation executed"]
     Pi["Original pi0.5 SFT: one real update executed"]
     PiEval["Original pi0.5 frozen native rollout: executed"]
-    Expo["Original EXPO-FT update and post-update evaluation: pending verification"]
+    Expo["Original EXPO-FT: one native update and export executed"]
+    ExpoEval["Original EXPO-FT frozen evaluation: pending restore qualification"]
     Evidence["Hashed receipts, checkpoints and camera videos"]
     Viewer["Measured-result viewer"]
   end
@@ -21,24 +22,29 @@ flowchart LR
   Stats["TRAIN-only YAM14 statistics and complete H16 windows"]
   Ref["Captured five-bottle baseline randomization"]
   Review["Independent review and manual OpenQodex"]
+  Jev["External Jev: advisory evidence critique"]
   Jobs -->|"control: bounded admission"| Lease
   Lease -->|"control: serial execution"| Base
   Lease -->|"control: serial execution"| Fast
   Lease -->|"control: serial execution"| Pi
   Lease -->|"control: serial frozen evaluation"| PiEval
-  Lease -.->|"planned control: serial execution"| Expo
+  Lease -->|"control: serial diagnostic update"| Expo
+  Lease -.->|"planned control: serial frozen evaluation"| ExpoEval
   Demo -->|"data: genuine physical actions and images"| Stats
   Stats -->|"data: supervised batch"| Pi
   Pi -->|"data: actual SFT checkpoint"| PiEval
-  Pi -.->|"planned data: frozen task checkpoint"| Expo
+  Pi -->|"data: actual SFT checkpoint"| Expo
+  Demo -->|"data: TRAIN replay source"| Expo
+  Expo -.->|"planned data: verified actual learner export"| ExpoEval
   Base -->|"control: stock policy commands"| Physics
   Fast -->|"control: normalized actions"| State
   State -->|"data: qpos, qvel and scene metadata"| Fast
   State -->|"control: mapped physical commands"| Physics
   PiEval -->|"control: physical H16/C8 commands"| RGB
   RGB -->|"data: state14, three images and reward"| PiEval
-  Expo -.->|"planned control: physical commands"| RGB
-  RGB -.->|"planned data: state14, three images and reward"| Expo
+  Expo -->|"control: physical commands"| RGB
+  RGB -->|"data: state14, three images and reward"| Expo
+  ExpoEval -.->|"planned control: frozen policy commands"| RGB
   RGB -->|"implemented control: physical commands"| Physics
   Ref -->|"data: exact scene identity"| State
   Ref -->|"data: exact scene identity"| RGB
@@ -50,6 +56,9 @@ flowchart LR
   Fast -->|"data: actual update counters and export"| Evidence
   Pi -->|"data: loss, finite gradient and full checkpoint"| Evidence
   PiEval -->|"data: completed episode, hashes and sampler latency"| Evidence
+  Expo -->|"data: actual update metrics and 38-file export"| Evidence
   Cameras -->|"data: actual frames"| Evidence
   Evidence -->|"data: accepted measurements"| Viewer
   Review -->|"review: source and evidence"| Evidence
+  Evidence -->|"data: redacted facts and decision rubric"| Jev
+  Jev -->|"review: advisory answers, never an acceptance gate"| Review

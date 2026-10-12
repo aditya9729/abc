@@ -46,7 +46,7 @@ No normalization mismatch has been established.
 | ResFiT | TD3 action residual | Frozen ABC-VLA | Original learner executed. Demo-derived action scaling also changes base commands. |
 | QF3 | Flow policy head through LoRA | ABC-VLA initialization | Paper implementation executed. Exact author implementation and initializer remain unconfirmed. Further experiments are on hold. |
 | FastTD3 | Full state policy from scratch | None | The 4,000-control pilot and frozen author-bf16 evaluation completed. The one-world data regime is a material gap; no method ranking is justified. |
-| EXPO-FT | Q-guided action editor and distilled VLA | pi0.5 | Real SFT and a full frozen pi0.5 rollout completed. Native EXPO update and post-update evaluation remain pending. |
+| EXPO-FT | Q-guided action editor and distilled VLA | pi0.5 | Real SFT, frozen pi0.5 rollout and one native EXPO update completed. Post-update frozen evaluation remains pending. |
 
 ResFiT preserves the base network. Its original action scaler maps commands
 through ranges fitted from demonstrations. Our single successful demonstration
@@ -104,7 +104,7 @@ Training stopped after meeting the configured 25% loss-reduction target.
 This is a tiny-batch training diagnostic. It has no simulator task score or
 held-out loss. The one three-bottle demonstration does not establish a trained
 five-bottle policy. The separate frozen-policy measurement below does not change
-the scope of this SFT diagnostic. Native EXPO-FT RL remains pending.
+the scope of this SFT diagnostic. One native EXPO update is described below.
 The original full train-state checkpoint is recorded in `expoft/sft_qualification.json`
 within that run. The coordinator charged 237.55 seconds and released its GPU0 lease.
 
@@ -148,6 +148,39 @@ cleanly. The failed attempt has no trained checkpoint or task score. Its origina
 receipts and clips are preserved. The repair removes the extra adapter wrapper;
 original learner source remains unchanged. A new native attempt must verify the
 repair after the installed CPU regression and independent review.
+
+### Original EXPO native update and export
+
+The corrected attempt, `author-subset-20261012T161954-d3d16b`, completed
+32 TRAIN controls and one original update. Training stopped at the update cap.
+All five optimizer counters advanced from zero to one. All reported metrics
+were finite. Actor and critic gradient norms were 1.01875 and 30.95993.
+The first update took 207.72 seconds, including JAX compilation.
+The whole coordinator run took 355.77 seconds. The simulator closed cleanly.
+
+Both sampled critic rows and both actor rows came from the TRAIN demonstration.
+The buffer also contained 32 live transitions, but this sampled update does not
+demonstrate learning from those transitions. It does not measure task improvement.
+Batch two, UTD one, the 32-control warmup and one-update cap are diagnostic
+overrides. Author training uses batch 64, UTD 20 and episode-based cadence.
+
+The original save path exported 38 files containing 16,207,762,422 bytes.
+Checkpoint tree SHA256 is
+`bbe46f54ecc0ce8106b2d32f7bdba631ad2fe8f2272ff12e9cecc6441fb96431`.
+The completed worker receipt SHA256 is
+`c8d910d058d09b71e66707b85425e697e45fd6638291d3646377e72169c7edd9`.
+The installed reporter authenticated every file and its producer binding.
+Original EXPO/OpenPI code is unchanged. The adapter repair removes the redundant
+outer mesh context only. This is ordinary synchronous EXPO, with no RTC claim.
+
+Post-update evaluation must first verify restored counters, RNG and all seven
+historical parameter probes against this producer. The probes sample each leaf;
+they do not establish complete TRAIN-to-restored parameter byte equality.
+An unchanged target-actor probe does not prove unchanged target parameters.
+Original EXPO still applies its target-actor update. Complete parameter hashes
+before and after evaluation can establish that the evaluation itself is frozen.
+The exported checkpoint does not include replay or simulator state for exact
+training continuation. Frozen task evaluation remains pending.
 
 ### Commands and installation
 
@@ -198,8 +231,8 @@ training coverage. No reward shaping or pretrained policy was added to FastTD3.
 
 The EXPO RGB/action host passed 29 installed CPU tests. The installed ABC snapshot
 contains 186 Python modules and 933 authenticated original model assets.
-The frozen pi0.5 rollout is measured above. Native EXPO update and post-update
-evaluation evidence remain pending.
+The frozen pi0.5 rollout and bounded native EXPO update are measured above.
+Post-update frozen evaluation evidence remains pending.
 [Architecture source](ORIGINAL_METHODS_ARCHITECTURE.mmd) labels these execution states.
 
 The 4,000-control pilot has now completed. It made 7,978 critic updates and
