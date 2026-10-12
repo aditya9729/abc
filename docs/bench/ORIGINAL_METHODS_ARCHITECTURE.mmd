@@ -1,66 +1,56 @@
-flowchart LR
-  subgraph Sadhana["Sadhana: root coordinator and method peers"]
-    Jobs["Versioned finite job configurations"]
-    Lease["GPU0 lease, occupancy check and watchdog"]
-    Base["Original ABC-VLA evaluation: executed"]
-    Fast["Original FastTD3: scratch pilot and author-bf16 frozen evaluation executed"]
-    Pi["Original pi0.5 SFT: one real update executed"]
-    PiEval["Original pi0.5 frozen native rollout: executed"]
-    Expo["Original EXPO-FT: one native update and export executed"]
-    ExpoEval["Original EXPO-FT frozen evaluation: executed after one diagnostic update"]
-    Evidence["Hashed receipts, checkpoints and camera videos"]
-    Viewer["Measured-result viewer"]
-    State["Sadhana adapter: privileged state / normalized-action RPC host"]
-    RGB["Sadhana adapter: state14 / RGB / physical-action RPC host"]
+flowchart TB
+  subgraph Inputs["Published inputs"]
+    D["3 TRAIN demonstrations: 3538 raw controls"]
+    N["TRAIN-only normalization and 3493 H16 windows"]
+    P["Original pi0.5 base checkpoint"]
+    V["3 held-out captured VAL scenes"]
+    R1["R1 Lite scene and control contract: pending Leela release"]
   end
-  subgraph ABC["ABC owns simulator and native YAM task"]
-    Physics["Original sequential CPU MuJoCo physics"]
-    Cameras["Original MJWarp cameras"]
-    Judge["Original placement reward and success judge"]
+  subgraph Sadhana["Sadhana owns adapters, jobs and results"]
+    C["Root coordinator: GPU0 lease and finite watchdog"]
+    SFT["Original OpenPI task SFT: B64, complete VAL, plateau stop"]
+    EX["Original EXPO learner: B64, UTD20, 10-episode warmup"]
+    FT["Original FastTD3 learner: state policy from scratch"]
+    SH["State/action adapter: 128 CPU TRAIN worlds"]
+    IH["RGB/state14/physical-action adapter: one TRAIN world"]
+    RW["Versioned full-success and potential reward"]
+    FV["Frozen evaluation: exact captured physics and initial RGB"]
+    E["Receipts, counters, checkpoints and native videos"]
+    UI["Read-only result and live-progress viewer"]
   end
-  Demo["Immutable TRAIN episode: three bottles, 716 transitions"]
-  Stats["TRAIN-only YAM14 statistics and complete H16 windows"]
-  Ref["Captured five-bottle baseline randomization"]
-  Review["Independent review and manual OpenQodex"]
-  Jev["External Jev: advisory evidence critique"]
-  Jobs -->|"control: bounded admission"| Lease
-  Lease -->|"control: serial execution"| Base
-  Lease -->|"control: serial execution"| Fast
-  Lease -->|"control: serial execution"| Pi
-  Lease -->|"control: serial frozen evaluation"| PiEval
-  Lease -->|"control: serial diagnostic update"| Expo
-  Lease -->|"control: serial frozen evaluation"| ExpoEval
-  Demo -->|"data: genuine physical actions and images"| Stats
-  Stats -->|"data: supervised batch"| Pi
-  Pi -->|"data: actual SFT checkpoint"| PiEval
-  Pi -->|"data: actual SFT checkpoint"| Expo
-  Demo -->|"data: TRAIN replay source"| Expo
-  Expo -->|"data: verified actual learner export"| ExpoEval
-  Base -->|"control: stock policy commands"| Physics
-  Fast -->|"control: normalized actions"| State
-  State -->|"data: qpos, qvel and scene metadata"| Fast
-  State -->|"control: mapped physical commands"| Physics
-  PiEval -->|"control: physical H16/C8 commands"| RGB
-  RGB -->|"data: state14, three images and reward"| PiEval
-  Expo -->|"control: physical commands"| RGB
-  RGB -->|"data: state14, three images and reward"| Expo
-  ExpoEval -->|"control: frozen policy commands"| RGB
-  RGB -->|"data: state14, three images and reward"| ExpoEval
-  RGB -->|"implemented control: physical commands"| Physics
-  Ref -->|"data: exact scene identity"| State
-  Ref -->|"data: exact scene identity"| RGB
-  Physics -->|"data: simulator state"| Cameras
-  Physics -->|"data: physical scene"| Judge
-  Judge -->|"data: reward, success and termination"| State
-  Judge -->|"data: reward, success and termination"| RGB
-  Base -->|"data: actual result"| Evidence
-  Fast -->|"data: actual update counters and export"| Evidence
-  Pi -->|"data: loss, finite gradient and full checkpoint"| Evidence
-  PiEval -->|"data: completed episode, hashes and sampler latency"| Evidence
-  Expo -->|"data: actual update metrics and 38-file export"| Evidence
-  ExpoEval -->|"data: completed episode, frozen hashes and restore checks"| Evidence
-  Cameras -->|"data: actual frames"| Evidence
-  Evidence -->|"data: accepted measurements"| Viewer
-  Review -->|"review: source and evidence"| Evidence
-  Evidence -->|"data: redacted facts and decision rubric"| Jev
-  Jev -->|"review: advisory answers, never an acceptance gate"| Review
+  subgraph ABC["ABC owns the native YAM simulator and task"]
+    SIM["Original MuJoCo physics on CPU"]
+    CAM["Original MJWarp cameras on GPU0"]
+    J["Original five-bottle success judge"]
+  end
+  D -->|"data"| N
+  N -->|"data: supervised windows"| SFT
+  P -->|"data: starting weights"| SFT
+  SFT -->|"data: validated selected actor"| EX
+  D -->|"data: complete raw replay"| EX
+  C -.->|"control: one GPU job at a time"| SFT
+  C -.->|"control"| EX
+  C -.->|"control"| FT
+  EX -->|"data: physical action14"| IH
+  IH -->|"data: three RGB views and state14"| EX
+  FT -->|"data: normalized action14"| SH
+  SH -->|"data: privileged state216"| FT
+  SH -->|"data: mapped joint targets"| SIM
+  IH -->|"data: raw joint targets"| SIM
+  SIM -->|"data: physics state"| CAM
+  CAM -->|"data: synchronized RGB"| IH
+  SIM -->|"data: current geometry"| J
+  J -->|"data: full success, termination and timeout"| IH
+  J -->|"data: original task outcome"| RW
+  SIM -->|"data: read-only scratch FK"| RW
+  RW -->|"data: adapted reward"| FT
+  FT -->|"data: final actor and normalizer"| FV
+  EX -->|"data: trained actor, editor and critics"| FV
+  V -->|"data: full MJB and INTEGRATION state"| FV
+  C -.->|"control: frozen GPU0 job"| FV
+  FV -->|"data: scores and actual videos"| E
+  SFT -->|"data: measured adaptation progress"| E
+  EX -->|"data: actual update evidence"| E
+  FT -->|"data: actual update evidence"| E
+  E -->|"data: accepted results and labelled live counts"| UI
+  R1 -.->|"planned: new embodiment adapter"| IH
