@@ -1,0 +1,40 @@
+flowchart LR
+  subgraph P[Planner: canonical coordinator and publication]
+    pins[Checkpoint and metadata pins\nComplete recipe and split seeds]
+    lease[Exclusive GPU0 lease\nFinite watchdog]
+    cohort[demo_cohort publisher\nAuthenticate parent, worker and episodes]
+  end
+  subgraph C[Collector agent: implemented, CPU doubles tested]
+    gate[Config, artifact and lease admission]
+    scope[Scoped public constructor proxies\nRestored in finally]
+    capture[Observe original public calls\nNo added step, render or judge]
+    trace[Raw RGB streams and bounded numeric traces\nExact RTC requests and issued-row linkage]
+    manifest[Episode manifest then worker receipt\nNoncircular SHA256 lineage\nApproval fields false]
+  end
+  subgraph A[Original ABC author components: native qualification pending]
+    rollout[Unchanged run_eval and rollout_worlds]
+    sampler[ABC-VLA flow10\nH30, execute15, RTC prefix4/lead4]
+    sim[CPU MuJoCo physics\nMJWarp cameras168x224]
+  end
+  subgraph E[EXPO agent and data owners]
+    reader[Task dataset reader\nWhole-episode TRAIN and validation]
+    qc[Atlas and Engram QC\nSeparate approval gate]
+    train[Task SFT and later original EXPO updates\nSeparate measured gates]
+  end
+  reviewer[Independent reviewer\nCode and evidence checks]
+  pins --> gate
+  lease -. control admission .-> gate
+  gate --> scope
+  scope -. calls unchanged .-> rollout
+  rollout --> sampler
+  sampler -->|Actual float32 physical14 commands| sim
+  sim -->|Original observations and task evaluations| rollout
+  rollout -->|Intercept only existing public calls| capture
+  capture --> trace
+  trace --> manifest
+  manifest --> cohort
+  cohort --> reader
+  reader -. task quality and approval .-> qc
+  reader -. separate training admission .-> train
+  reviewer -. review .-> scope
+  reviewer -. verify lineage .-> cohort

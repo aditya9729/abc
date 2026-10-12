@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "label": "Original ABC-VLA train demonstration collection",
+  "python": "/home/user/aditya/RL/abc/.venv/bin/python",
+  "module": "abc_bench.demo_collect",
+  "max_wall_s": 3600,
+  "claim_scope": "Unchanged original learner and rollout; five-bottle randomized data subset for TRAIN/validation, no task-SFT/RL score",
+  "arguments": [
+    "--config",
+    "/home/user/aditya/RL/abc/configs/bench/demonstrations_train.json"
+  ]
+}
