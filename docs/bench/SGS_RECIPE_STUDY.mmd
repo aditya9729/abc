@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph study[Paper workflow: studied reference, not our implementation]
+        Bank[Fixed bank of valid reset configurations]
+        History[Recent Boolean success outcomes per configuration]
+        SGS[Success-guided reset selection]
+        Parallel[Parallel environments and policy rollouts]
+        PPO[PPO policy updates]
+        Bank -->|Available starting states| SGS
+        History -->|Estimated success rates| SGS
+        SGS -->|Selected reset on episode boundary| Parallel
+        Parallel -->|Episode outcomes| History
+        Parallel -->|On-policy transitions| PPO
+        PPO -->|Policy actions| Parallel
+    end
+    subgraph proposal[ABC and R1 Lite: proposed handoffs only]
+        Leela[Leela: validated scene and reset artifacts]
+        Sadhana[Sadhana: training reset allocation]
+        Learner[Separately named learner condition]
+        Heldout[Fresh full-task evaluation: no sampler updates]
+        Leela -.->|Versioned state bank| Sadhana
+        Sadhana -.->|Training configurations| Learner
+        Learner -.->|Frozen policy| Heldout
+    end
+    Root[Root: design and evidence acceptance] -.-> study
+    Peer[FastTD3 peer: equations and release audit] -.-> SGS
+    SGS -.->|Design inspiration; not a tested transfer| Sadhana

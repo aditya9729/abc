@@ -3,6 +3,9 @@
 import copy
 import hashlib
 import json
+import os
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -294,6 +297,46 @@ def test_existing_baseline_api_keeps_missing_results_pending(cohort):
     assert (result["successes"], result["episodes"], result["controls"]) == (1, 1, 819)
     assert result["methods"]["fasttd3"]["evaluation"]["successes"] is None
     assert result["methods"]["pi05"]["sft"]["status"] == "pending"
+
+
+def test_unicode_html_is_utf8_under_a_real_ascii_locale(cohort):
+    script = """
+import codecs
+import locale
+import sys
+from pathlib import Path
+from abc_bench.upstream_report import HTML, publish
+
+assert sys.flags.utf8_mode == 0
+assert codecs.lookup(locale.getpreferredencoding(False)).name == "ascii"
+output = Path(sys.argv[2])
+publish(Path(sys.argv[1]), output)
+payload = (output / "index.html").read_bytes()
+assert payload == HTML.encode("utf-8")
+assert any(value > 127 for value in payload)
+print("ASCII locale confirmed; actual Unicode HTML matches UTF-8 bytes")
+"""
+    child = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            "-X",
+            "utf8=0",
+            "-c",
+            script,
+            str(cohort["baseline"]),
+            str(cohort["output"]),
+        ],
+        env={**os.environ, "LC_ALL": "C", "LANG": "C", "CUDA_VISIBLE_DEVICES": ""},
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=15,
+        check=False,
+    )
+    assert child.returncode == 0, child.stdout + child.stderr
+    assert "ASCII locale confirmed" in child.stdout
 
 
 def test_complete_matched_frozen_eval_is_the_only_fasttd3_score(cohort):

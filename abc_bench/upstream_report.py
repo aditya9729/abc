@@ -515,7 +515,7 @@ def _sft(run: Path | None) -> dict:
 
 def _atomic_write(path: Path, contents: str) -> None:
     with tempfile.NamedTemporaryFile(
-        mode="w", dir=path.parent, prefix=".report-", delete=False
+        mode="w", encoding="utf-8", dir=path.parent, prefix=".report-", delete=False
     ) as stream:
         temporary = Path(stream.name)
         try:
