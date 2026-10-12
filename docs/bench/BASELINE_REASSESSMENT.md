@@ -159,6 +159,18 @@ contains 186 Python modules and 933 authenticated original model assets.
 Native EXPO rollout and update evidence remain pending.
 [Architecture source](ORIGINAL_METHODS_ARCHITECTURE.mmd) labels these execution states.
 
+The 4,000-control pilot has now completed. It made 7,978 critic updates and
+3,989 actor updates. Every placement reward was zero. Its frozen FP32 diagnostic
+completed 3,540 controls in the exact captured scene: zero success and zero
+bottles placed. Actor and normalizer fingerprints stayed unchanged. No more
+training in this regime is scheduled. The author-precision evaluation is pending.
+
+[FastTD3 design review](FASTTD3_DESIGN_REVIEW.md) explains a material mismatch.
+Changing 128 author-default worlds to one world increases updates and replay
+sampling per new transition by 128 times. Original equations do not preserve
+the original learning regime. This pilot establishes integration and records
+a diagnostic outcome. It does not reproduce the paper's learning results.
+
 Root controls serial GPU0 jobs and accepts the evidence. The baseline peer checks
 original evaluation and the state host. The FastTD3 peer checks author mathematics
 and the installed learner. The EXPO peer checks JAX, pi0.5 and the task adapter.

@@ -1,0 +1,32 @@
+flowchart LR
+    subgraph author[Author design: reference conditions]
+        Worlds[Many independent state environments]
+        Replay[GPU replay: capacity per world]
+        Critic[Two categorical critics: large batches]
+        Actor[Delayed deterministic actor updates]
+        Worlds -->|Many new transitions per vector step| Replay
+        Replay -->|Diverse sampled rows| Critic
+        Critic -->|Value gradient| Actor
+        Actor -->|Actions with per-world exploration| Worlds
+    end
+    subgraph executed[ABC pilot: executed integration]
+        One[One original CPU MuJoCo world]
+        State[216 privileged state channels]
+        Installed[Normal installed author learner]
+        Export[4000 controls: policy export]
+        Eval[Captured scene: frozen FP32 diagnostic]
+        UI[Authenticated receipts and actual clips]
+        One -->|State observation| State
+        State -->|New transitions: one per step| Installed
+        Installed -->|14 normalized commands| One
+        Installed -->|7978 critic / 3989 actor updates| Export
+        Export -->|No learner updates| Eval
+        Eval -->|0 of 1 success; geometry shift disclosed| UI
+    end
+    Root[Root: design and job acceptance] -.-> executed
+    Peer[FastTD3 peer: author source and precision] -.-> Installed
+    Review[Independent peer: evidence and claims] -.-> UI
+    Next[Pending: author task qualification and parallel ABC coverage]
+    Root -.-> Next
+    Precision[Pending: same export with author AMP and compiled normalizer]
+    Export -.-> Precision

@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "stage": "evaluate",
+  "learner_python": "/home/user/aditya/RL/runtimes/fasttd3-author-abc-py310/bin/python",
+  "host": {
+    "num_envs": 1,
+    "initial_seed": 20260511,
+    "max_episode_steps": 3540,
+    "save_video": true,
+    "reference": {
+      "summary": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T134246-730cdb/original_eval/summary.json",
+      "sha256": "fa8b83a8e801eca5bdfcfee39806c1ec09ecdc15b483411591b9df8cd5877bc6",
+      "world_index": 0
+    }
+  },
+  "learner": {
+    "checkpoint": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T143734-05cba8/learner/models/ABC-PutBottles-v1__FastTD3Scratch__1_final.pt",
+    "checkpoint_sha256": "fd28f78a8d0f86d9060610b357009f605fe5b2a8fb32c59c5f49c2f339358f12",
+    "seeds": [
+      20260511
+    ]
+  },
+  "timeouts": {
+    "host_ready_s": 180,
+    "learner_s": 900,
+    "shutdown_s": 30,
+    "host_wall_s": 1130,
+    "rpc_s": 120
+  }
+}
