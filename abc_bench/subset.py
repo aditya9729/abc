@@ -25,6 +25,8 @@ ALLOWED_MODULES = {
     "abc_bench.fasttd3_vector_stage",
     "abc_bench.fasttd3_scratch_stage",
     "abc_bench.fasttd3_frozen_stage",
+    "abc_bench.fasttd3_campaign_stage",
+    "abc_bench.fasttd3_campaign_frozen_stage",
     "expo_abc_adapter.stage",
     "sadhana_fasttd3_hb.stage",
     "nrh.qf3_training",
@@ -86,12 +88,17 @@ def load_job(path: Path) -> dict[str, Any]:
     ):
         raise ValueError("claim_scope must be a nonempty description")
     maximum = job.get("max_wall_s")
+    maximum_allowed = (
+        12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
+    )
     if (
         type(maximum) not in (int, float)
         or not math.isfinite(maximum)
-        or not 0 < maximum <= 7200
+        or not 0 < maximum <= maximum_allowed
     ):
-        raise ValueError("max_wall_s must be finite, positive and at most 7200")
+        raise ValueError(
+            f"max_wall_s must be finite, positive and at most {maximum_allowed}"
+        )
     return job
 
 
