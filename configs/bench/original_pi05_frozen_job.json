@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "label": "Original pi0.5 frozen sampler after one diagnostic SFT update",
+  "claim_scope": "One exact captured ABC-YAM development scene, one-demo one-step SFT, original EXPO only_base_actions sampler; zero learner updates; synchronous simulation; not task readiness, realtime performance, or paper reproduction",
+  "python": "/home/user/aditya/RL/runtimes/expo-ft-author-py311/bin/python",
+  "module": "expo_abc_adapter.stage",
+  "max_wall_s": 4800,
+  "arguments": [
+    "--config",
+    "/home/user/aditya/RL/builds/expoft-author-setup-20261012/PI05_FROZEN_NATIVE_CONFIG_V1.json"
+  ]
+}

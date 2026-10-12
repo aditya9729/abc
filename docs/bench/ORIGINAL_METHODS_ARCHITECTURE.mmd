@@ -3,15 +3,16 @@ flowchart LR
     Jobs["Versioned finite job configurations"]
     Lease["GPU0 lease, occupancy check and watchdog"]
     Base["Original ABC-VLA evaluation: executed"]
-    Fast["Original FastTD3 learner: native smoke executed"]
+    Fast["Original FastTD3: scratch pilot and author-bf16 frozen evaluation executed"]
     Pi["Original pi0.5 SFT: one real update executed"]
-    Expo["Original EXPO-FT native rollout and RL: pending"]
+    PiEval["Original pi0.5 frozen native rollout: executed"]
+    Expo["Original EXPO-FT update and post-update evaluation: pending verification"]
     Evidence["Hashed receipts, checkpoints and camera videos"]
     Viewer["Measured-result viewer"]
   end
   subgraph ABC["ABC owns simulator and native YAM task"]
     State["Privileged state / normalized-action RPC host"]
-    RGB["State14 / RGB / physical-action RPC host: CPU verified"]
+    RGB["State14 / RGB / physical-action RPC host: native verified"]
     Physics["Original sequential CPU MuJoCo physics"]
     Cameras["Original MJWarp cameras"]
     Judge["Original placement reward and success judge"]
@@ -24,14 +25,18 @@ flowchart LR
   Lease -->|"control: serial execution"| Base
   Lease -->|"control: serial execution"| Fast
   Lease -->|"control: serial execution"| Pi
+  Lease -->|"control: serial frozen evaluation"| PiEval
   Lease -.->|"planned control: serial execution"| Expo
   Demo -->|"data: genuine physical actions and images"| Stats
   Stats -->|"data: supervised batch"| Pi
+  Pi -->|"data: actual SFT checkpoint"| PiEval
   Pi -.->|"planned data: frozen task checkpoint"| Expo
   Base -->|"control: stock policy commands"| Physics
   Fast -->|"control: normalized actions"| State
   State -->|"data: qpos, qvel and scene metadata"| Fast
   State -->|"control: mapped physical commands"| Physics
+  PiEval -->|"control: physical H16/C8 commands"| RGB
+  RGB -->|"data: state14, three images and reward"| PiEval
   Expo -.->|"planned control: physical commands"| RGB
   RGB -.->|"planned data: state14, three images and reward"| Expo
   RGB -->|"implemented control: physical commands"| Physics
@@ -44,6 +49,7 @@ flowchart LR
   Base -->|"data: actual result"| Evidence
   Fast -->|"data: actual update counters and export"| Evidence
   Pi -->|"data: loss, finite gradient and full checkpoint"| Evidence
+  PiEval -->|"data: completed episode, hashes and sampler latency"| Evidence
   Cameras -->|"data: actual frames"| Evidence
   Evidence -->|"data: accepted measurements"| Viewer
   Review -->|"review: source and evidence"| Evidence

@@ -445,7 +445,7 @@ def test_unqualified_eval_cannot_publish_a_score(cohort, change):
     elif change == "updates":
         learner["actor_updates"] = 1
     elif change == "short_horizon":
-        learner["episodes"][0]["controls"] = host["episodes"][0]["controls"] = 1000
+        learner["episodes"][0]["controls"] = host["episodes"][-1]["controls"] = 1000
     else:
         learner["checkpoint"] = video(cohort["evaluation"] / "different-export.pt")
     bind_fasttd3(cohort, "evaluate")
@@ -488,3 +488,528 @@ def test_mutated_sft_receipt_is_not_a_completed_diagnostic(cohort):
     write(path, value)
     with pytest.raises(ValueError, match="coordinator pin"):
         report(cohort)
+
+
+def tree_pin(root: Path, target: Path, kind: str, producer: Path) -> dict:
+    records = [
+        {**pin(path), "path": str(path.relative_to(root))}
+        for path in sorted(root.rglob("*"))
+        if path.is_file()
+    ]
+    producer_pin = pin(producer)
+    manifest = write(
+        target,
+        {
+            "schema": "expo-abc-checkpoint-tree/v1",
+            "kind": kind,
+            "root": str(root),
+            "files": records,
+            "total_bytes": sum(row["bytes"] for row in records),
+            "tree_sha256": hashlib.sha256(
+                json.dumps(records, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest(),
+            "producer_receipt": {key: producer_pin[key] for key in ("path", "sha256")},
+        },
+    )
+    return {key: manifest[key] for key in ("path", "sha256")}
+
+
+def bind_native(data: dict, name: str) -> None:
+    run, worker, host = data[name], data[name + "_worker"], data[name + "_host"]
+    episode = worker["episodes"][0]
+    controls, completed = episode["controls"], episode["completed_native_episode"]
+    worker["actual_controls"] = controls
+    worker["metrics"] = {
+        "full_task_success_count": int(episode["full_task_success"]),
+        "completed_native_episode_count": int(completed),
+        "max_native_reward": episode["max_native_reward"],
+        "command_clip_count": episode["command_clip_count"],
+        "max_ever_placed_bottles": episode["ever_placed_count"],
+        "sampler_wall_latency": {
+            "count": (controls + 7) // 8,
+            "warm_count": (controls + 7) // 8 - 1,
+            "first_cold_s": 3.0,
+            "all_mean_s": 1.6,
+            "warm_median_s": 0.2,
+            "warm_p95_s": 0.2,
+        },
+    }
+    host["metrics"] = {
+        "controls": controls,
+        "completed_episodes": int(completed),
+        "action_clipping_count": episode["command_clip_count"],
+    }
+    worker["host_lifecycle"]["host_receipt"] = copy.deepcopy(host)
+    host_pin = write(run / "expoft/host/receipt.json", host)
+    worker["host_lifecycle"]["receipt"] = {
+        key: host_pin[key] for key in ("path", "sha256")
+    }
+    seal(run, worker)
+    (run / "expoft").mkdir(exist_ok=True)
+    (run / "receipt.json").replace(run / "expoft/receipt.json")
+
+
+@pytest.fixture
+def native_cohort(cohort):
+    """Explicit native producer-schema doubles; these do not run a model or simulator."""
+    data = cohort
+    bench = data["baseline"].parent
+    source = write(
+        bench / "source.json",
+        {
+            "schema": "abc-author-success-prefix/v1",
+            "split": "train",
+            "task": "put_plastic_bottles_in_bin",
+            "source_judge": write(bench / "source-judge.json", {"fixture": True}),
+            "source_labels": write(bench / "source-labels.json", {"fixture": True}),
+            "raw_inputs": {"states": video(bench / "source-raw.bin")},
+        },
+    )
+    norm = write(bench / "stats/norm_stats.json", {"fixture": "TRAIN statistics"})
+    stats = write(
+        bench / "stats/diagnostic_manifest.json",
+        {
+            "schema": "expo-abc-yam14-diagnostic/v1",
+            "split": "train",
+            "source_manifest": {key: source[key] for key in ("path", "sha256")},
+            "stats": {key: norm[key] for key in ("path", "sha256")},
+        },
+    )
+    sft_root = bench / "sft-checkpoint"
+    saved_norm = sft_root / "assets/abc_yam14_absolute_one_demo_v1/norm_stats.json"
+    saved_norm.parent.mkdir(parents=True)
+    saved_norm.write_bytes(Path(norm["path"]).read_bytes())
+    video(sft_root / "params/weights.bin")
+    sft_worker = json.loads((data["sft"] / "expoft/receipt.json").read_text())
+    sft_worker["checkpoint_artifact"] = str(sft_root)
+    seal(data["sft"], sft_worker)
+    (data["sft"] / "receipt.json").replace(data["sft"] / "expoft/receipt.json")
+    sft_pin = tree_pin(
+        sft_root,
+        bench / "sft-tree.json",
+        "original_pi05_sft",
+        data["sft"] / "expoft/receipt.json",
+    )
+    inputs = {
+        "checkpoint_pin": sft_pin,
+        "source_manifest": {key: source[key] for key in ("path", "sha256")},
+        "stats_manifest": {key: stats[key] for key in ("path", "sha256")},
+    }
+    data["native_source"], data["native_stats"], data["sft_tree_root"] = (
+        source,
+        stats,
+        sft_root,
+    )
+    baseline_world = json.loads(Path(data["summary"]["path"]).read_text())["worlds"][0]
+    counters = {
+        key: 0 for key in ("critic", "batch_encoder", "edit_actor", "temp", "actor")
+    }
+    groups = (
+        "critic",
+        "batch_encoder",
+        "edit_actor",
+        "temp",
+        "target_critic",
+        "actor",
+        "target_actor",
+    )
+    hashes = {
+        key: {
+            "sha256": "a" * 64,
+            "bytes": 4,
+            "leaves": 1,
+            "algorithm": "SHA256 ordered leaf path/shape/dtype and exact C-order parameter bytes",
+        }
+        for key in groups
+    }
+    for name, phase in (
+        ("pi05_eval", "original_pi05_frozen_eval"),
+        ("expo_train", "original_expo_update_diagnostic"),
+        ("expo_eval", "original_expo_frozen_eval"),
+    ):
+        train = name == "expo_train"
+        run = data[name] = bench / name
+        host_dir = run / "expoft/host"
+        seed, controls = (9030, 32) if train else (20260511, 3540)
+        host_config = write(
+            run / "host-config.json",
+            {
+                "stage": "train" if train else "evaluation",
+                "host": {
+                    "max_episode_steps": 3540,
+                    "reference": None
+                    if train
+                    else {"sha256": data["summary"]["sha256"], "world_index": 0},
+                },
+            },
+        )
+        clip = video(host_dir / "episode.mp4")
+        judge = {
+            "success": False,
+            "num_active_bottles": 5,
+            "num_bottles_in_bin": 0,
+            "bottle_in_bin_mask": [False] * 5,
+        }
+        host_episode = {
+            "seed": seed,
+            "controls": controls,
+            "completed": not train,
+            "success": False,
+            "action_clipping_count": 0,
+            "max_native_reward": 0.0,
+            "scene_match": "fixed_five_train" if train else "matched_baseline",
+            "randomization": copy.deepcopy(baseline_world["randomization"]),
+            "final_native_task_eval": judge,
+            "end_reason": "host_closed" if train else "timeout",
+            "video": clip,
+        }
+        worker_episode = {
+            "seed": seed,
+            "controls": controls,
+            "completed_native_episode": not train,
+            "terminated": False,
+            "truncated": not train,
+            "full_task_success": False,
+            "max_native_reward": 0.0,
+            "command_clip_count": 0,
+            "ever_placed_mask": [False] * 5,
+            "ever_placed_count": 0,
+            "stop_reason": "diagnostic_update_limit" if train else "native_time_limit",
+            "final_native_task_eval": copy.deepcopy(judge),
+        }
+        reset_only = {
+            **copy.deepcopy(host_episode),
+            "controls": 0,
+            "completed": False,
+            "end_reason": "explicit_reset",
+            "video": video(host_dir / "reset-only.mp4"),
+        }
+        data[name + "_host"] = {
+            "schema_version": 1,
+            "status": "completed",
+            "stage": "train" if train else "evaluation",
+            "blockers": [],
+            "config": host_config,
+            "episodes": [reset_only, host_episode],
+            "original_sources_assets": write(
+                run / "assets.json", {"fixture": "sealed historical native assets"}
+            ),
+        }
+        parameters = {
+            "source_manifest": source["path"],
+            "assets_dir": str(bench / "stats"),
+            "checkpoint_pin": sft_pin,
+            "stats_manifest_sha256": stats["sha256"],
+            "host_config": host_config["path"],
+            "seeds": [seed],
+            "max_controls": controls,
+        }
+        after = (
+            {key: 1 for key in counters}
+            if train or name == "expo_eval"
+            else dict(counters)
+        )
+        before = dict(after) if name == "expo_eval" else dict(counters)
+        worker = data[name + "_worker"] = {
+            "schema_version": 1,
+            "status": "completed",
+            "phase": phase,
+            "resolved_parameters": parameters,
+            "input_pins": copy.deepcopy(inputs),
+            "producer_sft_steps": 1,
+            "source_pins": {
+                "expo_ft": "21fe3d3b7d913c80836496817965932f49e0aedf",
+                "openpi": "46407a41183b037313a383ff679683f2773b766d",
+            },
+            "implementation_sha256": {
+                file: "b" * 64
+                for file in (
+                    "native.py",
+                    "original_runtime.py",
+                    "artifacts.py",
+                    "host.py",
+                    "data.py",
+                    "config.py",
+                    "replay.py",
+                    "stage.py",
+                )
+            },
+            "actual_steps": int(train),
+            "elapsed_s": 20.0,
+            "early_stopping_reason": worker_episode["stop_reason"],
+            "optimizer_counters_before": before,
+            "optimizer_counters_after": after,
+            "actual_parameter_hashes_before": copy.deepcopy(hashes),
+            "actual_parameter_hashes_after": copy.deepcopy(hashes),
+            "episodes": [worker_episode],
+            "updates": [],
+            "diagnostic_changes": {},
+            "sampling_recipe": {
+                "base_candidates": 8,
+                "edit_candidates": 0 if name == "pi05_eval" else 8,
+                "action_horizon": 16,
+                "executed_prefix": 8,
+            },
+            "host_lifecycle": {
+                "exit_code": 0,
+                "videos": [reset_only["video"], clip],
+                "host_config": {key: host_config[key] for key in ("path", "sha256")},
+            },
+        }
+        if train:
+            parameters.update(batch_size=2, utd_ratio=1, max_updates=1)
+            worker["diagnostic_changes"] = {
+                "batch_size": 2,
+                "utd_ratio": 1,
+                "author_release_batch_size": 64,
+                "author_release_utd_ratio": 20,
+            }
+            worker["updates"] = [
+                {
+                    "actual_update": 1,
+                    "optimizer_counters_before": before,
+                    "optimizer_counters_after": after,
+                    "original_metrics": {"critic_loss": 0.5},
+                }
+            ]
+            checkpoint_root = run / "expoft/checkpoints/1"
+            video(checkpoint_root / "weights.bin")
+            worker["checkpoint_artifact"] = str(checkpoint_root)
+        elif name == "expo_eval":
+            parameters["expo_checkpoint_pin"] = data["expo_checkpoint_pin"]
+            worker["expo_checkpoint_pin"] = data["expo_checkpoint_pin"]
+        bind_native(data, name)
+        if train:
+            data["expo_checkpoint_pin"] = tree_pin(
+                checkpoint_root,
+                run / "expoft/checkpoint-pin.json",
+                "original_expo_learner",
+                run / "expoft/receipt.json",
+            )
+            producer = pin(run / "expoft/receipt.json")
+            write(
+                run / "expoft/checkpoint-export.json",
+                {
+                    "schema_version": 1,
+                    "checkpoint_pin": data["expo_checkpoint_pin"],
+                    "producer_receipt": {
+                        key: producer[key] for key in ("path", "sha256")
+                    },
+                },
+            )
+    return data
+
+
+def native_report(data: dict, **overrides):
+    return report(
+        data,
+        **{
+            **{key: data[key] for key in ("pi05_eval", "expo_train", "expo_eval")},
+            **overrides,
+        },
+    )
+
+
+def test_native_pi05_and_expo_scores_require_complete_matched_frozen_evidence(
+    native_cohort,
+):
+    result = native_report(native_cohort)
+    pi = result["methods"]["pi05"]
+    assert (pi["evaluation"]["successes"], pi["evaluation"]["episodes"]) == (0, 1)
+    assert (
+        pi["expoft_evaluation"]["successes"],
+        pi["expoft_evaluation"]["controls"],
+    ) == (0, 3540)
+    train = pi["expoft_training"]
+    assert train["successes"] is None
+    assert (
+        train["batch_size"],
+        train["utd_ratio"],
+        train["controls"],
+        train["actual_steps"],
+    ) == (2, 1, 32, 1)
+    assert (native_cohort["output"] / pi["evaluation"]["video"]).is_file()
+
+
+@pytest.mark.parametrize("status", ["running", "failed"])
+def test_native_incomplete_job_does_not_consume_partial_worker_or_video(
+    native_cohort, status
+):
+    run = native_cohort["pi05_eval"]
+    coordinator_path = run.parent / "runs" / (run.name + ".json")
+    coordinator = json.loads(coordinator_path.read_text())
+    coordinator["status"] = status
+    write(coordinator_path, coordinator)
+    (run / "expoft/receipt.json").write_bytes(b"incomplete JSON")
+    Path(native_cohort["pi05_eval_host"]["episodes"][-1]["video"]["path"]).write_bytes(
+        b"incomplete video"
+    )
+    result = native_report(native_cohort)
+    assert result["methods"]["pi05"]["evaluation"]["successes"] is None
+
+
+def test_native_partial_rollout_has_verified_clip_and_no_task_score(native_cohort):
+    worker, host = native_cohort["pi05_eval_worker"], native_cohort["pi05_eval_host"]
+    episode, actual = worker["episodes"][0], host["episodes"][-1]
+    episode.update(
+        controls=123,
+        completed_native_episode=False,
+        truncated=False,
+        stop_reason="control_limit",
+    )
+    actual.update(controls=123, completed=False, end_reason="host_closed")
+    bind_native(native_cohort, "pi05_eval")
+    result = native_report(native_cohort)["methods"]["pi05"]["evaluation"]
+    assert result["status"] == "partial"
+    assert result["successes"] is None and result["episodes"] is None
+    assert result["controls"] == 123
+    assert (native_cohort["output"] / result["episode_rollouts"][0]["video"]).is_file()
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "scene",
+        "parameters",
+        "missing_parameter_group",
+        "optimizer",
+        "missing_counter_group",
+        "updates",
+        "short_horizon",
+        "phase",
+    ],
+)
+def test_invalid_native_frozen_evidence_leaves_live_report_intact(
+    native_cohort, change
+):
+    native_report(native_cohort)
+    live = {
+        name: (native_cohort["output"] / name).read_bytes()
+        for name in ("results.json", "index.html")
+    }
+    worker, host = native_cohort["pi05_eval_worker"], native_cohort["pi05_eval_host"]
+    if change == "scene":
+        host["episodes"][-1]["randomization"]["scale_states"]["bin_joint"] = 2.0
+    elif change == "parameters":
+        worker["actual_parameter_hashes_after"]["actor"]["sha256"] = "c" * 64
+    elif change == "missing_parameter_group":
+        del worker["actual_parameter_hashes_before"]["target_actor"]
+        del worker["actual_parameter_hashes_after"]["target_actor"]
+    elif change == "optimizer":
+        worker["optimizer_counters_after"]["actor"] = 1
+    elif change == "missing_counter_group":
+        del worker["optimizer_counters_before"]["temp"]
+        del worker["optimizer_counters_after"]["temp"]
+    elif change == "updates":
+        worker["actual_steps"] = 1
+    elif change == "short_horizon":
+        worker["episodes"][0]["controls"] = host["episodes"][-1]["controls"] = 1000
+    else:
+        worker["phase"] = "invented_frozen_policy"
+    bind_native(native_cohort, "pi05_eval")
+    with pytest.raises(ValueError):
+        native_report(native_cohort)
+    for name, before in live.items():
+        assert (native_cohort["output"] / name).read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "change",
+    ["video", "host_receipt", "raw_source", "stats", "sft_file", "sft_extra_file"],
+)
+def test_native_artifact_mutation_is_rejected(native_cohort, change):
+    if change == "sft_extra_file":
+        (native_cohort["sft_tree_root"] / "extra.bin").write_bytes(b"unrecorded")
+    else:
+        path = {
+            "video": Path(
+                native_cohort["pi05_eval_host"]["episodes"][-1]["video"]["path"]
+            ),
+            "host_receipt": native_cohort["pi05_eval"] / "expoft/host/receipt.json",
+            "raw_source": native_cohort["baseline"].parent / "source-raw.bin",
+            "stats": native_cohort["baseline"].parent / "stats/norm_stats.json",
+            "sft_file": native_cohort["sft_tree_root"] / "params/weights.bin",
+        }[change]
+        path.write_bytes(path.read_bytes() + b"mutated")
+    with pytest.raises(ValueError):
+        native_report(native_cohort)
+    assert not (native_cohort["output"] / "results.json").exists()
+
+
+def test_frozen_expo_requires_the_selected_training_export(native_cohort):
+    with pytest.raises(ValueError, match="TRAIN export"):
+        native_report(native_cohort, expo_train=None)
+
+
+def test_sft_tree_cannot_substitute_another_checkpoint_root(native_cohort):
+    tree_path = Path(
+        native_cohort["pi05_eval_worker"]["input_pins"]["checkpoint_pin"]["path"]
+    )
+    tree = json.loads(tree_path.read_text())
+    alternate = native_cohort["sft_tree_root"].with_name("substituted-checkpoint")
+    for record in tree["files"]:
+        destination = alternate / record["path"]
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes(
+            (native_cohort["sft_tree_root"] / record["path"]).read_bytes()
+        )
+    tree["root"] = str(alternate)
+    substituted = write(tree_path, tree)
+    worker = native_cohort["pi05_eval_worker"]
+    worker["input_pins"]["checkpoint_pin"] = worker["resolved_parameters"][
+        "checkpoint_pin"
+    ] = {key: substituted[key] for key in ("path", "sha256")}
+    bind_native(native_cohort, "pi05_eval")
+    with pytest.raises(ValueError, match="checkpoint root"):
+        native_report(native_cohort)
+
+
+@pytest.mark.parametrize("change", ["utd_bool", "update_counter_bool", "export_root"])
+def test_invalid_expo_training_recipe_or_export_is_rejected(native_cohort, change):
+    worker = native_cohort["expo_train_worker"]
+    if change == "utd_bool":
+        worker["resolved_parameters"]["utd_ratio"] = True
+    elif change == "update_counter_bool":
+        worker["updates"][0]["optimizer_counters_after"] = {
+            **worker["updates"][0]["optimizer_counters_after"],
+            "actor": True,
+        }
+    else:
+        worker["checkpoint_artifact"] = str(
+            native_cohort["expo_train"] / "other-export"
+        )
+    bind_native(native_cohort, "expo_train")
+    with pytest.raises(ValueError):
+        native_report(native_cohort)
+
+
+def test_native_original_success_can_finish_before_the_time_limit(native_cohort):
+    worker, host = native_cohort["pi05_eval_worker"], native_cohort["pi05_eval_host"]
+    episode, actual = worker["episodes"][0], host["episodes"][-1]
+    judge = {
+        "success": True,
+        "num_active_bottles": 5,
+        "num_bottles_in_bin": 5,
+        "bottle_in_bin_mask": [True] * 5,
+    }
+    episode.update(
+        controls=819,
+        terminated=True,
+        truncated=False,
+        full_task_success=True,
+        stop_reason="task_success",
+        ever_placed_mask=[True] * 5,
+        ever_placed_count=5,
+        max_native_reward=1.0,
+        final_native_task_eval=judge,
+    )
+    actual.update(
+        controls=819,
+        success=True,
+        end_reason="success",
+        max_native_reward=1.0,
+        final_native_task_eval=copy.deepcopy(judge),
+    )
+    bind_native(native_cohort, "pi05_eval")
+    result = native_report(native_cohort)["methods"]["pi05"]["evaluation"]
+    assert (result["successes"], result["controls"]) == (1, 819)

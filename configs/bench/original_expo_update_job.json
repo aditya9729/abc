@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "label": "Original EXPO-FT pretrained pi0.5 bounded native update diagnostic",
+  "claim_scope": "ABC-YAM TRAIN seed9030, one-demo one-step SFT initialization, unchanged original EXPO learner; B2/UTD1, 32-control warmup and one-update cap are diagnostic overrides from author B64/UTD20/episode cadence; synchronous simulation, no paper performance or realtime claim",
+  "python": "/home/user/aditya/RL/runtimes/expo-ft-author-py311/bin/python",
+  "module": "expo_abc_adapter.stage",
+  "max_wall_s": 3600,
+  "arguments": [
+    "--config",
+    "/home/user/aditya/RL/builds/expoft-author-setup-20261012/EXPO_NATIVE_UPDATE_CONFIG_V1.json"
+  ]
+}

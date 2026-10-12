@@ -45,8 +45,8 @@ No normalization mismatch has been established.
 | --- | --- | --- | --- |
 | ResFiT | TD3 action residual | Frozen ABC-VLA | Original learner executed. Demo-derived action scaling also changes base commands. |
 | QF3 | Flow policy head through LoRA | ABC-VLA initialization | Paper implementation executed. Exact author implementation and initializer remain unconfirmed. Further experiments are on hold. |
-| FastTD3 | Full state policy from scratch | None | Native 64-control smoke completed with 106 critic and 53 actor updates. Task evaluation is pending. |
-| EXPO-FT | Q-guided action editor and distilled VLA | pi0.5 | Original JAX CPU fixture and real pretrained SFT update passed. Native policy evaluation and RL are pending. |
+| FastTD3 | Full state policy from scratch | None | The 4,000-control pilot and frozen author-bf16 evaluation completed. The one-world data regime is a material gap; no method ranking is justified. |
+| EXPO-FT | Q-guided action editor and distilled VLA | pi0.5 | Real SFT and a full frozen pi0.5 rollout completed. Native EXPO update and post-update evaluation remain pending. |
 
 ResFiT preserves the base network. Its original action scaler maps commands
 through ranges fitted from demonstrations. Our single successful demonstration
@@ -103,9 +103,51 @@ Training stopped after meeting the configured 25% loss-reduction target.
 
 This is a tiny-batch training diagnostic. It has no simulator task score or
 held-out loss. The one three-bottle demonstration does not establish a trained
-five-bottle policy. Native frozen-policy evaluation and EXPO-FT RL remain pending.
+five-bottle policy. The separate frozen-policy measurement below does not change
+the scope of this SFT diagnostic. Native EXPO-FT RL remains pending.
 The original full train-state checkpoint is recorded in `expoft/sft_qualification.json`
 within that run. The coordinator charged 237.55 seconds and released its GPU0 lease.
+
+### Original pi0.5 frozen native evaluation
+
+Run `author-subset-20261012T153955-9965f5` completed 3,540 controls on the exact
+captured baseline scene. The original task judge reported zero of five bottles
+and zero of one successful episodes. All seven parameter groups and optimizer
+counters stayed unchanged. No learner update occurred. The host closed with
+exit zero. The coordinator charged 504.74 seconds, including initialization,
+compilation, parameter hashing and cleanup.
+
+The original `EXPOLearner.sample_actions(..., only_base_actions=True)` draws eight
+base candidates and executes candidate zero. It uses H16/C8 and the real one-step
+SFT checkpoint. Synchronized warm sampler latency had median 0.13348 seconds
+and p95 0.15170 seconds across 442 warm calls; the first cold call took
+20.05311 seconds. Physics pauses during inference. These timings do not prove
+realtime operation or candidate-selection performance.
+
+The host clipped 4,566 gripper coordinates across 2,921 control steps. Channels
+6 and 13 were affected; no joint coordinate was clipped. This declared physical
+action boundary differs from the original unbounded simulator command call.
+It is shared by the pi0.5 and EXPO conditions. The demonstration has three bottles
+and one training layout, while this evaluation has five bottles and different
+geometry. One SFT update does not establish a task-trained policy. This result
+does not establish a failure of pi0.5 or EXPO-FT and cannot support a method ranking.
+
+The worker receipt SHA256 is
+`9029d85fe65abd3f203965a79b5e64997f85735eea5c7f3658d35ae7b53c7e43`.
+The actual episode video has 3,541 decoded frames at 672 by 168 pixels.
+An initial zero-control reset also produced a video; it is excluded from the
+episode count. Root verification is recorded in
+`builds/expoft-author-setup-20261012/PI05_NATIVE_FROZEN_RESULT_V1.json`.
+The finite parent job is `configs/bench/original_pi05_frozen_job.json`.
+
+The first native EXPO update attempt, `author-subset-20261012T155036-42f91c`,
+collected 32 TRAIN controls and failed before completing an update. Our adapter
+added an outer OpenPI mesh context around `agent.update`. The original learner's
+actor update opens its own context and rejects nesting. The simulator closed
+cleanly. The failed attempt has no trained checkpoint or task score. Its original
+receipts and clips are preserved. The repair removes the extra adapter wrapper;
+original learner source remains unchanged. A new native attempt must verify the
+repair after the installed CPU regression and independent review.
 
 ### Commands and installation
 
@@ -156,14 +198,26 @@ training coverage. No reward shaping or pretrained policy was added to FastTD3.
 
 The EXPO RGB/action host passed 29 installed CPU tests. The installed ABC snapshot
 contains 186 Python modules and 933 authenticated original model assets.
-Native EXPO rollout and update evidence remain pending.
+The frozen pi0.5 rollout is measured above. Native EXPO update and post-update
+evaluation evidence remain pending.
 [Architecture source](ORIGINAL_METHODS_ARCHITECTURE.mmd) labels these execution states.
 
 The 4,000-control pilot has now completed. It made 7,978 critic updates and
 3,989 actor updates. Every placement reward was zero. Its frozen FP32 diagnostic
 completed 3,540 controls in the exact captured scene: zero success and zero
 bottles placed. Actor and normalizer fingerprints stayed unchanged. No more
-training in this regime is scheduled. The author-precision evaluation is pending.
+training in this regime is scheduled.
+
+The separate author-precision evaluation,
+`author-subset-20261012T155412-eb00e3`, completed the same 3,540-control scene
+with zero success and zero bottles placed. It used the same exported checkpoint,
+saved bf16 AMP, compiled observation normalizer and eager actor. Actual actor
+output was bf16; the environment boundary received float32. Policy, normalizer
+and CPU/device RNG fingerprints stayed unchanged. Actor and critic updates were
+zero. The coordinator charged 258.38 seconds. This corrects the evaluation
+precision; it adds no training or evidence of convergence. The earlier FP32
+result remains historical. Canonical worker receipt SHA256:
+`afb9801ab8419961de945f2c6367509dc9783813262821d5c729ccb61a8fd467`.
 
 [FastTD3 design review](FASTTD3_DESIGN_REVIEW.md) explains a material mismatch.
 Changing 128 author-default worlds to one world increases updates and replay

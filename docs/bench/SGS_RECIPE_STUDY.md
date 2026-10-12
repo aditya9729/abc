@@ -23,6 +23,15 @@ them. The transfer recipe uses a point-cloud teacher and an RGB DAgger student.
 Data from held-out student environments is excluded from gradient updates.
 These details are separate from sampler weighting. See appendices B.3 and C.3.
 
+The complete recipe also needs attention to control and contact physics.
+UR5e uses Cartesian operational-space control; Franka uses joint-position control.
+The main manipulation runs use a gravity curriculum. The no-curriculum ablation
+uses one training seed, so it does not establish equivalence across tasks.
+Transfer experiments reduce gripper-pad friction to avoid unrealistic grasps.
+They also match object symmetries in resets and success criteria.
+These are additional recipe choices, not effects proved for the sampler alone.
+See appendices A.2, B.4 and C.2–C.3.
+
 ## Our interpretation
 
 Our FastTD3 pilot collected no positive bottle-placement reward. If every
