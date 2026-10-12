@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "stage": "train",
+  "learner_python": "/home/user/aditya/RL/runtimes/fasttd3-author-abc-py310/bin/python",
+  "host": {
+    "num_envs": 1,
+    "initial_seed": 9030,
+    "max_episode_steps": 3540,
+    "save_video": true,
+    "reference": null
+  },
+  "learner": {
+    "steps": 64,
+    "seed": 1,
+    "layout_seed": 9030,
+    "batch_size": 32768,
+    "buffer_size": 51200,
+    "compile": true,
+    "amp": true
+  },
+  "timeouts": {
+    "host_ready_s": 300,
+    "learner_s": 1400,
+    "shutdown_s": 30,
+    "host_wall_s": 1730,
+    "rpc_s": 120
+  }
+}

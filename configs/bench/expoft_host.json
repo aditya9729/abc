@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "stage": "evaluation",
+  "host": {
+    "num_envs": 1,
+    "initial_seed": 20260511,
+    "allowed_seeds": [20260511],
+    "max_episode_steps": 3540,
+    "save_video": true,
+    "reference": {
+      "summary": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T134246-730cdb/original_eval/summary.json",
+      "sha256": "fa8b83a8e801eca5bdfcfee39806c1ec09ecdc15b483411591b9df8cd5877bc6",
+      "world_index": 0
+    }
+  },
+  "timeouts": {
+    "host_wall_s": 3600,
+    "rpc_s": 120,
+    "max_requests": 20000
+  }
+}

@@ -20,6 +20,8 @@ ALLOWED_MODULES = {
     "abc_author_subset.host",
     "abc_bench.subset_worker",
     "abc_bench.upstream_eval",
+    "abc_bench.fasttd3_host",
+    "expo_abc_adapter.stage",
     "nrh.qf3_training",
 }
 
@@ -74,6 +76,10 @@ def load_job(path: Path) -> dict[str, Any]:
         raise ValueError("The coordinator owns the output directory")
     if not isinstance(job.get("label"), str) or not job["label"]:
         raise ValueError("A method and stage label is required")
+    if "claim_scope" in job and (
+        not isinstance(job["claim_scope"], str) or not job["claim_scope"].strip()
+    ):
+        raise ValueError("claim_scope must be a nonempty description")
     maximum = job.get("max_wall_s")
     if (
         type(maximum) not in (int, float)
@@ -123,8 +129,12 @@ def run_job(args: Any) -> dict[str, Any]:
         )
         out = RESULTS / run_id
         out.mkdir()
-        # The QF3 worker creates its output and refuses a pre-existing directory.
-        worker_out = out / "qf3" if job["module"] == "nrh.qf3_training" else out
+        # These workers require a directory without coordinator bookkeeping.
+        subdirectory = {
+            "nrh.qf3_training": "qf3",
+            "expo_abc_adapter.stage": "expoft",
+        }.get(job["module"])
+        worker_out = out / subdirectory if subdirectory is not None else out
         command = [
             job["python"],
             "-I",
@@ -145,7 +155,10 @@ def run_job(args: Any) -> dict[str, Any]:
             "status": "running",
             "task": "put_plastic_bottles_in_bin",
             "embodiment": "native_yam",
-            "claim_scope": "small ABC-VLA transfer diagnostic; not full paper reproduction",
+            "claim_scope": job.get(
+                "claim_scope",
+                "small ABC-VLA transfer diagnostic; not full paper reproduction",
+            ),
             "gpu": binding,
             "command": command,
             "resolved_job_sha256": hashlib.sha256(

@@ -4,6 +4,7 @@ import fcntl
 import json
 import os
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -22,6 +23,8 @@ from abc_bench.subset import load_job, require_subset_lease
         {"python": "relative/python"},
         {"arguments": ["--output", "/other"]},
         {"arguments": [17]},
+        {"claim_scope": False},
+        {"claim_scope": "   "},
     ],
 )
 def test_invalid_job_is_rejected(tmp_path, change):
@@ -65,3 +68,55 @@ def test_worker_requires_a_held_ancestor_lease(tmp_path, monkeypatch):
         monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "wrong-uuid")
         with pytest.raises(RuntimeError, match="visibility differs"):
             require_subset_lease()
+
+
+def test_original_pi05_stage_keeps_empty_output_and_truthful_scope(
+    tmp_path, monkeypatch
+):
+    """Explicit CPU execution double checks cross-runtime receipt admission."""
+    import argparse
+
+    from abc_bench import runner, subset
+
+    monkeypatch.setattr(runner, "RESULTS", tmp_path)
+    (tmp_path / "gpu_budget.json").write_text(
+        json.dumps({"gpu": 0, "charged_seconds": 17, "limit_seconds": 1000})
+    )
+    monkeypatch.setattr(
+        subset,
+        "inspect_reserved_gpu",
+        lambda _: {"uuid": "explicit-cpu-double", "ordinal": 0},
+    )
+    claim = "Original pi0.5 SFT runtime qualification; no simulator task score"
+    job = {
+        "schema_version": 1,
+        "label": "original pi0.5 SFT qualification",
+        "claim_scope": claim,
+        "python": sys.executable,
+        "module": "expo_abc_adapter.stage",
+        "arguments": [],
+        "max_wall_s": 120,
+    }
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(job))
+
+    def cpu_execution_double(command, log, timeout, *, gpu_uuid):
+        assert gpu_uuid == "explicit-cpu-double"
+        output = Path(command[-1])
+        assert output.name == "expoft" and not output.exists()
+        assert (output.parent / "job.json").is_file()
+        output.mkdir()
+        (output / "receipt.json").write_text(
+            json.dumps({"status": "completed", "metrics": {"actual_steps": 2}})
+        )
+        return 0
+
+    monkeypatch.setattr(runner, "execute_command", cpu_execution_double)
+    result = subset.run_job(
+        argparse.Namespace(training_config=path, timeout_seconds=120)
+    )
+    assert result["status"] == "completed" and result["claim_scope"] == claim
+    assert result["metrics"] == {"actual_steps": 2}
+    ledger = json.loads((tmp_path / "gpu_budget.json").read_text())
+    assert ledger["charged_seconds"] >= 17
+    assert "active_parent_pid" not in ledger

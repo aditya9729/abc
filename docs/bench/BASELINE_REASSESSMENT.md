@@ -1,8 +1,8 @@
 # Baseline reassessment and original learners
 
-The short ABC comparison does not show that the published ABC baseline fails.
-Its evaluation recipe differed from upstream defaults. We are checking the
-baseline before drawing conclusions about new learners.
+The original ABC-VLA succeeded with the upstream evaluation settings: five
+bottles placed at control 819. The earlier short comparison used another recipe.
+Its 0/3 result does not establish failure of the published baseline.
 
 The original ABC simulator and policy source remain unchanged at
 `d0832d12651d1b260a652861a14648dc5f3660c7`.
@@ -19,6 +19,7 @@ Original source alone does not establish an original evaluation recipe.
 | Layout seeds | 9011, 9012, 9013 | 20260511 for first qualification |
 | Policy random seed | 901 | Upstream default 0 |
 | Cohort | Three development layouts | One layout; upstream default is five |
+| Scene reset | Forced five bottles; variants and scales fixed | Original default reset; variants and scales randomized |
 
 RTC conditions new predictions on actions that are already queued for execution.
 The new test calls the original `abc_minimal.eval_policy.run_eval` function.
@@ -44,8 +45,8 @@ No normalization mismatch has been established.
 | --- | --- | --- | --- |
 | ResFiT | TD3 action residual | Frozen ABC-VLA | Original learner executed. Demo-derived action scaling also changes base commands. |
 | QF3 | Flow policy head through LoRA | ABC-VLA initialization | Paper implementation executed. Exact author implementation and initializer remain unconfirmed. Further experiments are on hold. |
-| FastTD3 | Full state policy from scratch | None | Original learner passed CPU updates and checkpoint tests. Native ABC results are pending. |
-| EXPO-FT | Q-guided action editor and distilled VLA | pi0.5 | Original JAX learner passed CPU fixture updates. Native pretrained-policy results are pending. |
+| FastTD3 | Full state policy from scratch | None | Native 64-control smoke completed with 106 critic and 53 actor updates. Task evaluation is pending. |
+| EXPO-FT | Q-guided action editor and distilled VLA | pi0.5 | Original JAX CPU fixture and real pretrained SFT update passed. Native policy evaluation and RL are pending. |
 
 ResFiT preserves the base network. Its original action scaler maps commands
 through ranges fitted from demonstrations. Our single successful demonstration
@@ -75,6 +76,39 @@ It is not a human-approved five-bottle expert dataset.
 
 ## Execution and evidence
 
+### Measured baseline
+
+Run `author-subset-20261012T134246-730cdb` completed one of one worlds.
+The original task judge reported five of five bottles and current success.
+The policy completed control 819. The coordinator charged 377.15 seconds,
+including cold compilation. [Watch the recorded cameras](http://127.0.0.1:8770/original-methods/).
+
+This result does not identify which recipe change caused the improvement.
+Success occurred before the earlier 1,000-control limit. A longer horizon alone
+does not explain it. Layout, reset distribution, physics, sampling and RTC changed
+together. The saved full randomization state binds later matched evaluations.
+
+The original summary SHA-256 is
+`fa8b83a8e801eca5bdfcfee39806c1ec09ecdc15b483411591b9df8cd5877bc6`.
+The original worker receipt SHA-256 is
+`9042f589a2873a46ccc1800e6180d19f706389992d416af5cdbf7f03c6c70df4`.
+Actual browser playback, desktop/mobile layout and video range delivery passed.
+
+### Pretrained pi0.5 qualification
+
+Run `author-subset-20261012T141113-882427` completed original pretrained pi0.5
+initialization and one original supervised update. The fixed TRAIN-batch loss
+fell from 0.11113274 to 0.06018557. The gradient norm was finite at 12.59335.
+Training stopped after meeting the configured 25% loss-reduction target.
+
+This is a tiny-batch training diagnostic. It has no simulator task score or
+held-out loss. The one three-bottle demonstration does not establish a trained
+five-bottle policy. Native frozen-policy evaluation and EXPO-FT RL remain pending.
+The original full train-state checkpoint is recorded in `expoft/sft_qualification.json`
+within that run. The coordinator charged 237.55 seconds and released its GPU0 lease.
+
+### Commands and installation
+
 The baseline job is `configs/bench/upstream_vla_baseline_job.json`.
 Its maximum wall time is 1,800 seconds. Run it through the installed coordinator:
 
@@ -92,6 +126,38 @@ Its 183 Python files and all 933 original model assets match the saved source.
 Evidence is under `RL/builds/abc-baseline-reassessment-20261012`.
 Runtime and fixture tests establish execution. They do not establish task success.
 Missing native scores remain unavailable.
+
+### Original FastTD3 native qualification and bounded pilot
+
+Run `author-subset-20261012T142454-566f77` completed 64 native controls.
+It performed 106 original critic updates and 53 original actor updates.
+Three sampled critic-gradient checks and two sampled actor-gradient checks passed.
+The original checkpoint export is 15,832,066 bytes. Its SHA-256 is
+`2c0c6fffc9903ee5a4f24e5e49cd08502c26cf12cc48ede052a4ae1ad4a66170`.
+The coordinator charged 67.71 seconds. No full task episode completed in this smoke.
+The original task reward remained zero. This is integration evidence, not a failure rate.
+
+The client now uses one total RPC deadline. An independent slow-response probe
+rejected a trickling response after 0.0606 seconds for a 0.06-second timeout.
+Installed adapter version 0.1.2 preserves the original update equations.
+This transport correction changes no training mathematics.
+
+The bounded scratch pilot uses `configs/bench/fasttd3_scratch_subset_job.json`.
+Its maximum is 4,000 controls and 1,800 wall seconds. It starts from scratch.
+The batch size remains 32,768 and the replay capacity remains 51,200.
+Original compile, AMP, network, optimizer, reward and update defaults are retained.
+One training world, disabled tracking and a finite budget are diagnostic overrides.
+
+Training uses fixed bottle variants and scales. The captured evaluation scene has
+different variants and scales. Thus the evaluation changes geometry as well as layout.
+The state policy sees privileged qpos, qvel and geometry labels; the VLA does not.
+Do not attribute a short scratch-policy result to method quality or claim equivalent
+training coverage. No reward shaping or pretrained policy was added to FastTD3.
+
+The EXPO RGB/action host passed 29 installed CPU tests. The installed ABC snapshot
+contains 186 Python modules and 933 authenticated original model assets.
+Native EXPO rollout and update evidence remain pending.
+[Architecture source](ORIGINAL_METHODS_ARCHITECTURE.mmd) labels these execution states.
 
 Root controls serial GPU0 jobs and accepts the evidence. The baseline peer checks
 original evaluation and the state host. The FastTD3 peer checks author mathematics

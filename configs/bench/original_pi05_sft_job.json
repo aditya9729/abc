@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "label": "Original pi0.5 pretrained-model tiny-batch SFT qualification",
+  "claim_scope": "Original pi0.5 SFT runtime qualification; no simulator task score",
+  "python": "/home/user/aditya/RL/runtimes/expo-ft-author-py311/bin/python",
+  "module": "expo_abc_adapter.stage",
+  "max_wall_s": 1320,
+  "arguments": [
+    "--config",
+    "/home/user/aditya/RL/builds/expoft-author-setup-20261012/SFT_QUALIFICATION_CONFIG.json"
+  ]
+}

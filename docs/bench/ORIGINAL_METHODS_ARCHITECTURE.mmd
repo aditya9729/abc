@@ -1,0 +1,49 @@
+flowchart LR
+  subgraph Sadhana["Sadhana: root coordinator and method peers"]
+    Jobs["Versioned finite job configurations"]
+    Lease["GPU0 lease, occupancy check and watchdog"]
+    Base["Original ABC-VLA evaluation: executed"]
+    Fast["Original FastTD3 learner: native smoke executed"]
+    Pi["Original pi0.5 SFT: one real update executed"]
+    Expo["Original EXPO-FT native rollout and RL: pending"]
+    Evidence["Hashed receipts, checkpoints and camera videos"]
+    Viewer["Measured-result viewer"]
+  end
+  subgraph ABC["ABC owns simulator and native YAM task"]
+    State["Privileged state / normalized-action RPC host"]
+    RGB["State14 / RGB / physical-action RPC host: CPU verified"]
+    Physics["Original sequential CPU MuJoCo physics"]
+    Cameras["Original MJWarp cameras"]
+    Judge["Original placement reward and success judge"]
+  end
+  Demo["Immutable TRAIN episode: three bottles, 716 transitions"]
+  Stats["TRAIN-only YAM14 statistics and complete H16 windows"]
+  Ref["Captured five-bottle baseline randomization"]
+  Review["Independent review and manual OpenQodex"]
+  Jobs -->|"control: bounded admission"| Lease
+  Lease -->|"control: serial execution"| Base
+  Lease -->|"control: serial execution"| Fast
+  Lease -->|"control: serial execution"| Pi
+  Lease -.->|"planned control: serial execution"| Expo
+  Demo -->|"data: genuine physical actions and images"| Stats
+  Stats -->|"data: supervised batch"| Pi
+  Pi -.->|"planned data: frozen task checkpoint"| Expo
+  Base -->|"control: stock policy commands"| Physics
+  Fast -->|"control: normalized actions"| State
+  State -->|"data: qpos, qvel and scene metadata"| Fast
+  State -->|"control: mapped physical commands"| Physics
+  Expo -.->|"planned control: physical commands"| RGB
+  RGB -.->|"planned data: state14, three images and reward"| Expo
+  RGB -->|"implemented control: physical commands"| Physics
+  Ref -->|"data: exact scene identity"| State
+  Ref -->|"data: exact scene identity"| RGB
+  Physics -->|"data: simulator state"| Cameras
+  Physics -->|"data: physical scene"| Judge
+  Judge -->|"data: reward, success and termination"| State
+  Judge -->|"data: reward, success and termination"| RGB
+  Base -->|"data: actual result"| Evidence
+  Fast -->|"data: actual update counters and export"| Evidence
+  Pi -->|"data: loss, finite gradient and full checkpoint"| Evidence
+  Cameras -->|"data: actual frames"| Evidence
+  Evidence -->|"data: accepted measurements"| Viewer
+  Review -->|"review: source and evidence"| Evidence
