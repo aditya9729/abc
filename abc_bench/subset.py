@@ -92,6 +92,58 @@ def load_job(path: Path) -> dict[str, Any]:
         12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
     )
     if (
+        job["module"] == "expo_abc_adapter.stage"
+        and type(maximum) in (int, float)
+        and math.isfinite(maximum)
+        and maximum > 7200
+    ):
+        if len(arguments) != 2 or arguments[0] != "--config":
+            raise ValueError("Extended EXPO jobs require one explicit --config file")
+        config_path = Path(arguments[1])
+        if (
+            not config_path.is_absolute()
+            or config_path.is_symlink()
+            or not config_path.is_file()
+            or not 0 < config_path.stat().st_size <= 1024**2
+        ):
+            raise ValueError(
+                "Extended EXPO config must be an absolute regular JSON file"
+            )
+        config = json.loads(config_path.read_text())
+        parameters = config.get("parameters") if type(config) is dict else None
+        fixed = {
+            "seed": 42,
+            "batch_size": 64,
+            "utd_ratio": 20,
+            "completed_episode_warmup": 10,
+            "updates_per_trigger": 3,
+            "max_controls": 38940,
+            "sampler_timing_plans": 0,
+        }
+        if (
+            type(config) is not dict
+            or type(config.get("schema_version")) is not int
+            or config["schema_version"] != 1
+            or config.get("phase") != "original_expo_task_rl"
+            or type(parameters) is not dict
+            or any(
+                type(parameters.get(key)) is not int or parameters[key] != value
+                for key, value in fixed.items()
+            )
+            or type(parameters.get("max_seconds")) is not int
+            or not 1 <= parameters["max_seconds"] <= 18000
+            or parameters["max_seconds"] > maximum - 300
+            or type(parameters.get("episode_seeds")) is not list
+            or len(parameters["episode_seeds"]) != 11
+            or any(type(seed) is not int for seed in parameters["episode_seeds"])
+            or len(set(parameters["episode_seeds"])) != 11
+        ):
+            raise ValueError(
+                "Extended EXPO requires the original eleven-episode B64/UTD20 "
+                "phase, an at-most18000s worker and300s parent cleanup margin"
+            )
+        maximum_allowed = 18300
+    if (
         type(maximum) not in (int, float)
         or not math.isfinite(maximum)
         or not 0 < maximum <= maximum_allowed

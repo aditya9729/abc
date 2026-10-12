@@ -107,7 +107,6 @@ def physics_snapshot(data: Any) -> dict:
         "INERTIA",
         "CONTACTFULL",
         "CNSTRFULL",
-        "VGEOMFULL",
         "BADQPOS",
         "BADQVEL",
         "BADQACC",
