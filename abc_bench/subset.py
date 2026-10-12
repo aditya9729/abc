@@ -19,6 +19,7 @@ from abc_bench.resources import inspect_reserved_gpu
 ALLOWED_MODULES = {
     "abc_author_subset.host",
     "abc_bench.subset_worker",
+    "abc_bench.upstream_eval",
     "nrh.qf3_training",
 }
 

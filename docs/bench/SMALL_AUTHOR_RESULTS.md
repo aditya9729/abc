@@ -1,5 +1,9 @@
 # Actual small ABC comparison
 
+The [2026-10-12 reassessment](BASELINE_REASSESSMENT.md) records important
+differences from the upstream evaluation recipe. These preserved results do
+not establish failure of the published baseline.
+
 All three conditions ran in the original ABC-Sim MJWarp environment on GPU0.
 They used the same released ABC-VLA, five bottles, cameras, sampling settings,
 layout seeds and success judges. Each evaluation had three complete episodes.

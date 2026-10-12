@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "checkpoint": {
+    "path": "/home/user/aditya/RL/abc/cache/vla_abc130k_200000_v2.pt",
+    "bytes": 8802367911,
+    "sha256": "4838acf69279497b917c998039089b5b6a310dfe65fc0b5c438c3339ee25c753"
+  },
+  "metadata": {
+    "path": "/home/user/aditya/RL/abc/cache/vla_abc130k_200000_v2.json",
+    "bytes": 4266,
+    "sha256": "036e79330027162e5002b7d6ae3798f0d4a450ba987115704343bfce026ce8d7"
+  },
+  "sim_eval": {
+    "policy": "vla",
+    "task": "put_plastic_bottles_in_bin",
+    "num_worlds": 1,
+    "seed": 20260511,
+    "num_chunks": 236,
+    "execute_chunk_dim": 15,
+    "prefix_length": null,
+    "diffusion_steps": 10,
+    "policy_seed": 0,
+    "camera_height": 168,
+    "camera_width": 224,
+    "device": "cuda:0",
+    "gpu_id": 0,
+    "camera_backend": "mjwarp",
+    "parallel_worlds": 0,
+    "randomization": null,
+    "fast_inference": true,
+    "fast_compile_mode": "max-autotune",
+    "vanilla_physics": false,
+    "rtc": true,
+    "rtc_prefix_length": 4,
+    "rtc_inference_lead_steps": 4,
+    "log_every_chunk": true,
+    "save_video": true,
+    "video_fps": 30,
+    "video_every_n_actions": 1,
+    "prompt": "sim throw plastic bottles in bin"
+  }
+}
