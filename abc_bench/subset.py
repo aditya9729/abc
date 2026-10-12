@@ -23,6 +23,7 @@ ALLOWED_MODULES = {
     "abc_bench.demo_collect",
     "abc_bench.fasttd3_host",
     "expo_abc_adapter.stage",
+    "sadhana_fasttd3_hb.stage",
     "nrh.qf3_training",
 }
 
@@ -154,11 +155,17 @@ def run_job(args: Any) -> dict[str, Any]:
             "algorithm": job["label"],
             "phase": "small_subset",
             "status": "running",
-            "task": "put_plastic_bottles_in_bin",
-            "embodiment": "native_yam",
+            "task": "h1hand-stand-v0"
+            if job["module"] == "sadhana_fasttd3_hb.stage"
+            else "put_plastic_bottles_in_bin",
+            "embodiment": "unitree_h1_with_hands"
+            if job["module"] == "sadhana_fasttd3_hb.stage"
+            else "native_yam",
             "claim_scope": job.get(
                 "claim_scope",
-                "small ABC-VLA transfer diagnostic; not full paper reproduction",
+                "Bounded original FastTD3 Stand integration/capacity; no convergence, ABC transfer or paper reproduction claim"
+                if job["module"] == "sadhana_fasttd3_hb.stage"
+                else "small ABC-VLA transfer diagnostic; not full paper reproduction",
             ),
             "gpu": binding,
             "command": command,

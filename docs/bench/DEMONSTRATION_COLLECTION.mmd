@@ -21,7 +21,8 @@ flowchart LR
     stats[Original OpenPI RunningStats\nTRAIN only, actual cohort verified]
     qc[Atlas and Engram QC\nPending separate review]
     train[Task SFT adapter installed and CPU tested\nNative capacity and training pending]
-    eval[Captured validation reset adapter\nPending before matched policy rollouts]
+    restore[Actual CPU captured-scene restore\n3 validation scenes, 2 restores each\n96 exact prefix controls verified]
+    eval[Production captured reset and live cameras\nPending before matched policy rollouts]
   end
   reviewer[Independent reviewer\nCode and evidence checks]
   pins --> gate
@@ -40,6 +41,8 @@ flowchart LR
   reader -. task quality and approval .-> qc
   reader -. separate training admission .-> train
   stats -. pinned input .-> train
+  cohort --> restore
+  restore -. qualified physics design .-> eval
   train -. selected actual policy .-> eval
   reviewer -. review .-> scope
   reviewer -. verify lineage .-> cohort

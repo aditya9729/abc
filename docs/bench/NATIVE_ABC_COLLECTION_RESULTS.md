@@ -53,18 +53,31 @@ The new task-SFT adapter passed36 focused installed CPU tests with explicit smal
 doubles. Original EXPO/OpenPI Python stayed unchanged. Its first B64 capacity
 attempt stopped before model initialization: our file validator rejected the
 original checkpoint's valid empty `commit_success.txt`. It made zero updates.
-This is an adapter defect. Empty checkpoint-object authentication is being fixed;
-actual model capacity and task training are still unverified.
+This was an adapter defect. Version0.2.6 fixed exact empty checkpoint-object
+authentication. Its real retry initialized the original model at update0, then
+stopped when compile-only lowering supplied JAX abstract arguments to the typed
+TrainState constructor. The original update and B64 forward did not execute.
+A scoped capacity-only repair is being qualified. No measured memory-fit or
+task-training result follows from either failed attempt.
 
 The old EXPO host cannot recreate these collected validation resets. It uses
-default bottle-count sampling and clears carried arm state. A versioned captured
-scene/initial-state restore is required before matched policy rollout comparisons.
+default bottle-count sampling and clears carried arm state. A real CPU qualifier
+restored all three validation MJB models and full integration vectors twice.
+All six initial model/state/judge comparisons passed. All96 replayed controls
+matched saved actuator inputs, qpos/qvel/time, policy states and task judgments
+exactly. No camera or policy ran. Independent review authenticated the actual
+results against source arrays. [Actual CPU receipt](/home/user/aditya/RL/builds/demo-collection-20261012/captured-val-cpu-v1/receipt.json).
+A versioned production host and live camera checks remain required before
+matched policy rollout comparisons.
 The original episode-based EXPO training schedule also needs a separate driver.
 FastTD3's original Stand environment passed a small native CPU boundary test.
 The extra unused render world explicitly disabled rendering. The actual receipt
 is `builds/humanoidbench-author-setup-20261012/native-cpu-003/receipt.json` under
 the RL workspace. Its128-world GPU qualification and parallel ABC collection
-remain pending.
+remain pending. The canonical stage registration now assigns the proposed
+HumanoidBench worker to h1hand-stand-v0/unitree_h1_with_hands. It cannot be
+reported as ABC bottles/YAM. Fifteen small CPU boundary tests passed. The
+new stage still needs normal release and native qualification.
 
 Root owns serial GPU admission, data publication and result claims. Method peers
 own adapters and runtime setup. Independent review checks code and artifacts.
