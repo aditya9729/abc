@@ -826,13 +826,13 @@ def main() -> None:
         comparison_plan(args.eval_horizon)
     except ValueError as error:
         parser.error(str(error))
-    if not args.checkpoint.is_file():
-        parser.error("checkpoint missing; run prepare.py --checkpoint first")
     if args.algorithm == "author-subset":
         from abc_bench.subset import run_job
 
         receipt = run_job(args)
     else:
+        if not args.checkpoint.is_file():
+            parser.error("checkpoint missing; run prepare.py --checkpoint first")
         receipt = run_baseline(args)
     print(json.dumps(receipt, indent=2))
     if receipt["status"] != "completed":
