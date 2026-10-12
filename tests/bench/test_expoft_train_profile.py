@@ -5,7 +5,6 @@ import json
 from types import SimpleNamespace
 
 import pytest
-
 from abc_bench import expoft_host as host
 from abc_bench import expoft_train_profile as profile
 
