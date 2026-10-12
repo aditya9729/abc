@@ -11,3 +11,10 @@ The authorized campaign uses GPU 0 only. On 2026-10-08, the user said: "hi you c
 Show only executed measurements. Separate smoke tests, method adaptations, benchmarks, and embodiment preflight. Keep missing measurements unavailable. Native YAM results are not R1 results. Do not label candidate selection alone as Real-Time EXPO-FT.
 
 Keep downloaded assets, checkpoints, videos, and raw outputs outside Git. Commit the dependency lock and compact reproducibility evidence. Publish architecture diagrams and team explanations when goals finish. Follow ASD-STE100 guidance and state any missing compliance check.
+
+Captured host schema2 is developed separately from the historical clipping host.
+Read `docs/bench/captured-reset-v2/CONTRACT.md`. It restores one declared VAL MJB
+and full INTEGRATION state and gates actions on exact physics plus live RGB.
+Use raw original float32 commands only under the explicit schema2 action profile.
+The public CapturedScene helper alone does not admit actions. Root owns native
+camera acceptance and frozen-policy jobs; CPU camera doubles are not native proof.

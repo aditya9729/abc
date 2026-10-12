@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import hashlib
 import json
 import math
 import os
@@ -98,6 +99,10 @@ def load_config(path: Path) -> dict[str, Any]:
         "timeouts",
     }:
         raise ValueError("Use the explicit EXPO host configuration")
+    if type(config["schema_version"]) is int and config["schema_version"] == 2:
+        from abc_bench.captured_reset import validate_config
+
+        return validate_config(config)
     if type(config["schema_version"]) is not int or config["schema_version"] != 1:
         raise ValueError("schema_version must be 1")
     if config["stage"] not in ("train", "evaluation"):
@@ -236,7 +241,7 @@ class ExpoTask:
                 "stage": self.config["stage"],
                 "allowed_seeds": host["allowed_seeds"],
                 "heldout_seed": self.reference["seed"],
-                "reference": host["reference"],
+                "reference": host.get("reference"),
                 "distribution": "captured baseline default sampler, exact state verification"
                 if self.config["stage"] == "evaluation"
                 else "original fixed-five diagnostic",
@@ -420,13 +425,27 @@ class ExpoTask:
             )
         requested = numeric_vector(action, 14, "physical absolute action")
         schema = self.description["action_schema"]
-        clipped = [
-            min(high, max(low, value))
-            for value, low, high in zip(
-                requested, schema["policy_low"], schema["policy_high"]
+        raw_profile = schema.get("profile") == "original_float32_no_host_clip_v1"
+        clipped = (
+            requested
+            if raw_profile
+            else [
+                min(high, max(low, value))
+                for value, low, high in zip(
+                    requested, schema["policy_low"], schema["policy_high"]
+                )
+            ]
+        )
+        try:
+            applied = list(struct.unpack("<14f", struct.pack("<14f", *clipped)))
+        except OverflowError as error:
+            raise ValueError(
+                "Physical commands must fit finite original float32 coordinates"
+            ) from error
+        if not all(math.isfinite(value) for value in applied):
+            raise ValueError(
+                "Physical commands must fit finite original float32 coordinates"
             )
-        ]
-        applied = list(struct.unpack("<14f", struct.pack("<14f", *clipped)))
         changes = [
             {
                 "index": i,
@@ -485,6 +504,14 @@ class ExpoTask:
             final_native_task_eval=evaluation,
             max_native_reward=max(self.episode["max_native_reward"], self.reward),
         )
+        if raw_profile:
+            violations = sum(
+                not low <= value <= high
+                for value, low, high in zip(
+                    requested, schema["policy_low"], schema["policy_high"]
+                )
+            )
+            self.episode["nominal_bound_violation_count"] += violations
         if self.writer is not None:
             raw = self.env.get_obs()
             self._images(raw, snapshot)
@@ -510,6 +537,220 @@ class ExpoTask:
             finally:
                 self.closed = True
                 self.env.close()
+
+
+class CapturedExpoTask(ExpoTask):
+    """Exact captured reset and live-render gate, with original raw commands."""
+
+    def __init__(self, env: Any, config: dict, output: Path, scene: Any):
+        self.env, self.config, self.output, self.capture = env, config, output, scene
+        self.reference = scene.randomization
+        self.episode, self.episodes, self.reset_seeds = None, [], []
+        self.controls = self.clipped_actions = self.episode_steps = 0
+        self.closed, self.writer = False, None
+        self.reward, self.terminated, self.truncated = 0.0, False, False
+        self.description, self.reset_proofs = {}, []
+        self.reset_verified, self.reset_attempts = False, 0
+        self.reset(config["host"]["initial_seed"])
+
+    def _describe(self) -> dict:
+        from abc_bench.captured_reset import ACTION_PROFILE, RESET_METHOD
+
+        result = super()._describe()
+        result["action_schema"].update(
+            profile=ACTION_PROFILE,
+            clipping="No host clipping; original float32 proposals are forwarded unchanged",
+            original_difference="None at the submitted policy-command boundary; native actuator limits remain enabled",
+            gripper_policy_units="Original policy fraction; proposals may be outside nominal[0,1]",
+            nominal_bound_violations="Recorded separately from empty host clipping records",
+        )
+        result["reset_policy"] = {
+            "stage": "evaluation",
+            "allowed_seeds": [self.capture.episode["seed"]],
+            "heldout_seed": self.capture.episode["seed"],
+            "profile": RESET_METHOD,
+            "episode_id": self.capture.episode["episode_id"],
+            "reset_group_id": self.capture.episode["reset_group_id"],
+            **self.capture.source,
+            "verification": self.reset_proofs[-1],
+            "reset_verified": self.reset_verified,
+            "implicit_resampling": False,
+            "distribution": "Declared VAL captured MJB/full INTEGRATION; exact initial live RGB",
+        }
+        result["physics_step_source"] = (
+            "control_step * control_decimation checked against original float64 data.time"
+        )
+        return result
+
+    def _snapshot(self) -> dict:
+        if self.closed or self.episode is None:
+            raise RuntimeError("Captured host has no open scene")
+        state = self.env.get_state()
+        state14 = numeric_vector(state, 14, "captured policy state")
+        if str(state.dtype) != "float32" or any(
+            not 0 <= state14[index] <= 1 for index in (6, 13)
+        ):
+            raise RuntimeError(
+                "Captured measured policy state must match original float32 projection"
+            )
+        sim_time = float(self.env.data.time)
+        if self.env.cur_step != self.episode_steps or not math.isclose(
+            sim_time, self.episode_steps * 0.034, rel_tol=0, abs_tol=1e-9
+        ):
+            raise RuntimeError(
+                "Captured simulator chronology differs from issued controls"
+            )
+        return {
+            "state14": state14,
+            "reward": self.reward,
+            "terminated": self.terminated,
+            "truncated": self.truncated,
+            "seed": self.episode["seed"],
+            "control_step": self.episode_steps,
+            "physics_step": self.episode_steps * 17,
+            "simulation_time_s": sim_time,
+        }
+
+    def reset(self, seed: Any) -> dict:
+        from abc_bench.captured_reset import ACTION_PROFILE, PROOF_SCHEMA, RESET_METHOD
+
+        if self.closed:
+            raise RuntimeError("Captured host is closed")
+        if type(seed) is not int or seed != self.capture.episode["seed"]:
+            raise ValueError(
+                "Reset seed must identify the selected captured VAL episode"
+            )
+        self.reset_verified = False
+        self._finish("explicit_reset")
+        self.reset_attempts += 1
+        path = self.output / f"reset-proof-{self.reset_attempts:04d}.json"
+        report = {
+            "schema": PROOF_SCHEMA,
+            "status": "running",
+            "reset_verified": False,
+            "profile": RESET_METHOD,
+            "action_profile": ACTION_PROFILE,
+            "episode_id": self.capture.episode["episode_id"],
+            "seed": seed,
+            "reset_group_id": self.capture.episode["reset_group_id"],
+            **self.capture.source,
+            "actual_controls": 0,
+            "physics_steps": 0,
+            "sampler_calls": 0,
+            "checks": {},
+            "camera_checks": {},
+            "limits": [
+                "Full INTEGRATION input equality is not complete mjData byte identity or future-trajectory proof",
+                "No callback/plugin/sleep/Python task runtime state is admitted",
+                "Source policy checkpoint identity is sealed by its completed collector; no weights are used by this host",
+            ],
+        }
+        started = time.monotonic()
+        write_json(path, report)
+        try:
+            self.capture.restore(self.env, report)
+            report["checks"]["before_rgb"] = self.capture.check_physics(self.env)
+            if not all(
+                value["equal"] for value in report["checks"]["before_rgb"].values()
+            ):
+                raise RuntimeError(
+                    "Captured initial model/full state/judge differs before live RGB"
+                )
+            evaluation = report["checks"]["before_rgb"]["judge"]["actual"]
+            self.episode_steps = 0
+            self.reward, self.terminated, self.truncated = (
+                float(evaluation["reward"]),
+                False,
+                False,
+            )
+            self.episode = {
+                "seed": seed,
+                "controls": 0,
+                "completed": False,
+                "success": False,
+                "action_clipping_count": 0,
+                "nominal_bound_violation_count": 0,
+                "max_native_reward": self.reward,
+                "scene_match": RESET_METHOD,
+                "randomization": self.capture.randomization,
+                "final_native_task_eval": evaluation,
+            }
+            raw = self.env.get_obs()
+            snapshot = self._snapshot()
+            images = self._images(raw, snapshot)
+            expected = self.capture.recorded_camera_hashes()
+            for name, record in images.items():
+                live = hashlib.sha256(
+                    base64.b64decode(record["data_base64"], validate=True)
+                ).hexdigest()
+                report["camera_checks"][name] = {
+                    "equal": live == expected[name],
+                    "actual_sha256": live,
+                    "expected_sha256": expected[name],
+                    "timestamp_s": record["timestamp_s"],
+                }
+            report["checks"]["after_rgb"] = self.capture.check_physics(self.env)
+            if not all(
+                value["equal"] for value in report["checks"]["after_rgb"].values()
+            ) or not all(value["equal"] for value in report["camera_checks"].values()):
+                raise RuntimeError(
+                    "Captured live initial RGB or post-render model/full state/judge differs"
+                )
+            self.reset_verified = True
+            report.update(status="completed", reset_verified=True)
+        except BaseException as error:
+            report.update(
+                status="failed",
+                failure={"type": type(error).__name__, "message": str(error)},
+            )
+            raise
+        finally:
+            report["wall_s"] = time.monotonic() - started
+            write_json(path, report)
+        self.reset_proofs.append(artifact(path))
+        self.reset_seeds.append(seed)
+        try:
+            self.episode["reset_verification"] = self.reset_proofs[-1]
+            self.description = self._describe()
+            if self.config["host"]["save_video"]:
+                import imageio.v2 as imageio
+
+                video = (
+                    self.output / f"reset-{len(self.reset_seeds):04d}-seed-{seed}.mp4"
+                )
+                self.episode["video_path"] = str(video)
+                self.writer = imageio.get_writer(
+                    str(video), fps=1 / 0.034, macro_block_size=1
+                )
+                self._video_frame(raw)
+        except BaseException as error:
+            self.reset_verified = False
+            report.update(
+                status="failed",
+                reset_verified=False,
+                failure={"type": type(error).__name__, "message": str(error)},
+            )
+            write_json(path, report)
+            self.reset_proofs[-1] = artifact(path)
+            raise
+        return {
+            **snapshot,
+            "scene_match": RESET_METHOD,
+            "reset_verified": True,
+            "reset_verification": self.reset_proofs[-1],
+        }
+
+    def step(self, action: Any) -> dict:
+        if not self.reset_verified:
+            raise RuntimeError(
+                "Captured actions require complete physics and live RGB reset gates"
+            )
+        return super().step(action)
+
+    def observe_rgb(self) -> dict:
+        if not self.reset_verified:
+            raise RuntimeError("Captured observations require a completed reset")
+        return super().observe_rgb()
 
 
 def dispatch(task: ExpoTask, request: Any) -> tuple[dict[str, Any], bool]:
@@ -585,7 +826,7 @@ def serve(config_path: Path, socket_path: Path, output: Path) -> None:
         config = load_config(config_path)
         receipt.update(
             config=artifact(config_path),
-            reference=config["host"]["reference"],
+            reference=config["host"].get("reference"),
             stage=config["stage"],
         )
         require_subset_lease()  # Must precede factory and every native dependency import.
@@ -611,14 +852,25 @@ def serve(config_path: Path, socket_path: Path, output: Path) -> None:
         )
         wall_deadline = time.monotonic() + config["timeouts"]["host_wall_s"]
         write_json(output / "receipt.json", receipt)
-        env = make_original_env(
-            {
-                "save_video": True,
-                "max_episode_steps": config["host"]["max_episode_steps"],
-            }
-        )
+        capture = None
+        if config["schema_version"] == 2:
+            from abc_bench.captured_reset import CapturedScene, make_captured_env
+
+            capture = CapturedScene(config["host"]["reset_profile"])
+            env = make_captured_env(capture, config["host"]["max_episode_steps"])
+        else:
+            env = make_original_env(
+                {
+                    "save_video": True,
+                    "max_episode_steps": config["host"]["max_episode_steps"],
+                }
+            )
         try:
-            task = ExpoTask(env, config, output)
+            task = (
+                CapturedExpoTask(env, config, output, capture)
+                if capture is not None
+                else ExpoTask(env, config, output)
+            )
         except BaseException:
             env.close()
             raise
@@ -724,6 +976,14 @@ def serve(config_path: Path, socket_path: Path, output: Path) -> None:
                         ),
                         "action_clipping_count": task.clipped_actions,
                     }
+                    if isinstance(task, CapturedExpoTask):
+                        receipt["reset_verifications"] = task.reset_proofs
+                        receipt["reset_profile"] = config["host"]["reset_profile"]
+                        receipt["action_profile"] = config["host"]["action_profile"]
+                        receipt["metrics"]["nominal_bound_violation_count"] = sum(
+                            item["nominal_bound_violation_count"]
+                            for item in task.episodes
+                        )
         except Exception as error:
             receipt["status"] = "failed"
             receipt["blockers"].append(f"Cleanup {type(error).__name__}: {error}")

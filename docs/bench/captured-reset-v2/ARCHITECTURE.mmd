@@ -1,0 +1,32 @@
+flowchart LR
+  subgraph Data[Published collector artifacts — root]
+    C[Cohort / VAL manifest / completed parent and worker]
+    M[Saved MJB + full INTEGRATION + state / judge]
+    R[Recorded initial RGB hashes]
+  end
+  subgraph Host[ABC candidate — EXPO setup agent]
+    A[CapturedScene: authenticate declared VAL]
+    S[Public restore APIs: exact carried arm and physics]
+    D[Original CPU MuJoCo world / native actuators / MJWarp cameras]
+    G[CapturedExpoTask: physics → live RGB → physics gate]
+    P[Raw float32 controls / no host clip]
+  end
+  subgraph Client[EXPO candidate — EXPO setup agent]
+    E[TaskDataset + selected SFT producer]
+    V[ABCClient: exact proof + observed initial RGB]
+    I[Unchanged original pi0.5 sampler]
+  end
+  C -->|data| A
+  M -->|data| A
+  A -->|control| S
+  S -->|data| G
+  S -->|initial state| D
+  R -->|comparison only| G
+  G -->|RPC proof + actual live RGB| V
+  E -->|expected VAL identity / hashes| V
+  V -->|actual observation| I
+  I -->|physical commands| P
+  V -->|admitted control| P
+  P -->|control| D
+  O[Root coordinator: lease / watchdog / native acceptance]
+  O -.->|planned acceptance; CPU only checked here| G
