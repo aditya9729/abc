@@ -24,6 +24,7 @@ ALLOWED_MODULES = {
     "abc_bench.fasttd3_host",
     "abc_bench.fasttd3_vector_stage",
     "abc_bench.fasttd3_scratch_stage",
+    "abc_bench.fasttd3_frozen_stage",
     "expo_abc_adapter.stage",
     "sadhana_fasttd3_hb.stage",
     "nrh.qf3_training",

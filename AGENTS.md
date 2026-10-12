@@ -30,3 +30,9 @@ completed canonical native128 qualification. Read
 `docs/bench/FASTTD3_SCRATCH_STAGE.md`. The original64-stage source stays unchanged.
 Root owns the normal release and native GPU0 job. External reviews are not a
 prerequisite under the user's current results-first instruction.
+
+The separate `abc_bench.fasttd3_frozen_stage` authenticates a completed4000
+training producer before captured VAL9100/9101/9102 evaluation. Read
+`docs/bench/FASTTD3_FROZEN_STAGE.md`. Keep both children in the canonical
+process group. Admit only full native episodes, video and unchanged
+actor/normalizer/RNG evidence. Root owns serial1800s native jobs.

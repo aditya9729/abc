@@ -24,10 +24,11 @@ This is a bounded single-seed training measurement. It does not establish
 convergence, a frozen task score or reproduction of a paper's benchmark.
 
 Root owns normal installation and GPU admission. The Fast adapter agent owns
-the public native host/client. The stage agent owns supervision. The next
-separate release will supervise frozen evaluation of this exact checkpoint
-on captured VAL scenes, with the published live physics/RGB gate. That
-evaluation supervisor is planned here and is not yet delivered.
+the public native host/client. The stage agent owns supervision. The separate
+`abc_bench.fasttd3_frozen_stage` supervises this exact checkpoint on captured
+VAL scenes. Read `FASTTD3_FROZEN_STAGE.md` for the public physics/RGB gate,
+producer binding and complete episode checks. Native scores require executed
+evaluation jobs.
 
 ```mermaid
 flowchart LR
