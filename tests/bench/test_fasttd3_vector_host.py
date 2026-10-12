@@ -50,6 +50,23 @@ def test_configuration_fails_before_world_creation(field, value):
         host.validate_config(value_config)
 
 
+def test_scratch_training_has_its_own_exact_budget_and_world_profile():
+    value = config("scratch_training128")
+    value["vector_steps"] = 4000
+    assert host.validate_config(value) is value
+    value["vector_steps"] = 64
+    with pytest.raises(ValueError, match="4000"):
+        host.validate_config(value)
+
+
+@pytest.mark.parametrize("steps", [4000, True, 65])
+def test_qualification_cannot_silently_expand_into_training(steps):
+    value = config("training128")
+    value["vector_steps"] = steps
+    with pytest.raises(ValueError):
+        host.validate_config(value)
+
+
 def test_bank_is_unique_and_does_not_overlap_fallback_or_evaluation():
     settings = config("training128")
     normal = {

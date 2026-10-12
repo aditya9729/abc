@@ -24,3 +24,9 @@ the canonical runner. Read `docs/bench/FASTTD3_VECTOR_STAGE.md`. Schema1 admits
 only128 worlds/64vector calls with a pinned native CPU admission receipt.
 Keep learner B32768/replay51200 and original update functions unchanged. The
 finite qualification is not convergence or a frozen task-success result.
+
+The separate `abc_bench.fasttd3_scratch_stage` admits only4000 calls after a
+completed canonical native128 qualification. Read
+`docs/bench/FASTTD3_SCRATCH_STAGE.md`. The original64-stage source stays unchanged.
+Root owns the normal release and native GPU0 job. External reviews are not a
+prerequisite under the user's current results-first instruction.

@@ -70,14 +70,21 @@ def validate_config(config: Any) -> dict[str, Any]:
     }:
         raise ValueError("Expected the complete ABC vector configuration")
     integer(config["schema_version"], "schema_version", 1, 1)
-    count = {"training128": 128, "cpu_acceptance2": 2}.get(config["profile"])
+    count = {
+        "training128": 128,
+        "scratch_training128": 128,
+        "cpu_acceptance2": 2,
+    }.get(config["profile"])
     if count is None:
-        raise ValueError("profile must be training128 or cpu_acceptance2")
+        raise ValueError("Use the explicit qualification, scratch or CPU profile")
     integer(config["num_envs"], "num_envs", count, count)
     integer(config["seed_base"], "seed_base", 200000, 200000)
     integer(config["seed_stride"], "seed_stride", 128, 128)
     integer(config["max_episode_steps"], "max_episode_steps", 3540, 3540)
-    integer(config["vector_steps"], "vector_steps", 2, 64)
+    if config["profile"] == "scratch_training128":
+        integer(config["vector_steps"], "vector_steps", 4000, 4000)
+    else:
+        integer(config["vector_steps"], "vector_steps", 2, 64)
     deadlines = config["timeouts"]
     if type(deadlines) is not dict or set(deadlines) != {
         "ready_s",
@@ -880,8 +887,10 @@ def dispatch(pool: VectorPool, request: Any) -> tuple[dict[str, Any], bool]:
 
 def serve(config: dict[str, Any], socket_path: Path, output: Path) -> None:
     validate_config(config)
-    if config["profile"] != "training128":
-        raise ValueError("Public native server admits only training128")
+    if config["profile"] not in {"training128", "scratch_training128"}:
+        raise ValueError(
+            "Public native server admits only the two declared128-world profiles"
+        )
     require_subset_lease()
     # Authenticate coordinator visibility and ancestry first. Hide CUDA only
     # in this CPU server process before native imports. The separate learner
@@ -928,7 +937,7 @@ def serve(config: dict[str, Any], socket_path: Path, output: Path) -> None:
                 server.settimeout(min(remaining, 1.0))
                 try:
                     accepted = server.accept()[0]
-                except socket.timeout:
+                except TimeoutError:
                     continue
                 with accepted as connection:
                     rpc_deadline = min(
