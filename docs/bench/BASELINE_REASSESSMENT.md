@@ -4,6 +4,12 @@ The original ABC-VLA succeeded with the upstream evaluation settings: five
 bottles placed at control 819. The earlier short comparison used another recipe.
 Its 0/3 result does not establish failure of the published baseline.
 
+Fresh complete collection now succeeded on three TRAIN scenes and three separate
+validation scenes. All six ended with five of five bottles currently in the bin.
+[Measured collection results and videos](NATIVE_ABC_COLLECTION_RESULTS.md) record
+the runs, complete dataset checks, and remaining post-training gaps. This small
+subset does not reproduce the paper's benchmark score.
+
 The original ABC simulator and policy source remain unchanged at
 `d0832d12651d1b260a652861a14648dc5f3660c7`.
 Original source alone does not establish an original evaluation recipe.
