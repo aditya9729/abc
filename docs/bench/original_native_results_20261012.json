@@ -58,8 +58,8 @@
         }
       },
       "recipe_deviations": [
-        "One world versus HumanoidBench default128",
-        "4000 vector steps versus Stand horizon100000",
+        "One world versus HumanoidBench default 128",
+        "4000 vector steps versus Stand horizon 100000",
         "Fixed TRAIN shapes/scales; randomized evaluation geometry"
       ],
       "ranking_supported": false
@@ -95,8 +95,8 @@
       },
       "fixed_batch_anchor": 200,
       "recipe_deviations": [
-        "One three-bottle demonstration versus ten task demonstrations in ordinary EXPO pick example",
-        "One SFT update versus release4001-step example/load2000",
+        "One three-bottle demonstration versus a maximum of ten task demonstrations in ordinary EXPO pick example",
+        "One SFT update versus configured 4001-step example/load 2000",
         "Fixed TRAIN-batch early stop; no held-out validation"
       ],
       "ranking_supported": false

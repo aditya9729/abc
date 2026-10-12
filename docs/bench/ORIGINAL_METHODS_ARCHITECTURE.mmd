@@ -10,10 +10,10 @@ flowchart LR
     ExpoEval["Original EXPO-FT frozen evaluation: executed after one diagnostic update"]
     Evidence["Hashed receipts, checkpoints and camera videos"]
     Viewer["Measured-result viewer"]
+    State["Sadhana adapter: privileged state / normalized-action RPC host"]
+    RGB["Sadhana adapter: state14 / RGB / physical-action RPC host"]
   end
   subgraph ABC["ABC owns simulator and native YAM task"]
-    State["Privileged state / normalized-action RPC host"]
-    RGB["State14 / RGB / physical-action RPC host: native verified"]
     Physics["Original sequential CPU MuJoCo physics"]
     Cameras["Original MJWarp cameras"]
     Judge["Original placement reward and success judge"]
