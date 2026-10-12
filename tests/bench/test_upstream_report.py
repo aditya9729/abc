@@ -582,6 +582,10 @@ def native_cohort(cohort):
     video(sft_root / "params/weights.bin")
     sft_worker = json.loads((data["sft"] / "expoft/receipt.json").read_text())
     sft_worker["checkpoint_artifact"] = str(sft_root)
+    sft_worker["input_pins"] = {
+        "source_manifest": {key: source[key] for key in ("path", "sha256")},
+        "stats_manifest": {key: stats[key] for key in ("path", "sha256")},
+    }
     seal(data["sft"], sft_worker)
     (data["sft"] / "receipt.json").replace(data["sft"] / "expoft/receipt.json")
     sft_pin = tree_pin(
@@ -961,6 +965,30 @@ def test_sft_tree_cannot_substitute_another_checkpoint_root(native_cohort):
     ] = {key: substituted[key] for key in ("path", "sha256")}
     bind_native(native_cohort, "pi05_eval")
     with pytest.raises(ValueError, match="checkpoint root"):
+        native_report(native_cohort)
+
+
+@pytest.mark.parametrize("change", ["source", "stats"])
+def test_native_stage_cannot_substitute_sft_lineage(native_cohort, change):
+    worker = native_cohort["pi05_eval_worker"]
+    inputs = worker["input_pins"]
+    stats = json.loads(Path(inputs["stats_manifest"]["path"]).read_text())
+    if change == "source":
+        source = json.loads(Path(inputs["source_manifest"]["path"]).read_text())
+        source["fixture_source_identifier"] = "another TRAIN lineage"
+        alternate = write(
+            native_cohort["baseline"].parent / "alternate-source.json", source
+        )
+        inputs["source_manifest"] = {key: alternate[key] for key in ("path", "sha256")}
+        stats["source_manifest"] = inputs["source_manifest"]
+        worker["resolved_parameters"]["source_manifest"] = alternate["path"]
+    alternate_stats = write(
+        native_cohort["baseline"].parent / "alternate-stats.json", stats
+    )
+    inputs["stats_manifest"] = {key: alternate_stats[key] for key in ("path", "sha256")}
+    worker["resolved_parameters"]["stats_manifest_sha256"] = alternate_stats["sha256"]
+    bind_native(native_cohort, "pi05_eval")
+    with pytest.raises(ValueError, match="SFT/source/stats"):
         native_report(native_cohort)
 
 

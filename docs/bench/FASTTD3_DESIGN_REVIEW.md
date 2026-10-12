@@ -103,8 +103,11 @@ scene and full horizon. It placed zero bottles and had zero success. It made
 zero updates. Full actor and normalizer fingerprints stayed equal. Its adapter
 used FP32 eager inference. The author evaluator uses configured AMP and, when
 enabled, a compiled normalizer. Preserve this run as a labeled diagnostic.
-The corrected author-precision evaluation remains pending until a new actual
-receipt exists. It must use the same checkpoint and require no more training.
+The corrected author-precision evaluation completed in
+`author-subset-20261012T155412-eb00e3`. It used the same checkpoint, saved bf16 AMP
+and compiled normalizer. It completed 3,540 controls with zero success and zero
+bottles. Policy, normalizer and RNG fingerprints stayed unchanged. No new training
+occurred. This verifies evaluation precision; it does not establish convergence.
 
 Do not extend the current one-world training run. Before another campaign,
 qualify an author-native task and a source-supported parallel ABC setup.

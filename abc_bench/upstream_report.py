@@ -624,6 +624,7 @@ def _native_admission(run: Path | None, phase: str, sft: dict) -> dict | None:
     tree, checkpoint_identity = _checkpoint_tree(
         inputs["checkpoint_pin"], "original_pi05_sft"
     )
+    producer, _ = _sealed_json(tree["producer_receipt"])
     if (
         sft["status"] != "completed"
         or tree["producer_receipt"]["sha256"]
@@ -632,6 +633,10 @@ def _native_admission(run: Path | None, phase: str, sft: dict) -> dict | None:
         or inputs["checkpoint_pin"] != parameters["checkpoint_pin"]
         or inputs["source_manifest"]["path"] != parameters["source_manifest"]
         or inputs["stats_manifest"]["sha256"] != parameters["stats_manifest_sha256"]
+        or any(
+            producer.get("input_pins", {}).get(name) != inputs[name]
+            for name in ("source_manifest", "stats_manifest")
+        )
     ):
         raise ValueError("Native stage is not bound to the selected SFT/source/stats")
     source, source_identity = _sealed_json(inputs["source_manifest"])
