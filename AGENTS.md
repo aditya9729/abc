@@ -18,3 +18,9 @@ and full INTEGRATION state and gates actions on exact physics plus live RGB.
 Use raw original float32 commands only under the explicit schema2 action profile.
 The public CapturedScene helper alone does not admit actions. Root owns native
 camera acceptance and frozen-policy jobs; CPU camera doubles are not native proof.
+
+FastTD3 ABC vector qualification uses `abc_bench.fasttd3_vector_stage` through
+the canonical runner. Read `docs/bench/FASTTD3_VECTOR_STAGE.md`. Schema1 admits
+only128 worlds/64vector calls with a pinned native CPU admission receipt.
+Keep learner B32768/replay51200 and original update functions unchanged. The
+finite qualification is not convergence or a frozen task-success result.

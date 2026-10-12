@@ -1,0 +1,20 @@
+flowchart LR
+  cfg["Pinned TRAIN profile\n128 worlds / original Fast defaults"] --> pool
+  root["Root: canonical lease and finite watchdog\nSupervisor planned"] -. control .-> pool
+  root -. control .-> learner
+  subgraph abc["ABC native CPU host — vector boundary implemented"]
+    pool["Spawn world pool\nBarrier / deadlines / cleanup proof"] --> w0["World rank0\nOwn original model + data"]
+    pool --> wn["World rank1..127\nOwn original model + data"]
+    bank["Disjoint TRAIN reset bank\nOriginal variants/scales and carry"] --> w0
+    bank --> wn
+    w0 --> state["216D privileged state\nNative reward / raw terminal / timeout"]
+    wn --> state
+  end
+  state -->|bounded Unix JSONL| proxy["Fast owner: thin installed proxy\nAction mapping declared by host"]
+  proxy --> learner["Original FastTD3\n128 / B32768 / 2 critic : 1 actor\nABC GPU run pending"]
+  learner -->|normalized14 controls| proxy
+  proxy --> pool
+  pool --> evidence["Native scene pins\nPer-world reset/episode records\nOwned child exit inventory"]
+  learner --> ckpt["Original policy export\nNot an exact-resume checkpoint"]
+  val["EXPO owner: public captured VAL API\nVector integration pending"] -. future frozen evaluation .-> ckpt
+  cpu["Executed:2 real CPU worlds\n4 transitions; explicit end fixtures\nNo learner/performance claim"] --> evidence

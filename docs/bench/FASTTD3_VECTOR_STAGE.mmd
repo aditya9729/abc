@@ -1,0 +1,12 @@
+flowchart LR
+  config["Pinned CPU receipt, task config and source files"] --> stage["Sadhana: canonical stage"]
+  runner["Root: GPU0 lease and watchdog"] -->|control| stage
+  stage -->|same process group; UUID checked then hidden| host["ABC CPU host: 128 native YAM worlds"]
+  stage -->|same process group; GPU0| learner["Original FastTD3 learner"]
+  host -->|216 state values, reward, raw terminal state, timeout| learner
+  learner -->|14 normalized actions through public RPC| host
+  host --> native["Native receipt and 128 worker exits"]
+  learner --> export["Original checkpoint and measured update counts"]
+  native --> stage
+  export --> stage
+  stage --> result["Bounded qualification receipt; task score remains unavailable"]
