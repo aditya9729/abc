@@ -103,6 +103,10 @@ def load_config(path: Path) -> dict[str, Any]:
         from abc_bench.captured_reset import validate_config
 
         return validate_config(config)
+    if type(config["schema_version"]) is int and config["schema_version"] == 3:
+        from abc_bench.expoft_train_profile import validate_config
+
+        return validate_config(config)
     if type(config["schema_version"]) is not int or config["schema_version"] != 1:
         raise ValueError("schema_version must be 1")
     if config["stage"] not in ("train", "evaluation"):
@@ -539,6 +543,131 @@ class ExpoTask:
                 self.env.close()
 
 
+class TrainingExpoTask(ExpoTask):
+    """Original variants/scales/arm-carry TRAIN resets and raw policy controls."""
+
+    def __init__(self, env: Any, config: dict, output: Path):
+        self.env, self.config, self.output = env, config, output
+        self.reference = {"seed": 20260511}
+        self.episode, self.episodes, self.reset_seeds = None, [], []
+        self.controls = self.clipped_actions = self.episode_steps = 0
+        self.closed, self.writer = False, None
+        self.reward, self.terminated, self.truncated = 0.0, False, False
+        self.description, self.reset_proofs = {}, []
+        self.reset(config["host"]["initial_seed"])
+
+    def _describe(self) -> dict:
+        from abc_bench.expoft_train_profile import ACTION_PROFILE, OPTIONS, PROFILE
+
+        result = super()._describe()
+        result["action_schema"].update(
+            profile=ACTION_PROFILE,
+            clipping="No host clipping; original float32 proposals are forwarded unchanged",
+            original_difference="None at submitted command boundary; native actuator limits remain enabled",
+            gripper_policy_units="Original policy fraction; proposals may exceed nominal[0,1]",
+        )
+        result["reset_policy"] = {
+            "stage": "train",
+            "profile": PROFILE,
+            "allowed_seeds": self.config["host"]["allowed_seeds"],
+            "train_reset_options": OPTIONS,
+            "arm_carry": True,
+            "retry": "placement error only: clear arm/same seed; then seed+100000",
+            "verification": self.reset_proofs[-1],
+        }
+        return result
+
+    def reset(self, seed: Any) -> dict:
+        from abc_bench.expoft_train_profile import (
+            ACTION_PROFILE,
+            PROFILE,
+            PROOF_SCHEMA,
+            check_seed,
+            record_initial,
+            reset_world,
+        )
+
+        if self.closed or check_seed(seed) not in self.config["host"]["allowed_seeds"]:
+            raise ValueError(
+                "TRAIN reset requires an open host and approved requested seed"
+            )
+        self._finish("explicit_reset")
+        raw, state, actual, attempts = reset_world(self.env, seed)
+        evaluation = self.env.evaluate_task().to_info(squeeze=True)
+        finite_json(evaluation)
+        if (
+            evaluation.get("num_active_bottles") != 5
+            or evaluation.get("success") is not False
+        ):
+            raise RuntimeError("TRAIN reset must start an unsolved five-bottle world")
+        self.episode_steps = 0
+        self.reward, self.terminated, self.truncated = (
+            float(evaluation["reward"]),
+            False,
+            False,
+        )
+        self.episode = {
+            "seed": actual,
+            "requested_seed": seed,
+            "controls": 0,
+            "completed": False,
+            "success": False,
+            "action_clipping_count": 0,
+            "nominal_bound_violation_count": 0,
+            "max_native_reward": self.reward,
+            "scene_match": PROFILE,
+            "randomization": state,
+            "reset_attempts": attempts,
+            "final_native_task_eval": evaluation,
+        }
+        snapshot = self._snapshot()
+        images = self._images(raw, snapshot)
+        index = len(self.reset_proofs) + 1
+        proof = {
+            "schema": PROOF_SCHEMA,
+            "status": "completed",
+            "profile": PROFILE,
+            "action_profile": ACTION_PROFILE,
+            "requested_seed": seed,
+            "seed": actual,
+            "reset_attempts": attempts,
+            "actual_controls": 0,
+            "physics_steps": 0,
+            "initial_task_eval": evaluation,
+            "state14": snapshot["state14"],
+            "camera_hashes": {
+                name: hashlib.sha256(
+                    base64.b64decode(item["data_base64"], validate=True)
+                ).hexdigest()
+                for name, item in images.items()
+            },
+            **record_initial(
+                self.env, self.output / f"initial-{index:04d}", randomization=state
+            ),
+        }
+        path = self.output / f"reset-proof-{index:04d}.json"
+        write_json(path, proof)
+        self.reset_proofs.append(artifact(path))
+        self.reset_seeds.append(actual)
+        self.description = self._describe()
+        self.episode["reset_verification"] = self.reset_proofs[-1]
+        if self.config["host"]["save_video"]:
+            import imageio.v2 as imageio
+
+            video = self.output / f"reset-{index:04d}-seed-{actual}.mp4"
+            self.episode["video_path"] = str(video)
+            self.writer = imageio.get_writer(
+                str(video), fps=1 / 0.034, macro_block_size=1
+            )
+            self._video_frame(raw)
+        return {
+            **snapshot,
+            "requested_seed": seed,
+            "scene_match": PROFILE,
+            "reset_verification": self.reset_proofs[-1],
+        }
+
+
 class CapturedExpoTask(ExpoTask):
     """Exact captured reset and live-render gate, with original raw commands."""
 
@@ -866,11 +995,12 @@ def serve(config_path: Path, socket_path: Path, output: Path) -> None:
                 }
             )
         try:
-            task = (
-                CapturedExpoTask(env, config, output, capture)
-                if capture is not None
-                else ExpoTask(env, config, output)
-            )
+            if capture is not None:
+                task = CapturedExpoTask(env, config, output, capture)
+            elif config["schema_version"] == 3:
+                task = TrainingExpoTask(env, config, output)
+            else:
+                task = ExpoTask(env, config, output)
         except BaseException:
             env.close()
             raise
@@ -976,7 +1106,7 @@ def serve(config_path: Path, socket_path: Path, output: Path) -> None:
                         ),
                         "action_clipping_count": task.clipped_actions,
                     }
-                    if isinstance(task, CapturedExpoTask):
+                    if isinstance(task, (CapturedExpoTask, TrainingExpoTask)):
                         receipt["reset_verifications"] = task.reset_proofs
                         receipt["reset_profile"] = config["host"]["reset_profile"]
                         receipt["action_profile"] = config["host"]["action_profile"]
