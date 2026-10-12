@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "scope": "One matched development scene; integration diagnostics, not paper reproduction or method ranking",
+  "development_scene_seed": 20260511,
+  "runtime_source_revision": "64a18f54f19e0c32c5dc668819aeeb5f1ea9cd1f",
+  "accepted_report": {
+    "path": "/home/user/aditya/RL/builds/abc-native-expo-viewer-20261012/private-full-native-report/results.json",
+    "bytes": 41245,
+    "sha256": "dadcee66c2a970d134ad4dfb7ae1d463d1ca1d6ee3e4707bd499717d3061f3d1"
+  },
+  "browser_evidence": {
+    "path": "/home/user/aditya/RL/builds/abc-native-expo-viewer-20261012/BROWSER_WITH_FROZEN_EXPO_RESULT.json",
+    "bytes": 1898,
+    "sha256": "20825d6dc879cce2205255800cf61362492a25e039c262a3318be957a0525d37"
+  },
+  "viewer_url": "http://127.0.0.1:8770/original-methods/",
+  "conditions": {
+    "abc_vla": {
+      "successes": 1,
+      "episodes": 1,
+      "controls": 819,
+      "bottles_in_bin": 5,
+      "claim_scope": "One original-recipe layout; not a paper score or a causal ablation",
+      "worker_receipt_sha256": "9042f589a2873a46ccc1800e6180d19f706389992d416af5cdbf7f03c6c70df4",
+      "video_identity": {
+        "bytes": 1844210,
+        "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T134246-730cdb/original_eval/world_000.mp4",
+        "sha256": "21d6d64a8bf9f413ba84e9b6066d70adf387c0d90fcf20573d6117119ea8f58d"
+      }
+    },
+    "fasttd3_scratch": {
+      "evaluation": {
+        "status": "completed",
+        "successes": 0,
+        "episodes": 1,
+        "controls": 3540,
+        "bottles_in_bin": 0,
+        "claim_scope": "One frozen matched scene; privileged-state scratch policy, not a method ranking",
+        "worker_receipt_identity": {
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T155412-eb00e3/receipt.json",
+          "bytes": 4073,
+          "sha256": "afb9801ab8419961de945f2c6367509dc9783813262821d5c729ccb61a8fd467"
+        },
+        "video_identity": {
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T155412-eb00e3/host/reset-0002-seed-20260511.mp4",
+          "bytes": 503177,
+          "sha256": "d56fd9d957b99f4bea0b874bd3f0055872c772987affba8fa5b6037ea11b448b"
+        }
+      },
+      "training": {
+        "controls": 4000,
+        "actor_updates": 3989,
+        "critic_updates": 7978,
+        "worker_receipt_identity": {
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T143734-05cba8/receipt.json",
+          "bytes": 3779,
+          "sha256": "9edb1aa7cf76393a29e3809682a85e9e103bdb89871899df60f31641dc49275e"
+        }
+      },
+      "recipe_deviations": [
+        "One world versus HumanoidBench default128",
+        "4000 vector steps versus Stand horizon100000",
+        "Fixed TRAIN shapes/scales; randomized evaluation geometry"
+      ],
+      "ranking_supported": false
+    },
+    "pi05_sft": {
+      "evaluation": {
+        "status": "completed",
+        "successes": 0,
+        "episodes": 1,
+        "controls": 3540,
+        "bottles_in_bin": 0,
+        "claim_scope": "Synchronous native YAM development diagnostic; not realtime EXPO-FT or a paper score",
+        "worker_receipt_identity": {
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T153955-9965f5/expoft/receipt.json",
+          "bytes": 30693,
+          "sha256": "9029d85fe65abd3f203965a79b5e64997f85735eea5c7f3658d35ae7b53c7e43"
+        },
+        "video_identity": {
+          "bytes": 5202331,
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T153955-9965f5/expoft/host/reset-0002-seed-20260511.mp4",
+          "sha256": "cedf3b6394b1fe4a394ac8b23426797426e500677aa3ecb75de90725e3bf7782"
+        }
+      },
+      "training": {
+        "actual_steps": 1,
+        "initial_fixed_loss": 0.11113274097442627,
+        "final_fixed_loss": 0.060185566544532776,
+        "worker_receipt_identity": {
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T141113-882427/expoft/receipt.json",
+          "bytes": 2632,
+          "sha256": "ab9794f01a61c6c3aba699cadf8c1aedb0a02aaf7fc3c6d5d6d71b8f4ea959bb"
+        }
+      },
+      "fixed_batch_anchor": 200,
+      "recipe_deviations": [
+        "One three-bottle demonstration versus ten task demonstrations in ordinary EXPO pick example",
+        "One SFT update versus release4001-step example/load2000",
+        "Fixed TRAIN-batch early stop; no held-out validation"
+      ],
+      "ranking_supported": false
+    },
+    "ordinary_expo": {
+      "evaluation": {
+        "status": "completed",
+        "successes": 0,
+        "episodes": 1,
+        "controls": 3540,
+        "bottles_in_bin": 0,
+        "claim_scope": "Synchronous native YAM development diagnostic; not realtime EXPO-FT or a paper score",
+        "worker_receipt_identity": {
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T164835-f1fba0/expoft/receipt.json",
+          "bytes": 32170,
+          "sha256": "ed9de99543098ba4e23fbf5ea0a0d7b37c9aa6744fb8e497a0b60bc8dc23622b"
+        },
+        "video_identity": {
+          "bytes": 8762129,
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T164835-f1fba0/expoft/host/reset-0002-seed-20260511.mp4",
+          "sha256": "cb4d9f755ad776bc5083e68c4bda4b981a375a638a73a617c82693666b089710"
+        },
+        "actual_steps": 0,
+        "optimizer_counters": {
+          "critic": 1,
+          "batch_encoder": 1,
+          "edit_actor": 1,
+          "temp": 1,
+          "actor": 1
+        },
+        "action_clipping_count": 2756
+      },
+      "training": {
+        "controls": 32,
+        "actual_steps": 1,
+        "batch_size": 2,
+        "utd_ratio": 1,
+        "optimizer_counters_after": {
+          "critic": 1,
+          "batch_encoder": 1,
+          "edit_actor": 1,
+          "temp": 1,
+          "actor": 1
+        },
+        "worker_receipt_identity": {
+          "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261012T161954-d3d16b/expoft/receipt.json",
+          "bytes": 32086,
+          "sha256": "c8d910d058d09b71e66707b85425e697e45fd6638291d3646377e72169c7edd9"
+        }
+      },
+      "recipe_deviations": [
+        "B2/UTD1 versus B64/UTD20",
+        "32-control warmup versus ten completed online episodes",
+        "One update versus three calls per eligible episode in ordinary pick launcher",
+        "Observed actor/critic samples all from demonstration rows"
+      ],
+      "ranking_supported": false
+    }
+  },
+  "next_prerequisite": "Reset-aligned successful five-bottle TRAIN demonstrations, shuffled original pi0.5 SFT, separate episode-level validation and successful full validation rollout before online RL"
+}

@@ -7,7 +7,7 @@ flowchart LR
     Pi["Original pi0.5 SFT: one real update executed"]
     PiEval["Original pi0.5 frozen native rollout: executed"]
     Expo["Original EXPO-FT: one native update and export executed"]
-    ExpoEval["Original EXPO-FT frozen evaluation: pending restore qualification"]
+    ExpoEval["Original EXPO-FT frozen evaluation: executed after one diagnostic update"]
     Evidence["Hashed receipts, checkpoints and camera videos"]
     Viewer["Measured-result viewer"]
   end
@@ -29,13 +29,13 @@ flowchart LR
   Lease -->|"control: serial execution"| Pi
   Lease -->|"control: serial frozen evaluation"| PiEval
   Lease -->|"control: serial diagnostic update"| Expo
-  Lease -.->|"planned control: serial frozen evaluation"| ExpoEval
+  Lease -->|"control: serial frozen evaluation"| ExpoEval
   Demo -->|"data: genuine physical actions and images"| Stats
   Stats -->|"data: supervised batch"| Pi
   Pi -->|"data: actual SFT checkpoint"| PiEval
   Pi -->|"data: actual SFT checkpoint"| Expo
   Demo -->|"data: TRAIN replay source"| Expo
-  Expo -.->|"planned data: verified actual learner export"| ExpoEval
+  Expo -->|"data: verified actual learner export"| ExpoEval
   Base -->|"control: stock policy commands"| Physics
   Fast -->|"control: normalized actions"| State
   State -->|"data: qpos, qvel and scene metadata"| Fast
@@ -44,7 +44,8 @@ flowchart LR
   RGB -->|"data: state14, three images and reward"| PiEval
   Expo -->|"control: physical commands"| RGB
   RGB -->|"data: state14, three images and reward"| Expo
-  ExpoEval -.->|"planned control: frozen policy commands"| RGB
+  ExpoEval -->|"control: frozen policy commands"| RGB
+  RGB -->|"data: state14, three images and reward"| ExpoEval
   RGB -->|"implemented control: physical commands"| Physics
   Ref -->|"data: exact scene identity"| State
   Ref -->|"data: exact scene identity"| RGB
@@ -57,6 +58,7 @@ flowchart LR
   Pi -->|"data: loss, finite gradient and full checkpoint"| Evidence
   PiEval -->|"data: completed episode, hashes and sampler latency"| Evidence
   Expo -->|"data: actual update metrics and 38-file export"| Evidence
+  ExpoEval -->|"data: completed episode, frozen hashes and restore checks"| Evidence
   Cameras -->|"data: actual frames"| Evidence
   Evidence -->|"data: accepted measurements"| Viewer
   Review -->|"review: source and evidence"| Evidence
