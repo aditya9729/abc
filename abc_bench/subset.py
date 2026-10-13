@@ -18,6 +18,7 @@ from abc_bench.resources import inspect_reserved_gpu
 
 ALLOWED_MODULES = {
     "abc_bench.author_program",
+    "abc_bench.mulligan_program",
     "abc_author_subset.host",
     "abc_bench.subset_worker",
     "abc_bench.upstream_eval",
@@ -138,6 +139,25 @@ def load_job(path: Path) -> dict[str, Any]:
     maximum_allowed = (
         12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
     )
+    if job["module"] == "abc_bench.mulligan_program":
+        from abc_bench.mulligan_program import (
+            CLEANUP_SECONDS,
+            MAX_WORKER_SECONDS,
+            load_config,
+        )
+
+        if len(arguments) != 2 or arguments[0] != "--config":
+            raise ValueError("Mulligan jobs require one explicit --config")
+        config = load_config(Path(arguments[1]))
+        if (
+            config["mode"] != "gpu"
+            or type(maximum) not in (int, float)
+            or config["timeout_s"] + CLEANUP_SECONDS > maximum
+        ):
+            raise ValueError(
+                "Mulligan GPU jobs need the declared worker timeout plus60s cleanup"
+            )
+        maximum_allowed = MAX_WORKER_SECONDS + CLEANUP_SECONDS
     if (
         job["module"] == "expo_abc_adapter.stage"
         and type(maximum) in (int, float)
@@ -280,14 +300,20 @@ def run_job(args: Any) -> dict[str, Any]:
             "status": "running",
             "task": "h1hand-stand-v0"
             if job["module"] == "sadhana_fasttd3_hb.stage"
+            else "SquareNarrow"
+            if job["module"] == "abc_bench.mulligan_program"
             else "put_plastic_bottles_in_bin",
             "embodiment": "unitree_h1_with_hands"
             if job["module"] == "sadhana_fasttd3_hb.stage"
+            else "franka_panda"
+            if job["module"] == "abc_bench.mulligan_program"
             else "native_yam",
             "claim_scope": job.get(
                 "claim_scope",
                 "Bounded original FastTD3 Stand integration/capacity; no convergence, ABC transfer or paper reproduction claim"
                 if job["module"] == "sadhana_fasttd3_hb.stage"
+                else "Original Mulligan process execution; native results and checkpoints require separate acceptance"
+                if job["module"] == "abc_bench.mulligan_program"
                 else "small ABC-VLA transfer diagnostic; not full paper reproduction",
             ),
             "gpu": binding,

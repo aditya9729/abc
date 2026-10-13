@@ -1,0 +1,11 @@
+flowchart LR
+  Root[Root: finite job and acceptance owner] -->|control: canonical admission| Runner[Existing ABC runner and GPU0 lease]
+  Runner -->|control: installed worker| Worker[Mulligan process supervisor]
+  Source[Pristine bc42da1 checkout] -->|data: source identity| Worker
+  Runtime[Normal author runtime] -->|data: installed payload identity| Worker
+  Worker -->|control: original CLI and argv| Author[Original Mulligan scripts and modules]
+  Author -->|data: original checkpoints and native outcomes| Output[Fresh author-output]
+  Worker -->|data: process-only receipt| Root
+  Output -.->|pending native/result acceptance| Root
+  CPU[Separate original CPU start-design command] -->|data: locked start-design check| Root
+  Recorder[Separate pinned native video binding] -.->|pending native qualification| Author
