@@ -11,6 +11,83 @@ now has a working command launcher, matched released-policy scores and six full
 native videos. Original training is running. The wider collection feedback and
 R1 Lite connections below remain proposed.
 
+## The first scaling decision
+
+Test whether new deployment experience improves held-out task success more than
+additional training on existing data. Use the harness to measure that question
+before increasing simulator parallelism. These are proposed study arms, not
+additional author recipes or completed experiments:
+
+| Arm | Data and training | Question |
+| --- | --- | --- |
+| Frozen policy | Starting checkpoint; no updates | What can the starting policy already do? |
+| Repeat-data control | Existing data; the same optimizer budget as the collection arms | Does extra optimization explain the gain? |
+| Coverage collection | Add episodes from the predefined training distribution | Does new experience help? |
+| Guided collection | Add the same episode quota using performance feedback | Does choosing collection starts help? |
+
+For the last three arms, match initialization, learner, update count, batch size,
+and evaluation starts. Report actual GPU time separately. Match new episode
+quotas between collection arms. Record transitions, interventions, operator
+minutes, resets, and unsuccessful attempts; episode quotas alone do not match
+collection cost. The repeat-data arm uses no new collection and has a different
+interaction cost. Display that difference rather than treating it as free data.
+
+Start with one training seed as a screening experiment. Confirm a promising
+comparison with independent training seeds and uncertainty over both seeds and
+evaluation starts. An author reproduction keeps its published schedule and seed
+count. A smaller run or validation-based early stop receives a pilot label.
+Never tune a stopping rule on the final test set.
+
+Use the repeat-data control only with a learner that supports offline replay.
+Mulligan needs its original human-supervised data views. A frozen-data EXPO arm
+would be a declared ablation of online collection, not its author reproduction.
+SGS uses on-policy PPO: compare uniform and SGS resets using fresh rollouts at
+matched transition budgets. Reusing old trajectories for PPO would change that
+method. Real-Time EXPO keeps its original replay and action timing in its
+author run. A single score table across different tasks would not measure
+algorithm quality.
+The prepared released Mulligan comparison below is narrower: both arms already
+promote failures. It does not instantiate pure coverage versus guided collection.
+
+For R1 Lite, begin with one manipulation task and a fixed base. Use the existing
+whole-body controller as a declared control boundary when that integration is
+ready. Changing the embodiment, controller, policy, reset distribution, and
+learner together would prevent attribution. Whole-body adaptation follows a
+measured manipulation result; it is not established by the author-task checks.
+
+## Evidence as of 13 October 2026
+
+The released Mulligan policies scored 34/50 and 46/50 on matched starts.
+This is a useful visible check of the author setup, not local learning evidence.
+Local original IDQL training is active; final evaluation remains pending.
+
+The Catcher BC24 policy and released Real-Time EXPO learner passed a normally
+installed CPU integration check. It used two numerical-fixture updates and
+verified candidate selection, parameter updates, and a model/optimizer/RNG
+checkpoint round-trip. This does not verify resuming a live environment.
+It used no native policy episode and establishes no task-success result.
+Ten installed backend checks also passed. Declared adapters, two dependency
+metadata conflicts, and paper/code differences still limit recipe fidelity.
+The authentic Catcher expert archive is now available: 1,015,808 records,
+including 1,011,008 records from complete episodes. Its loader and task transport
+are still being integrated. Per-step rewards are absent from the archive;
+source-derived sparse rewards require an explicit contract. Reward and stored
+success flags are not interchangeable.
+
+Evidence paths, under `/home/user/aditya/RL/builds/`:
+
+- `realtime-expo-catcher-integration-20261013/combined/INSTALLED_LEARNER_RESULT.json`
+- `realtime-expo-catcher-integration-20261013/data/DATA_CONTRACT.json`
+- `realtime-expo-catcher-integration-20261013/data/SEAL.json`
+
+[Evidence pins and limits](DEPLOYMENT_RL_SCALING_EVIDENCE_20261013.json) identify
+the tested files and a timestamped Mulligan training snapshot. Root verified
+all 13 data-seal members, including the downloaded archive.
+
+The SGS author site still states that code is coming soon. We will preserve the
+original-implementation requirement and prepare its reset/outcome boundary.
+No unofficial SGS learner or sampler has been admitted as an author result.
+
 ## What the papers contribute
 
 | Work | Decision it changes | Implication for this harness |

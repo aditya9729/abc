@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "captured_at_utc": "2026-10-13T23:23:05.483460+00:00",
+  "scope": "Planning and installed CPU integration evidence; no accepted locally trained policy score",
+  "mulligan_progress_snapshot": {
+    "current": 65000,
+    "eta_s": 4255.189668547738,
+    "job_type": "training",
+    "message": "step 65000/150000",
+    "metrics": {
+      "losses/actor": 0.009089360944926739,
+      "losses/critic": 2.1506617486011237e-05,
+      "losses/value": 1.582274489919655e-05
+    },
+    "phase": "train",
+    "progress": 0.43333333333333335,
+    "run_id": "mulligan-r1-seed1-original-20261013",
+    "schema": "mulligan.progress.v1",
+    "total": 150000,
+    "ts": "2026-10-13T23:23:02Z"
+  },
+  "mulligan_live_run_id": "author-subset-20261013T222807-f6985d",
+  "original_source_revisions": {
+    "expo_ft": "21fe3d3b7d913c80836496817965932f49e0aedf",
+    "rtc": "9296f31d62d5bfeb5779dcb2f9bcf71ca37f448b",
+    "kinetix": "cf7453ea103fa0b77348af1a39f689c658161613",
+    "mulligan": "bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8",
+    "sadhana_sdk": "85fe831c2785b2d72e2503b7fa90b1d2d6247443"
+  },
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/combined/check_installed_learner.py",
+      "bytes": 7032,
+      "sha256": "44b965c0719c3e5533181ed2c56bc2a29bc08dd4f7d5949b56e3a8c579810bdd"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/combined/INSTALLED_LEARNER_RESULT.json",
+      "bytes": 5846,
+      "sha256": "4c6c746307497fa281b95e4ff6ad279bab748e5f9485a569ebfa8c9f9def8161"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/combined/INSTALLED_PACKAGE_AUDIT.json",
+      "bytes": 6814,
+      "sha256": "7a5fe4cc25a6deea4d4cca09190e3238a443251d573ac9cdbc09c63aee682fed"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/requirements-observed.txt",
+      "bytes": 5090,
+      "sha256": "b97d12ca295c9650a83ae770aa1554e28214d5a7215a6df7d9d6868c4cb07f3f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/DEPENDENCY_CHECK.log",
+      "bytes": 326,
+      "sha256": "cb8a07bff214dc65722f610630c83cbfde1266302a338f0c12ecd95890cfd83c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/state/final-wheel/expo_ft-0.1.0-py3-none-any.whl",
+      "bytes": 87743,
+      "sha256": "b7b0bb20e41dbde63730fbb5f4ac030c8411c2a7b1b9b2d84a61cc74f23fe450"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/backend/dist/realtime_expo_catcher_backend-0.1.0-py3-none-any.whl",
+      "bytes": 11345,
+      "sha256": "f0193e4793ca034e083d179d00cb38ac7a52b7edbc7094973bd68c20b4fe4143"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/backend/ACCEPTANCE_CPU_TESTS.log",
+      "bytes": 4826,
+      "sha256": "0afb9295af3dd5f0514cc5202d1b10d778ee87beed8a0fdb3c6e75adcf7e389a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/data/SEAL.json",
+      "bytes": 3430,
+      "sha256": "ee848bd72e714599525a99baa3bfe8e172e7ba9bab6fc09e8500598d535fc690"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/data/DATA_CONTRACT.json",
+      "bytes": 3211,
+      "sha256": "3e34de8983667a08fea9d128c00069bfcd0acfe0cb88fc284adcd1aecbddb7e3"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/backend/BACKEND_SEAL.json",
+      "bytes": 8023,
+      "sha256": "6c469245d2176060f65a9c7a6cb517fb65d3921a7010aa2b5185f42a5e6cd572"
+    }
+  ],
+  "data_seal_members_independently_verified": 13,
+  "installed_backend_tests_passed": 10,
+  "combined_cpu_learner_updates": 2,
+  "combined_replay": "explicit numerical fixtures, not native transitions",
+  "open_limits": [
+    "Kinetix JAX and jaxued Orbax dependency metadata conflicts remain",
+    "Task environment and authentic data loader integration pending",
+    "Prefix inference/training and paper versus released-code differences remain explicit; no full recipe-fidelity claim",
+    "No native Real-Time EXPO policy result or resumed-environment test",
+    "SGS author site says code coming soon; no author SGS run",
+    "Original local Mulligan training active; final evaluation pending"
+  ],
+  "research_sources": [
+    "https://arxiv.org/html/2610.12465v1",
+    "https://sgs-rl.github.io/",
+    "https://arxiv.org/html/2609.18207v1",
+    "https://github.com/pd-perry/expo-ft/blob/main/README.md",
+    "https://github.com/pd-perry/expo-ft/blob/main/expo_ft/agents/alg/realtime_expo_ft.py",
+    "https://arxiv.org/html/2610.05882v1",
+    "https://github.com/ankile/mulligan"
+  ],
+  "backend_seal_members_independently_verified": 20
+}

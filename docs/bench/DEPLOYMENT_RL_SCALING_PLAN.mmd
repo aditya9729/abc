@@ -11,6 +11,7 @@ flowchart TD
         S[Planned reset selection: uniform control or SGS]
         M[Planned supervised collection selection: Mulligan]
         B[Planned method-specific actor and critic data views]
+        D[Planned matched study: frozen, repeat data, new coverage data, guided data]
         J[Existing bounded GPU0 job supervision]
         L[Released Real-Time EXPO-FT learner]
         ML[Released Mulligan learner]
@@ -25,6 +26,7 @@ flowchart TD
         C -. executed transitions .-> B
         B -. original recipe inputs .-> L
         B -. original recipe inputs .-> ML
+        D -. fixed initialization and optimizer budget .-> B
         J -->|existing EXPO process control| L
         J -->|verified original-command adapter; local training active| ML
         L -. selected checkpoint .-> C
@@ -32,11 +34,12 @@ flowchart TD
     end
     subgraph V[Independent evaluation and reporting]
         T[Sealed final starts and task success judge]
-        X[Existing released-policy scores and six full videos; scaling curves planned]
+        X[Existing released-policy scores and six full videos; data and compute curves planned]
         L -. frozen policy .-> T
         ML -. frozen policy .-> T
         T -. final measurements only .-> X
         C -. collection costs and development outcomes .-> X
+        D -. actual collection cost; repeat-data control has no new episodes .-> X
         A[Reviewers: SGS, supervision and harness contracts]
         A -. verify method and evidence .-> X
     end
