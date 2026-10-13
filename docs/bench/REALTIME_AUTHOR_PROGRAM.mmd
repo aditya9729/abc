@@ -15,11 +15,12 @@ flowchart LR
     L -->|start and stop| V
     V -->|action commands| C[Original WebSocket client]
     A -. pending .-> C
-    C -->|step simulation| E[ABC native environment — 32 controls verified]
+    C -->|step simulation| E[ABC native environment — full visual episode recorded]
     E -->|observations and status| C
     C -->|observations and status| V
   end
-  E --> O[Native event journal and short video]
+  E --> O[Native event journal, full video and per-frame task progress]
+  L --> F[Run status — full episode complete; client process cleanup failed]
   S --> T[Local offline training metrics]
   K --> Q[Independent reviewer — state and source checks]
   O --> Q

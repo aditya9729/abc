@@ -76,3 +76,10 @@ needs `only_base_actions=False` for RTC prefixes, two resets, and one extra loop
 slot to observe terminal state. Keep the native client dependencies in its own
 normally installed prefix; ABC's optional `realtime-expo` extra declares the task
 ConfigDict dependency. The original client wheel supplies its own dependencies.
+
+The later full visual rollout uses native horizon 3540 and author bound 3541.
+Read `docs/bench/RTC_VISUAL_ROLLOUT_20261013.md`. Its video is complete, but the
+job remains failed because client process cleanup required SIGTERM. Native close
+and complete video evidence do not establish graceful process exit. Keep these
+claims separate. Resolve shutdown before another campaign. The client package
+extra pins the observed native `ml-collections==1.1.0`; server dependencies stay separate.

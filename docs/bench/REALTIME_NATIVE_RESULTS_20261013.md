@@ -22,6 +22,10 @@ The policy received only one update. Its short truncated episode is not a useful
 success-rate measurement. Online `RealTimeEXPOFTLearner` updates remain pending.
 Direct GPU overlap was not measured by the original logs.
 
+A later [full visual episode](RTC_VISUAL_ROLLOUT_20261013.md) now replaces the short
+clip in the viewer. It covers 120.36 simulated seconds and ends at 0/5 bottles.
+The recording is complete, but its job failed the client process cleanup check.
+
 The 32-control check uses two TRAIN resets, delay 5, replan 8 and
 `only_base_actions=False`. The last flag is required: True bypasses RTC prefix
 conditioning. Native horizon 32 and author loop budget 33 preserve the terminal
