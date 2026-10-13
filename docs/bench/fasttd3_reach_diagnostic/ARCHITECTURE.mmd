@@ -1,0 +1,36 @@
+flowchart LR
+    subgraph evidence[Published evidence]
+        TRAIN[3 admitted TRAIN original native replay traces]
+        SELECT[TRAIN-only geometry selection and pins]
+        AUTHOR[Original FastTD3 12 payloads and 4 protected functions]
+        ASSETS[933 existing public ABC model assets]
+        TRAIN -->|data and checksums| SELECT
+    end
+    subgraph candidate[Sadhana candidate: code and CPU checks complete]
+        ADMIT[Separate reach stage: lease, source pins, watchdogs]
+        POOL[64-world CPU native host: original state216 and actions14]
+        REWARD[Nearest grasp-site distance; dense diagnostic reward]
+        JUDGE[Unchanged native five-bottle judge]
+        LEARN[Original FastTD3 public learner and factory]
+        ADMIT -->|control: root-owned process group| POOL
+        ADMIT -->|control: original CUDA learner| LEARN
+        POOL -->|native qpos data| REWARD
+        POOL -->|native task data| JUDGE
+        LEARN -->|normalized action data| POOL
+        POOL -->|observation, reward, terminal observation| LEARN
+        REWARD -->|diagnostic distance and reward| POOL
+        JUDGE -->|separate native5/5 measurement| POOL
+    end
+    SELECT -->|pinned diagnostic recipe| ADMIT
+    ASSETS -->|native assets| POOL
+    AUTHOR -->|protected original math| LEARN
+    subgraph root[Root-owned pending execution]
+        GATE[Release and 256-call canonical native gate]
+        PROBE[Bounded scratch probe: maximum2048 calls]
+        MATCH[Matched deterministic initial/final TRAIN comparison: pending]
+        OUTPUT[Actual traces, losses, checkpoint, cleanup and receipts]
+        GATE -.->|accept before training preparation| PROBE
+        PROBE -.->|actual evidence after execution| OUTPUT
+        MATCH -.->|required for isolated learning claim| OUTPUT
+    end
+    ADMIT -.->|pending normal release and execution| GATE
