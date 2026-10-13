@@ -1,7 +1,8 @@
 # ABC environment for the original Real-Time EXPO-FT client
 
 This boundary is implemented in `abc_bench.realtime_expo_env.ABCYamEnv`.
-It has CPU contract tests. Native operation is pending.
+It has CPU contract tests. The original 32-control native check passed.
+See [measured results and limits](REALTIME_NATIVE_RESULTS_20261013.md).
 Root owns the native acceptance run and its GPU0 lease.
 The module import does not construct a simulator.
 
@@ -62,6 +63,14 @@ Use the author loop bound33 to observe truncation after32 native controls.
 Mark every output as a TRAIN-scene timing diagnostic, not a benchmark score.
 This checks the one-update RTC checkpoint with delay5/replan8; it does not establish task quality.
 The default TRAIN profile and3540-control horizon remain available.
+
+Use `train_scene_visual_rollout` to record a full episode with the original evaluator.
+It requires `env_usage='eval'`, two TRAIN reset seeds, and 3540 native controls.
+Set the author loop bound to 3541 to observe the final terminal state.
+Task success can end the episode earlier. A full horizon covers 120.36 simulated seconds.
+The profile adds no learner or control-loop changes. It records `purpose='visual_rollout'`.
+The video shows simulation time. The current one-update checkpoint is not a trained benchmark policy.
+Use a fresh output parent to preserve existing clips. The checkpoint directory can reference the same immutable checkpoint.
 
 The native full-five-bottle judge supplies success.
 The author interface receives sparse success reward1 and terminal mask0.

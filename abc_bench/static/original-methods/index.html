@@ -311,16 +311,38 @@ function renderRealtime(rt) {
   const timing = rt.timing;
   text('rtc-timing', timing?.description || 'Native delayed-control check pending. No achieved real-time deadline is claimed.');
   const box = document.getElementById('rtc-clips');
-  if (timing?.video && box.dataset.video !== timing.video) {
-    if (!/^[0-9a-f]{16}\.mp4$/.test(timing.video)) throw Error('Invalid RTC diagnostic video');
+  const clip = rt.rollout?.video ? rt.rollout : timing;
+  if (clip?.video && box.dataset.video !== clip.video) {
+    if (!/^[0-9a-f]{16}\.mp4$/.test(clip.video)) throw Error('Invalid RTC diagnostic video');
     const label = document.createElement('p');
-    label.textContent = 'Short control diagnostic on a TRAIN scene. Playback uses simulation time; actual execution was slower. This is not a full task evaluation.';
+    label.textContent = clip.description || 'Short control diagnostic on a TRAIN scene. Playback uses simulation time; actual execution was slower. This is not a full task evaluation.';
     const video = document.createElement('video');
     video.controls = true;
+    video.playsInline = true;
     video.preload = 'metadata';
-    video.src = timing.video;
+    video.src = clip.video;
     box.replaceChildren(label, video);
-    box.dataset.video = timing.video;
+    if (Array.isArray(clip.progress) && clip.progress.length) {
+      const progress = clip.progress;
+      progress.forEach(row => {
+        integer(row.control, 'RTC video control');
+        integer(row.bottles, 'RTC bottle count');
+        if (row.bottles > 5) throw Error('Invalid RTC bottle count');
+        if (![row.simulation_s, row.wall_s].every(value => Number.isFinite(value) && value >= 0)) throw Error('Invalid RTC video timing');
+      });
+      const readout = document.createElement('p');
+      readout.setAttribute('aria-live', 'off');
+      const update = () => {
+        const index = Math.min(progress.length - 1, Math.floor(video.currentTime / 0.034));
+        const row = progress[Math.max(0, index)];
+        readout.textContent = 'Simulation: ' + row.simulation_s.toFixed(1) + ' s · Actual elapsed: ' + row.wall_s.toFixed(1) + ' s · Bottles in bin: ' + row.bottles + '/5 · Control: ' + row.control;
+      };
+      video.addEventListener('timeupdate', update);
+      video.addEventListener('seeked', update);
+      box.append(readout);
+      update();
+    }
+    box.dataset.video = clip.video;
   }
 }
 function renderExpo(e) {

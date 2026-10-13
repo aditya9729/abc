@@ -46,7 +46,7 @@ class ABCYamEnv:
     State/actions: left joints1..6, left gripper, right joints1..6, right
     gripper. Joints use radians; grippers retain ABC's policy coordinates.
     Images are actual uint8 HWC RGB[168,224,3]. No command clipping is added.
-    The explicit TRAIN-scene timing diagnostic also permits ``env_usage='eval'``.
+    Explicit TRAIN-scene visual and timing profiles permit ``env_usage='eval'``.
     Random TRAIN resets are not matched frozen evaluation.
     """
 
@@ -78,6 +78,16 @@ class ABCYamEnv:
             ):
                 raise ValueError(
                     "Timing diagnostic requires eval/32controls/two TRAIN seeds"
+                )
+        elif environment_profile == "train_scene_visual_rollout":
+            if (
+                env_usage != "eval"
+                or max_episode_steps != 3540
+                or not isinstance(episode_seeds, (list, tuple))
+                or len(episode_seeds) != 2
+            ):
+                raise ValueError(
+                    "Visual rollout requires eval/3540 controls/two TRAIN seeds"
                 )
         else:
             raise ValueError("Unknown ABC Real-Time EXPO environment profile")
@@ -166,9 +176,11 @@ class ABCYamEnv:
             "actual_controls": self.controls,
             "environment_profile": self.environment_profile,
             "split": "train",
-            "purpose": "timing_diagnostic"
-            if self.environment_profile == "train_scene_timing_diagnostic"
-            else "training",
+            "purpose": {
+                "original_train_v1": "training",
+                "train_scene_timing_diagnostic": "timing_diagnostic",
+                "train_scene_visual_rollout": "visual_rollout",
+            }[self.environment_profile],
             "benchmark_evaluation": False,
             **fields,
         }

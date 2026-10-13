@@ -33,7 +33,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-realtime-expo = ["ml-collections==1.0.0"]
+realtime-expo = ["ml-collections==1.1.0"]
 deploy = [
     "dynamixel-sdk",
     "evdev; sys_platform == 'linux'",

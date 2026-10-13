@@ -260,37 +260,45 @@ def test_seed_exhaustion_and_second_world_refuse(fixture):
         env.get_observation()
 
 
-def test_original_eval_double_reset_without_hold_in_declared_timing_profile(fixture):
+@pytest.mark.parametrize(
+    "profile,horizon,purpose",
+    [
+        ("train_scene_timing_diagnostic", 32, "timing_diagnostic"),
+        ("train_scene_visual_rollout", 3540, "visual_rollout"),
+    ],
+)
+def test_original_eval_double_reset_without_hold_in_declared_profile(
+    fixture, profile, horizon, purpose
+):
     world, kwargs, _ = fixture
-    world.horizon = 32
+    world.horizon = horizon
     env = boundary.ABCYamEnv(
         **(kwargs | {"example_action": np.zeros((1, 14))}),
         env_usage="eval",
-        environment_profile="train_scene_timing_diagnostic",
-        max_episode_steps=32,
+        environment_profile=profile,
+        max_episode_steps=horizon,
     )
     # Pristine eval resets after env creation, then again at the episode start.
     env.reset()
     env.reset()
     assert not world.actions
     action = np.arange(14, dtype=np.float32) + 10
-    for _ in range(32):
+    for _ in range(horizon):
         env.get_observation()
         assert env.get_info_for_step()[0] is False
         env.step(action)
-    # Author loop bound33 sees native truncation before dispatching another action.
+    # One extra author loop slot observes truncation without another command.
     env.get_observation()
     assert env.get_info_for_step() == (True, False, 0.0, 0.0)
-    assert len(world.actions) == 32
+    assert len(world.actions) == horizon
     assert all(np.array_equal(item, action) for item in world.actions)
-    assert np.isclose(world.data.time, 32 * 0.034)
+    assert np.isclose(world.data.time, horizon * 0.034)
     env.close()
     constructed = json.loads(Path(kwargs["event_log_path"]).read_text().splitlines()[0])
-    assert constructed["environment_profile"] == "train_scene_timing_diagnostic"
+    assert constructed["environment_profile"] == profile
     assert constructed["benchmark_evaluation"] is False
     assert all(
-        json.loads(line)["purpose"] == "timing_diagnostic"
-        and json.loads(line)["split"] == "train"
+        json.loads(line)["purpose"] == purpose and json.loads(line)["split"] == "train"
         for line in Path(kwargs["event_log_path"]).read_text().splitlines()
     )
 
@@ -299,18 +307,27 @@ def test_original_eval_double_reset_without_hold_in_declared_timing_profile(fixt
     "change",
     [{"env_usage": "train"}, {"max_episode_steps": 31}, {"episode_seeds": [9030]}],
 )
-def test_timing_profile_bounds_refuse_before_native(fixture, change):
+@pytest.mark.parametrize(
+    "profile,horizon,message",
+    [
+        ("train_scene_timing_diagnostic", 32, "Timing diagnostic"),
+        ("train_scene_visual_rollout", 3540, "Visual rollout"),
+    ],
+)
+def test_eval_profile_bounds_refuse_before_native(
+    fixture, change, profile, horizon, message
+):
     _, kwargs, calls = fixture
     parameters = (
         kwargs
         | {
             "env_usage": "eval",
-            "max_episode_steps": 32,
-            "environment_profile": "train_scene_timing_diagnostic",
+            "max_episode_steps": horizon,
+            "environment_profile": profile,
         }
         | change
     )
-    with pytest.raises(ValueError, match="Timing diagnostic"):
+    with pytest.raises(ValueError, match=message):
         boundary.ABCYamEnv(**parameters)
     assert not calls
 
