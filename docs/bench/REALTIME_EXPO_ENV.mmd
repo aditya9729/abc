@@ -1,0 +1,13 @@
+flowchart LR
+  D[Data agent: published TRAIN data and model transforms] --> L[Author learner and original train_pi_robo]
+  L --> S[Original AsyncChunkSampler delay5 / replan8]
+  S --> L
+  L -->|Author WebSocket EnvClient| C[Pristine author rollout client]
+  C -->|Public task-config factory| E[ABCYamEnv boundary]
+  E -->|One absolute14 control| N[Original ABC YAM environment]
+  N -->|State14, synchronized RGB, native five-bottle judge| E
+  E --> C
+  E --> O[Native control event log and episode video]
+  R[Root: canonical GPU0 lease and supervised lifecycle] -. pending native acceptance .-> L
+  R -. pending native acceptance .-> C
+  R -. shutdown close .-> E
