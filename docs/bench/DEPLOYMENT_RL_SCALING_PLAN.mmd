@@ -1,0 +1,42 @@
+flowchart TD
+    subgraph Inputs[Published inputs and project boundaries]
+        R[Approved real data and deployment logs]
+        Q[Alaya artifacts and existing curation interfaces]
+        E[Leela: validated scenes and physical reset states]
+        R -. published data .-> Q
+    end
+    subgraph H[Sadhana harness: root owns integration]
+        P[Existing provenance and rollout artifact components]
+        F[Planned collection feedback: outcomes and reset history]
+        S[Planned reset selection: uniform control or SGS]
+        M[Planned supervised collection selection: Mulligan]
+        B[Planned method-specific actor and critic data views]
+        J[Existing bounded GPU0 job supervision]
+        L[Released Real-Time EXPO-FT learner]
+        ML[Released Mulligan learner]
+        C[Planned policy rollout and supervised collection]
+        Q -. data artifacts .-> P
+        P -. collection evidence .-> F
+        F -. simulation allocation .-> S
+        F -. operator allocation .-> M
+        S -. reset commands .-> C
+        M -. collection requests .-> C
+        E -. physical task states .-> C
+        C -. executed transitions .-> B
+        B -. original recipe inputs .-> L
+        B -. original recipe inputs .-> ML
+        J -->|existing EXPO process control| L
+        J -. required original-command adapter .-> ML
+        L -. selected checkpoint .-> C
+        ML -. selected checkpoint .-> C
+    end
+    subgraph V[Independent evaluation and reporting]
+        T[Sealed final starts and task success judge]
+        X[Planned success curves, cost, coverage and full videos]
+        L -. frozen policy .-> T
+        ML -. frozen policy .-> T
+        T -. final measurements only .-> X
+        C -. collection costs and development outcomes .-> X
+        A[Reviewers: SGS, supervision and harness contracts]
+        A -. verify method and evidence .-> X
+    end
