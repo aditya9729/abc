@@ -59,7 +59,9 @@ These are the released example settings. The paper's Dynamic Picking table
 instead specifies delay3 and25 transitions per update call. Preserve this
 difference explicitly; do not call the example script an exact paper recipe.
 The author evaluation wrapper requests60 episodes; the paper reports30 trials.
-These are distinct settings, not an exact equality claim.
+The online script resolves the default `max_steps=500000`; the paper reports
+about18,000 transitions for Dynamic Picking. These are distinct settings,
+not an exact equality claim or authorization to launch the larger budget.
 
 `AsyncChunkSampler` starts the next base-policy inference while prior actions
 execute. Prefix conditioning preserves the committed action sequence.
@@ -117,6 +119,27 @@ The next required evidence is a pristine real-time source/runtime check and
 an explicit list of missing data and environment interfaces. Then verify actual
 action-prefix timing and original updates before a learning claim. Do not
 substitute another custom training loop or a new collection of wrapper tests.
+
+### Verified source and runtime readiness
+
+A separate pristine real-time server environment is installed at
+`builds/real-time-expo-ft-author-readiness-20261013/server-py311`, relative to
+this repository's parent. It contains no ABC adapter. Root verified37 EXPO,
+55 real-time OpenPI and13 OpenPI-client Python payloads against the source
+manifest. The old environments remain unchanged.
+
+Actual CPU imports of `RealTimeEXPOFTLearner` and `RTCLearner` passed.
+The three unchanged author entrypoints parsed their released example flags
+with `--only_check_args`, exit0. Their help calls emitted usage with Abseil's
+exit1. No model, GPU, simulator, hardware or training execution followed.
+Evidence: `AUTHOR_IMPORT_AND_CONFIG_READINESS.json` in that same build.
+
+The pristine FastTD3 checkout is at
+`builds/fasttd3-pristine-author-readiness-20261013/source`. Original CLI help
+passed with CUDA hidden. Full dependency readiness did not pass: HumanoidBench
+declares Torch2.3.1 while FastTD3 declares Torch2.6.0. The documented upstream
+installation order needs separate validation; no dependency rewrite or learner
+patch was made. No new FastTD3 simulation or training ran.
 
 ```mermaid
 flowchart LR
