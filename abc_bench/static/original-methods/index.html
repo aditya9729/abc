@@ -15,11 +15,17 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <p id="error" role="alert"></p>
 <div class="grid">
 <section class="card" aria-labelledby="fast-heading">
-<h2 id="fast-heading">FastTD3 · current corrected reward</h2>
+<h2 id="fast-heading">FastTD3 · current status</h2>
 <p>Random state policy, no demonstrations. It receives privileged robot and object state.</p>
 <div id="fast-score" class="score">Corrected frozen score pending</div>
 <p id="fast-status" class="status"></p>
 <p id="fast-admission" class="status"></p>
+<h3>Latest scene-cache memory check</h3>
+<p id="fast-resource-status">Resource measurements pending.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Scene-cache process memory measurements">
+<table class="window-table"><thead><tr><th scope="col">Rank</th><th scope="col">Retained scene limit</th><th scope="col">Peak process RAM</th><th scope="col">Final process RAM</th></tr></thead><tbody id="fast-resource-cases"></tbody></table>
+</div>
+<p id="fast-resource-scope"></p>
 <div class="current">
 <p id="fast-run" class="run-id"></p>
 <div class="metric"><strong id="fast-progress-value">—</strong><small id="fast-progress-label">Reported worker progress</small></div>
@@ -49,7 +55,7 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 </section>
 <section class="card" aria-labelledby="expo-heading">
 <h2 id="expo-heading">EXPO-FT · pi0.5</h2>
-<p>Pretrained image policy, then task adaptation with demonstrations. It uses the author's critic and action editor.</p>
+<p>Pretrained image policy with task demonstrations. Online EXPO also uses the author's critic and action editor.</p>
 <div id="expo-score" class="score">Online task score pending</div>
 <p id="expo-status" class="status"></p>
 <div class="current">
@@ -69,8 +75,14 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 </details>
 <div class="metric"><strong id="sft-live-title">Task adaptation</strong><small id="sft-live-progress">Waiting for measured progress</small></div>
 <p id="sft-loss"></p>
+<h3>Selected SFT125 · new captured VAL cohort</h3>
+<div id="sft125-score" class="score">Frozen task score pending</div>
+<p id="sft125-status"></p>
+<p>This fresh SFT actor is separate from the earlier SFT75 and recovered post-RL policies. No matching post-RL125 result exists.</p>
+<div id="sft125-clips"></div>
 <details>
-<summary>Matching pi0.5 before RL videos</summary>
+<summary>Earlier selected SFT75 before RL videos</summary>
+<p id="sft75-history"></p>
 <div id="matched-pre-clips"></div>
 </details>
 <details>
@@ -183,7 +195,9 @@ function renderFast(f) {
       ' GiB required; ' + Math.floor(integer(admission.available_host_RAM_kib, 'available host RAM', 1) / 1048576) +
       ' GiB available at ' + admission.RAM_observed_at + '.' : '');
 
-  text('fast-status', interrupted ? 'Corrected-reward TRAIN run was interrupted on ' + integer(interrupted.num_envs, 'world count', 1) + ' worlds. No final export was produced; corrected frozen evaluation remains pending.' : active ? 'Corrected-reward training is ' + active.status + ' on ' + integer(active.num_envs, 'world count', 1) + ' worlds.' : f.status);
+  const resource = f.scene_cache_resource_probe;
+  text('fast-status', resource?.status === 'completed' ? 'Six scene-cache resource cases completed. Full 64-world training and its frozen task score remain pending.' : interrupted ? 'Corrected-reward TRAIN run was interrupted on ' + integer(interrupted.num_envs, 'world count', 1) + ' worlds. No final export was produced; corrected frozen evaluation remains pending.' : active ? 'Corrected-reward training is ' + active.status + ' on ' + integer(active.num_envs, 'world count', 1) + ' worlds.' : f.status);
+  renderResource(resource);
   text('fast-run', active ? (interrupted ? 'Interrupted run: ' : 'Current run: ') + active.run_id : 'No corrected-reward run in this snapshot.');
   const reported = observation?.last_stdout_vector_call ?? active?.last_stdout_vector_call;
   text('fast-progress-value', Number.isInteger(reported) ? count(integer(reported, 'reported vector call')) + ' / ' + count(active.max_vector_calls) + ' vector calls' : 'Awaiting reported progress');
@@ -213,6 +227,41 @@ function renderFast(f) {
   text('fast-history-training', historical ? 'Historical run: ' + historical.run_id + '. ' + count(historical.metrics.transitions) + ' training transitions; ' + historical.training_successes + '/' + historical.completed_training_episodes + ' successful TRAIN episodes. This is the earlier reward recipe.' : 'Historical training record unavailable.');
   text('fast-history-warning', historical?.native_warnings?.length ? 'The historical log contains ' + historical.native_warnings.length + ' simulator instability warning. The message remains in results.json.' : '');
   evaluation(f, 'fast-history-score', 'fast-clips');
+}
+function renderResource(resource) {
+  const table = document.getElementById('fast-resource-cases');
+  table.replaceChildren();
+  if (!resource) {
+    text('fast-resource-status', 'Resource measurements pending.');
+    text('fast-resource-scope', '');
+    return;
+  }
+  if (resource.status !== 'completed') {
+    text('fast-resource-status', 'Scene-cache check: ' + resource.status + '. Complete measurements pending.');
+    text('fast-resource-scope', 'This resource check has no policy score.');
+    return;
+  }
+  if (!Array.isArray(resource.cases) || resource.cases.length !== 6) throw Error('Missing six completed resource cases');
+  const seen = new Set();
+  for (const row of resource.cases) {
+    const rank = integer(row.rank, 'resource rank');
+    const capacity = integer(row.capacity, 'scene limit');
+    const identity = rank + ':' + capacity;
+    if (![0, 55].includes(rank) || ![12, 0, 1].includes(capacity) || seen.has(identity)) throw Error('Invalid resource case identity');
+    seen.add(identity);
+    const peak = integer(row.peak_rss_kib, 'peak process RAM', 1);
+    const final = integer(row.final_rss_kib, 'final process RAM', 1);
+    const tr = document.createElement('tr');
+    for (const value of [rank, capacity, (peak / 1048576).toFixed(2) + ' GiB', (final / 1048576).toFixed(2) + ' GiB']) {
+      const cell = document.createElement('td');
+      cell.textContent = value;
+      tr.append(cell);
+    }
+    table.append(tr);
+  }
+  if (!Array.isArray(resource.comparisons) || resource.comparisons.length !== 4 || !resource.comparisons.every(row => row.exact_equivalent === true)) throw Error('Resource comparisons are incomplete');
+  text('fast-resource-status', 'Completed six sequential native cases · ranks 0/55 · retained scene limits 12/0/1. Recorded compiled-model, full-state, action, reward and judge comparisons passed.');
+  text('fast-resource-scope', 'Separate process lifetime peaks, not aggregate 64-world memory. Raw XML identity is reported separately.' + (resource.estimate_fits_available === false ? ' The unchanged 64-world memory estimate still exceeds observed available RAM; no training admission or task score follows.' : ' Fresh training admission remains required.'));
 }
 function renderWarmup(observation, runId) {
   const box = document.getElementById('expo-warmup-clips');
@@ -258,17 +307,27 @@ function renderExpo(e) {
     ? 'Original online TRAIN failed during host cleanup. Saved learner state was restored for evaluation only. ' + integer(e.task_evaluation.episodes, 'completed frozen episodes', 1) + ' frozen episodes completed; their results are shown above.'
     : training ? 'Online TRAIN run is ' + training.status + (schedule ? ' · planned ' + integer(schedule.required_online_completions, 'planned completions', 1) + ' online episode completions / ' + integer(schedule.original_update_calls, 'planned update calls', 1) + ' original update calls. B' + schedule.batch_size + ' / UTD' + schedule.utd_ratio + '.' : '.') + ' Task outcome and frozen score remain pending.' : prepared ? (prepared.status.includes('not_launched') ? 'Prepared, not launched' : 'Prepared job status: ' + prepared.status) + ' · ' + integer(prepared.required_online_completions, 'planned completions', 1) + ' online episode completions / ' + integer(prepared.original_update_calls, 'planned update calls', 1) + ' original update calls. B' + prepared.batch_size + ' / UTD' + prepared.utd_ratio + '. Task outcome pending.' : 'Online task training is pending.');
   text('expo-train-run', training ? 'Online TRAIN run: ' + training.run_id : '');
-  const sft = e.sft_completed;
+  const latest = e.sft200_training_completed;
+  const sft = latest || e.sft_completed;
   if (sft) {
-    text('sft-live-title', 'Selected pi0.5 actor · SFT update ' + integer(sft.selected_update_count, 'selected SFT update', 1));
-    text('sft-live-progress', integer(sft.actual_steps, 'completed SFT updates') + ' supervised updates completed; selected actor is separate from online RL.');
-    if (!Number.isFinite(sft.selected_macro_episode_loss)) throw Error('Invalid selected supervised loss');
-    text('sft-loss', 'Selected supervised validation loss: ' + sft.selected_macro_episode_loss.toFixed(5) + '. This measures demonstration agreement, not task success.');
+    const selected = integer(latest ? sft.selected_update : sft.selected_update_count, 'selected SFT update', 1);
+    const updates = integer(latest ? sft.actual_updates : sft.actual_steps, 'completed SFT updates', 1);
+    const loss = latest ? sft.selected_validation_loss : sft.selected_macro_episode_loss;
+    if (selected > updates || !Number.isFinite(loss) || loss < 0 || (latest && sft.status !== 'completed')) throw Error('Invalid selected supervised state');
+    text('sft-live-title', 'Selected pi0.5 actor · SFT update ' + selected);
+    text('sft-live-progress', updates + ' supervised updates completed' + (latest?.early_stopping_reason === 'heldout_macro_loss_plateau' ? ' · stopped early for held-out loss plateau' : '') + '; selected actor is separate from online RL.');
+    text('sft-loss', 'Selected supervised validation loss: ' + loss.toFixed(5) + '. This measures demonstration agreement, not task success.' + (latest ? ' Fresh restart from the original base, with a maximum of200 updates.' : ''));
   } else {
     text('sft-live-title', 'Task adaptation');
     text('sft-live-progress', 'Selected task-adapted actor unavailable in this snapshot.');
     text('sft-loss', '');
   }
+  const oldSft = e.sft_completed;
+  text('sft75-history', oldSft ? 'Earlier task SFT: ' + integer(oldSft.actual_steps, 'earlier SFT updates', 1) + ' updates; selected update ' + integer(oldSft.selected_update_count, 'earlier selected update', 1) + '. Its accepted frozen cohort and videos remain separate.' : 'Earlier selected SFT75 record unavailable.');
+  text('sft125-score', 'Frozen task score pending');
+  const active125 = e.sft125_frozen_active;
+  text('sft125-status', active125?.canonical_status === 'running' ? 'Selected SFT125 scene ' + integer(active125.captured_seed, 'active SFT125 scene') + ' is running. Its accepted outcome is pending.' : 'Three captured scenes are planned. Accepted outcomes appear after complete native evaluation.');
+  evaluation({task_evaluation: e.sft125_frozen_evaluation}, 'sft125-score', 'sft125-clips');
   const earlier = e.sft_prerequisite;
   text('sft-result', earlier ? 'Earlier SFT actor: ' + earlier.sft_updates + ' supervised updates · ' + earlier.successes + '/' + earlier.episodes + ' complete episode · ' + earlier.bottles + '/5 bottles · ' + count(earlier.controls) + ' controls · zero RL updates.' : 'Earlier SFT episode unavailable.');
   const oldCapacity = e.capacity_completed;
@@ -285,8 +344,8 @@ function renderMatched(data) {
     return;
   }
   for (const [key, label] of [
-    ['pi05_sft75', 'pi0.5 before online RL'],
-    ['expo_post_rl', 'EXPO-FT saved post-RL policy'],
+    ['pi05_sft75', 'pi0.5 selected SFT75 · before online RL'],
+    ['expo_post_rl', 'EXPO-FT saved post-RL policy · SFT75 origin'],
     ['fasttd3', 'FastTD3 final policy'],
   ]) {
     const result = strategies[key];
@@ -317,8 +376,39 @@ function renderMatched(data) {
     }
     table.append(tr);
   }
+  const newer = data.matched_frozen_sft125?.strategies?.pi05_sft125;
+  const tr = document.createElement('tr');
+  let scenes = 'Pending', success125 = 'Pending', bottles125 = 'Pending';
+  if (newer) {
+    const episodes = integer(newer.accepted_episode_denominator, 'SFT125 accepted episodes');
+    if (!Array.isArray(newer.cases) || newer.cases.length !== 3) throw Error('Missing SFT125 captured cases');
+    const cases = newer.cases.filter(row => row.status === 'accepted_complete_episode');
+    if (cases.length !== episodes || episodes > 3) throw Error('Invalid SFT125 accepted denominator');
+    if (episodes) {
+      const number = integer(newer.accepted_successes, 'SFT125 successful episodes');
+      if (number > episodes || cases.filter(row => row.success === true).length !== number) throw Error('Invalid SFT125 success count');
+      scenes = episodes + ' of 3';
+      success125 = number + ' / ' + episodes;
+      bottles125 = cases.map(row => {
+        const placed = integer(row.final_bottles_of_five, 'SFT125 bottle count');
+        if (placed > 5) throw Error('Invalid SFT125 bottle count');
+        return 'Scene ' + integer(row.seed, 'SFT125 scene seed') + ': ' + placed + '/5';
+      }).join(' · ');
+    } else if (newer.accepted_successes !== null) throw Error('Unevaluated SFT125 has a success count');
+  }
+  for (const [position, value] of ['pi0.5 selected SFT125 · fresh SFT cohort', scenes, success125, bottles125].entries()) {
+    const cell = document.createElement(position === 0 ? 'th' : 'td');
+    if (position === 0) cell.scope = 'row';
+    cell.textContent = value;
+    tr.append(cell);
+  }
+  table.append(tr);
   const active = data.expoft?.sft75_frozen_active;
-  text('matched-pre-progress', active?.status === 'running'
+  const active125 = data.expoft?.sft125_frozen_active;
+  text('matched-pre-progress', active125?.canonical_status === 'running'
+    ? 'New selected SFT125 scene ' + integer(active125.captured_seed, 'active SFT125 seed') + ' is running. Its accepted final outcome is pending; earlier cohorts remain separate.'
+    : newer ? integer(newer.accepted_episode_denominator, 'SFT125 accepted cases') + ' SFT125 scene(s) accepted. Unrun cases remain pending; earlier cohorts remain separate.'
+    : active?.status === 'running'
     ? 'Matching pre-RL scene ' + integer(active.seed, 'active matched scene seed') + ' is running. Its final outcome is pending.'
     : 'No matching pre-RL scene is reported running in this snapshot.');
 }

@@ -1,6 +1,6 @@
 flowchart LR
   subgraph Package[ABC package ownership]
-    H[Exact pinned viewer HTML]
+    H[Static viewer HTML<br/>current SFT + separate SFT125 cohort<br/>six resource measurements]
     W[Built wheel with static package resource]
     C[Installed stdlib export CLI]
     H -->|package data| W
@@ -9,7 +9,7 @@ flowchart LR
   subgraph Root[Root publication ownership]
     I[Explicit output directory]
     O[index.html]
-    D[Existing results.json and videos]
+    D[Existing results.json and videos<br/>old SFT75 / post-RL cohorts stay exact]
     S[Root-owned existing server]
     I -->|CLI control| C
     C -->|atomic HTML write| O
@@ -17,3 +17,8 @@ flowchart LR
     D -->|preserved data, no exporter writes| S
   end
   A[Agent isolated source and wheel verification] -->|read-only validation| Package
+  P[Genuine SFT125 producer + canonical frozen receipts] -->|strict public producer / reset / hash / video / clean-exit gates| R[Standalone explicit-selection V4 reader]
+  R -->|new accepted baseline summary; no post-RL125 claim| J[New isolated results projection]
+  J -.->|root review and publication; no agent served writes| D
+  N[Actual six-case cache resource receipts] -->|root-authenticated memory evidence| D
+  A -->|CPU DOM doubles; not live browser proof| H
