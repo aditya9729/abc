@@ -64,6 +64,41 @@ def test_changed_source_refuses_execution(tmp_path, monkeypatch):
     assert not (tmp_path / "out").exists()
 
 
+def test_catcher_settings_and_original_prng_reach_child(tmp_path, monkeypatch):
+    monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
+    settings = tmp_path / "catcher.json"
+    settings.write_text('{"env_seed": 42}\n')
+    config = fixture_config(
+        tmp_path,
+        "import json,os\nfrom pathlib import Path\n"
+        "settings = Path(os.environ['REALTIME_EXPO_CATCHER_SETTINGS'])\n"
+        "assert json.loads(settings.read_text())['env_seed'] == 42\n"
+        "assert os.environ['JAX_THREEFRY_PARTITIONABLE'] == 'false'\n",
+    )
+    config["environment"] = {
+        "REALTIME_EXPO_CATCHER_SETTINGS": str(settings),
+        "JAX_THREEFRY_PARTITIONABLE": "false",
+    }
+    config_path = tmp_path / "job.json"
+    config_path.write_text(json.dumps(config))
+    result = author_program.run(
+        author_program.load_config(config_path), tmp_path / "out"
+    )
+    assert result["status"] == "completed"
+
+
+def test_catcher_settings_do_not_allow_python_path_override(tmp_path):
+    config = fixture_config(tmp_path, "raise AssertionError('must not run')\n")
+    config["environment"] = {
+        "REALTIME_EXPO_CATCHER_SETTINGS": str(tmp_path / "catcher.json"),
+        "PYTHONPATH": str(tmp_path),
+    }
+    config_path = tmp_path / "job.json"
+    config_path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="environment keys"):
+        author_program.load_config(config_path)
+
+
 def test_timeout_reaps_original_process(tmp_path, monkeypatch):
     monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
     config = fixture_config(tmp_path, "import time\ntime.sleep(30)\n")

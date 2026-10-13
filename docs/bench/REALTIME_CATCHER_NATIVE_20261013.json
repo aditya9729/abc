@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-13T23:52:19.066011+00:00",
+  "scope": "Original frozen Catcher pilot, actual-data numerical updates, native task boundary; no native online learning claim",
+  "frozen_trials": [
+    {
+      "profile": "bc_delay0_c4",
+      "returned_episode_lengths": 67.0,
+      "returned_episode_returns": 1.0,
+      "returned_episode_solved": 1.0
+    },
+    {
+      "profile": "naive_delay4_c4",
+      "returned_episode_lengths": 76.0,
+      "returned_episode_returns": 1.0,
+      "returned_episode_solved": 1.0
+    },
+    {
+      "profile": "rtc_guidance_delay4_c4",
+      "returned_episode_lengths": 68.0,
+      "returned_episode_returns": 1.0,
+      "returned_episode_solved": 1.0
+    }
+  ],
+  "actual_data": {
+    "episodes": 128,
+    "rows": 8638,
+    "batch_size": 64,
+    "utd_ratio": 20,
+    "critic_updates": 40,
+    "filter_updates": 40,
+    "base_editor_updates_each": 2,
+    "native_controls": 0
+  },
+  "native_scripted_boundary": {
+    "controls": 70,
+    "matched_native_leaves": 81,
+    "task_success": false
+  },
+  "verification": {
+    "installed_supervisor_export_checks_passed": 13,
+    "export_checks_after_heading_changes_passed": 6,
+    "frozen_seal_members_verified": 69,
+    "historical_full_suite": "775 passed,24 failed,2 skipped; not rerun"
+  },
+  "members": [
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-catcher-frozen-eval-20261013/SEAL.json",
+      "bytes": 17203,
+      "sha256": "7506e327165be9aa7970ca0235b2feb38d3e08767a567301da528385dc2e17aa"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-catcher-frozen-eval-20261013/native_retry1-pilot/RESULT.json",
+      "bytes": 4529,
+      "sha256": "f86dada188f45fde465eb387a10334490d6cc32fbe6f602bcbd181552b963571"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-catcher-frozen-eval-20261013/ROOT_NATIVE_ACCEPTANCE.json",
+      "bytes": 2454,
+      "sha256": "e9418eef8080903d5e97b70c454092630bd73bfefdb1fc05239e203cae65ef97"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-catcher-frozen-eval-20261013/VIEWER_BROWSER_RESULT.json",
+      "bytes": 549,
+      "sha256": "eaca9b5d23b6aad920bc10926f7dea5712ed754765bcdcd0318631238892531a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/combined/ACTUAL_DATA_LEARNER_RESULT.json",
+      "bytes": 4514,
+      "sha256": "e75ffc89e8265053a075421b364400beed14d5bf228b2e2cb7785d30483462dc"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/combined/check_actual_data_learner.py",
+      "bytes": 7214,
+      "sha256": "84dbf767f2e0cfefdc0012df36f19cf2caf57108fb31ccf5565fd491f56444ae"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/combined/ACTUAL_DATA_LEARNER_RECHECK.log",
+      "bytes": 1798,
+      "sha256": "2a9ba4f97147f22b974b33a531c8a8732962b4df410181dfe563b7f7878ba91d"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/data/CALLBACK_SEAL.json",
+      "bytes": 2962,
+      "sha256": "8b15b6e1834fb464f6c72c62a8f1a51d64e5e53df994b07dc4914297c6a5c13a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/data/CALLBACK_HANDOFF.md",
+      "bytes": 4464,
+      "sha256": "100fe9bbb0b89172732ddf1ed6060eb8be6f11bd9f4b85b140e6b2abb6a0e62f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/EXECUTION_SOURCE_MANIFEST.json",
+      "bytes": 10578,
+      "sha256": "be1381ebd15eb6639c527c4430b695aac5fcbc6ca60bcec29869599749dab030"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/EXECUTION_INSTALLED_AUDIT.json",
+      "bytes": 2429,
+      "sha256": "fe6ba5ea89f85af4e5d254df529ddf5aaf861d9180ebfe5ec8e6e1aa29f7dbf2"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/task/NATIVE_BOUNDARY_RESULT.json",
+      "bytes": 573,
+      "sha256": "0fa0320b495ab6d4706ac391c3be48918186aa02f27a9811c812139ba52dd5cd"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/task/CPU_NATIVE_TESTS_ATTEMPT1.log",
+      "bytes": 2496,
+      "sha256": "3275a1546efb6ea3e5bc8860fc5438d48c3f9183091be32d493aa370e0779261"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/task/CPU_NATIVE_TESTS_ATTEMPT3.log",
+      "bytes": 915,
+      "sha256": "aedb727f914cb9b172bafe7a70e22204c84299adc484f278c30232d0e1744b7f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/task-review/CORRECTED_SOURCE_REVIEW.json",
+      "bytes": 7040,
+      "sha256": "5874a3901b595d6b5c3d071b6261c47a4ff40d9185c31b066525b0b3f7a24009"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/publication-wheel/abc_minimal-0.1.0-py3-none-any.whl",
+      "bytes": 48907618,
+      "sha256": "0a3f69b7e4cf5f077df5f673c20b944515f3b4fb6e3265ebf45acecb803b4c79"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/VIEWER_BROWSER_RESULT.json",
+      "bytes": 549,
+      "sha256": "eaca9b5d23b6aad920bc10926f7dea5712ed754765bcdcd0318631238892531a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/task-review/FINAL_REPORT_REVIEW.json",
+      "bytes": 9816,
+      "sha256": "abf71aa1006fdf4d6218a274a88d9b99483241fd32712b83cae7bd9741ff6bbd"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/task-review/FINAL_PUBLICATION_REVIEW.json",
+      "bytes": 1242,
+      "sha256": "679c29706f774a40140077eb9f3250942997417bcb7c4ff226c46bcd5b4ee683"
+    }
+  ],
+  "reviewed_content_snapshot_sha256": "1c4bdfabc9af323876ab0cb1528248b39f51e9786c20dc150baf049f8b97fb5c",
+  "review_scope": "Content review covers prior content snapshot; final amendment only adds browser and independent review pins."
+}

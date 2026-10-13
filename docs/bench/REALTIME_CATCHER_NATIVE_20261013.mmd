@@ -1,0 +1,18 @@
+flowchart TD
+    BC["Original BC24 checkpoint"] --> Eval["Original RTC eval function\nBC / delayed BC / RTC guidance"]
+    Physics["Original Catcher physics"] --> Eval
+    Eval --> Videos["Three native recordings\nOne first episode scored per profile"]
+    Videos --> Viewer["Verified local viewer"]
+    Data["Authenticated expert archive"] --> Loader["Explicit Catcher data loader\n128 complete episodes checked"]
+    Loader --> Batch["Original BatchProcessor"]
+    BC --> Backend["State-policy backend"]
+    Backend --> Learner["Original RealTimeEXPOFTLearner"]
+    Batch --> Learner
+    Learner --> UpdateCheck["Two CPU updates\nNo native online score"]
+    Physics --> Task["Catcher task adapter\n70 scripted native controls checked"]
+    Task -.-> Driver["Original train_pi_robo loop\nNative integration pending"]
+    Backend -.-> Driver
+    Batch -.-> Driver
+    Learner -.-> Driver
+    Driver -.-> HeldOut["Future frozen learned-policy evaluation"]
+    HeldOut -.-> Viewer

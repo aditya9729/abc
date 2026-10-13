@@ -13,6 +13,13 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <h1>Original RL experiments</h1>
 <p id="snapshot" role="status">Loading measured results…</p>
 <p id="error" role="alert"></p>
+<section id="catcher" class="card" aria-labelledby="catcher-heading" style="margin-bottom:22px" hidden>
+<h2 id="catcher-heading">Catcher · original BC and RTC evaluator</h2>
+<p>Frozen author BC24 policy, one trial per profile, the same seed. These recordings show the starting policy before Real-Time EXPO learning.</p>
+<div id="catcher-viewer" class="grid"></div>
+<p><small>Each video contains the author's 256-frame evaluation stream, including automatic resets after termination. The outcome describes the first episode only. Native 128 × 128 rendering; 15 fps playback is half the simulation rate. These videos do not measure wall-clock real-time control.</small></p>
+<p id="catcher-learning"></p>
+</section>
 <section id="mulligan" class="card" aria-labelledby="mulligan-heading" style="margin-bottom:22px" hidden>
 <h2 id="mulligan-heading">Mulligan · native Panda simulation</h2>
 <p id="mulligan-score" class="score"></p>
@@ -23,7 +30,7 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <p id="mulligan-training"></p>
 </section>
 <section class="card" aria-labelledby="rtc-heading" style="margin-bottom:22px">
-<h2 id="rtc-heading">Real-Time EXPO-FT · current work</h2>
+<h2 id="rtc-heading">ABC-YAM RTC · earlier checks</h2>
 <p id="rtc-status">Native RTC training and control checks pending.</p>
 <p id="rtc-training"></p>
 <p id="rtc-timing"></p>
@@ -32,7 +39,7 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 </section>
 <div class="grid">
 <section class="card" aria-labelledby="fast-heading">
-<h2 id="fast-heading">FastTD3 · current status</h2>
+<h2 id="fast-heading">FastTD3 · earlier ABC work</h2>
 <p>Random state policy, no demonstrations. It receives privileged robot and object state.</p>
 <div id="fast-score" class="score">Corrected frozen score pending</div>
 <p id="fast-status" class="status"></p>
@@ -71,7 +78,7 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 </details>
 </section>
 <section class="card" aria-labelledby="expo-heading">
-<h2 id="expo-heading">EXPO-FT · pi0.5</h2>
+<h2 id="expo-heading">EXPO-FT · earlier ABC work</h2>
 <p>Pretrained image policy with task demonstrations. Online EXPO also uses the author's critic and action editor.</p>
 <div id="expo-score" class="score">Online task score pending</div>
 <p id="expo-status" class="status"></p>
@@ -475,6 +482,34 @@ function renderMatched(data) {
     ? 'Matching pre-RL scene ' + integer(active.seed, 'active matched scene seed') + ' is running. Its final outcome is pending.'
     : 'No matching pre-RL scene is reported running in this snapshot.');
 }
+function renderCatcher(result) {
+  document.getElementById('catcher').hidden = !result;
+  if (!result) return;
+  text('catcher-learning', result.learning_status);
+  if (!Array.isArray(result.profiles) || result.profiles.length !== 3) throw Error('Invalid Catcher profiles');
+  const box = document.getElementById('catcher-viewer');
+  const identity = JSON.stringify(result.profiles);
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  for (const profile of result.profiles) {
+    if (!/^[0-9a-f]{16}\.mp4$/.test(profile.video)) throw Error('Invalid Catcher video');
+    const length = integer(profile.episode_length, 'Catcher episode length', 1);
+    if (typeof profile.solved !== 'boolean') throw Error('Invalid Catcher outcome');
+    const panel = document.createElement('div');
+    const heading = document.createElement('h3');
+    heading.textContent = profile.label;
+    const outcome = document.createElement('p');
+    outcome.textContent = 'First episode: ' + (profile.solved ? 'success' : 'failure') + ' · ' + length + ' controls';
+    const video = document.createElement('video');
+    video.controls = true;
+    video.preload = 'metadata';
+    video.src = profile.video;
+    video.setAttribute('aria-label', profile.label);
+    panel.append(heading, outcome, video);
+    box.append(panel);
+  }
+  box.dataset.identity = identity;
+}
 function renderMulligan(result) {
   document.getElementById('mulligan').hidden = !result;
   if (!result) return;
@@ -549,6 +584,7 @@ async function refresh() {
     if (!response.ok) throw Error('Results unavailable');
     const data = await response.json();
     if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
+    renderCatcher(data.catcher);
     renderMulligan(data.mulligan);
     renderFast(data.fasttd3);
     renderRealtime(data.expoft?.real_time_current);

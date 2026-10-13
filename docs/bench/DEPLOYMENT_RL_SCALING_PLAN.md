@@ -68,9 +68,15 @@ checkpoint round-trip. This does not verify resuming a live environment.
 It used no native policy episode and establishes no task-success result.
 Ten installed backend checks also passed. Declared adapters, two dependency
 metadata conflicts, and paper/code differences still limit recipe fidelity.
+The later [native Catcher check](REALTIME_CATCHER_NATIVE_20261013.md) adds three
+original frozen BC/RTC recordings. Their first episodes all succeed, one trial
+per profile. A separate authentic-data check performs two original learner
+updates at batch 64/UTD 20. Neither result establishes native online learning.
 The authentic Catcher expert archive is now available: 1,015,808 records,
-including 1,011,008 records from complete episodes. Its loader and task transport
-are still being integrated. Per-step rewards are absent from the archive;
+including 1,011,008 records from complete episodes. Its loader passes the
+authentic-data check. Scripted native task and transport fixture checks pass;
+the combined native driver admission remains pending.
+Per-step rewards are absent from the archive;
 source-derived sparse rewards require an explicit contract. Reward and stored
 success flags are not interchangeable.
 
