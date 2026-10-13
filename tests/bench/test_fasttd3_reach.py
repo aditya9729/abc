@@ -284,7 +284,11 @@ def test_canonical_reach_allowlist_does_not_expand_generic_bound(tmp_path):
 
 
 def test_job_inputs_are_bounded_but_unexecuted():
-    config, evidence = stage.load_config(BUILD / "runtime_gate-config.json")
+    config, evidence = stage.load_config(
+        Path(
+            "/home/user/aditya/RL/builds/abc-fasttd3-reach-matched-20261013/runtime_gate-config.json"
+        )
+    )
     assert len(evidence["worker_resources"]) == 64
     assert config["runtime_gate_parent"] is None
     assert stage.counters(256) == {

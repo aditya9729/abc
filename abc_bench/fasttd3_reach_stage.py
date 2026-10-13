@@ -60,6 +60,7 @@ FAST_PAYLOADS = {
         "vector.py",
         "environment.py",
         "learner.py",
+        "initial_export.py",
         "provenance.json",
     )
 }
@@ -430,6 +431,25 @@ def verify_result(config: dict, host_config: dict, output: Path) -> dict:
         raise RuntimeError("Diagnostic rank coverage differs")
     if diagnostic.get("checkpoint") != learner.get("checkpoint"):
         raise RuntimeError("Diagnostic checkpoint binding differs")
+    initial = learner.get("initial_export", {})
+    if (
+        initial != diagnostic.get("initial_export")
+        or initial.get("schema") != "sadhana.fasttd3.initial-scratch-export/v1"
+        or initial.get("status") != "completed"
+        or any(
+            type(initial.get(key)) is not int or initial[key] != 0
+            for key in ("global_step", "controls", "actor_updates", "critic_updates")
+        )
+        or initial.get("before") != initial.get("after")
+        or initial.get("source") != learner.get("source")
+    ):
+        raise RuntimeError(
+            "Reach producer lacks a read-only true initial scratch export"
+        )
+    pin(initial["checkpoint"])
+    metadata = json.loads(pin(initial["metadata"]).read_text())
+    if metadata != {key: value for key, value in initial.items() if key != "metadata"}:
+        raise RuntimeError("Initial export metadata differs from the producer binding")
     pin(learner["checkpoint"])
     return {
         "metrics": expected,
