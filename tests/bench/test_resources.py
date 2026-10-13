@@ -25,14 +25,14 @@ def telemetry(monkeypatch, inventory, processes, xml=None):
     return calls
 
 
-def idle_xml(uuid=ZERO):
+def idle_xml(uuid=ZERO, *, memory=1):
     """Explicit minimal nvidia-smi telemetry; no native GPU is queried."""
     return f"""<?xml version="1.0" ?>
 <nvidia_smi_log>
   <gpu id="00000000:05:00.0">
     <uuid>{uuid}</uuid>
     <display_active>Disabled</display_active>
-    <fb_memory_usage><used>1 MiB</used></fb_memory_usage>
+    <fb_memory_usage><used>{memory} MiB</used></fb_memory_usage>
     <utilization><gpu_util>0 %</gpu_util><memory_util>0 %</memory_util></utilization>
     <processes>
     </processes>
@@ -89,18 +89,19 @@ def test_unavailable_telemetry_fails_closed(monkeypatch):
         inspect_reserved_gpu()
 
 
-def test_one_mib_idle_allowance_requires_complete_matching_xml(monkeypatch):
-    xml = idle_xml()
+@pytest.mark.parametrize("memory", [1, 2, 3, 4])
+def test_small_idle_allowance_requires_complete_matching_xml(monkeypatch, memory):
+    xml = idle_xml(memory=memory)
     calls = telemetry(
         monkeypatch,
-        f"0, {ZERO}, A100, 580.1, 1\n1, {ONE}, A100, 580.1, 19000\n",
+        f"0, {ZERO}, A100, 580.1, {memory}\n1, {ONE}, A100, 580.1, 19000\n",
         f"123, {ONE}\n",
         xml,
     )
     result = inspect_reserved_gpu()
     evidence = result["idle_memory_allowance"]
-    assert result["memory_used_mib"] == 1
-    assert evidence["allowed_memory_used_mib"] == 1
+    assert result["memory_used_mib"] == memory
+    assert evidence["allowed_memory_used_mib"] == memory
     assert evidence["uuid"] == ZERO
     assert evidence["xml_memory_used_mib"] == result["memory_used_mib"]
     assert evidence["gpu_utilization_percent"] == 0
@@ -128,7 +129,7 @@ def test_one_mib_matching_uuid_query_uses_requested_physical_device(monkeypatch)
     assert calls[-1] == ["nvidia-smi", "-q", "-x", "-i", ONE]
 
 
-@pytest.mark.parametrize("memory", [0, 1, 2])
+@pytest.mark.parametrize("memory", [0, 1, 4])
 def test_compute_pid_never_uses_idle_allowance(monkeypatch, memory):
     calls = telemetry(
         monkeypatch, f"0, {ZERO}, A100, 580.1, {memory}\n", f"987, {ZERO}\n"
@@ -138,12 +139,46 @@ def test_compute_pid_never_uses_idle_allowance(monkeypatch, memory):
     assert len(calls) == 2
 
 
-@pytest.mark.parametrize("memory", [2, 40, 19000])
-def test_more_than_one_mib_without_compute_pid_is_refused(monkeypatch, memory):
+@pytest.mark.parametrize("memory", [5, 40, 19000])
+def test_more_than_four_mib_without_compute_pid_is_refused(monkeypatch, memory):
     calls = telemetry(monkeypatch, f"0, {ZERO}, A100, 580.1, {memory}\n", "")
     with pytest.raises(RuntimeError, match="occupied"):
         inspect_reserved_gpu()
     assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        (f"<uuid>{ZERO}</uuid>", f"<uuid>{ONE}</uuid>"),
+        ("<used>4 MiB</used>", "<used>3 MiB</used>"),
+        ("<processes>\n    </processes>", ""),
+        ("<processes>\n    </processes>", '<processes unsupported="true"/>'),
+        (
+            "<processes>\n    </processes>",
+            (
+                "<processes><process_info><pid>987</pid><type>G</type>"
+                "</process_info></processes>"
+            ),
+        ),
+        ("<gpu_util>0 %</gpu_util>", "<gpu_util>1 %</gpu_util>"),
+        ("<memory_util>0 %</memory_util>", "<memory_util>1 %</memory_util>"),
+        (
+            "<display_active>Disabled</display_active>",
+            "<display_active>Enabled</display_active>",
+        ),
+        ("</nvidia_smi_log>", ""),
+    ],
+)
+def test_four_mib_requires_complete_idle_xml(monkeypatch, old, new):
+    telemetry(
+        monkeypatch,
+        f"0, {ZERO}, A100, 580.1, 4\n",
+        "",
+        idle_xml(memory=4).replace(old, new),
+    )
+    with pytest.raises(RuntimeError, match="no job started"):
+        inspect_reserved_gpu()
 
 
 @pytest.mark.parametrize("process_type", ["C", "G", "C+G", "M", "O", "unknown"])

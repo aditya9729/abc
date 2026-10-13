@@ -14,11 +14,11 @@ GPU_UUID_PATTERN = re.compile(
 )
 
 
-def _one_mib_idle_evidence(device: dict) -> dict:
+def _idle_memory_evidence(device: dict) -> dict:
     """Validate the sole nonzero allowance using the combined process table.
 
     NVIDIA documents internal driver memory without active work. These checks
-    do not identify the cause of this 1 MiB or provide an atomic reservation.
+    do not identify the cause of this 1–4 MiB or provide an atomic reservation.
     Missing/unsupported telemetry cannot establish the allowance.
     See https://docs.nvidia.com/deploy/nvidia-smi/index.html (FB Memory Usage).
     """
@@ -27,7 +27,7 @@ def _one_mib_idle_evidence(device: dict) -> dict:
         xml = subprocess.check_output(command, text=True, timeout=5)
     except (OSError, subprocess.SubprocessError) as error:
         raise RuntimeError(
-            "Cannot verify the 1 MiB idle GPU allowance; no job started"
+            "Cannot verify the 1–4 MiB idle GPU allowance; no job started"
         ) from error
 
     def field(parent: ET.Element, path: str) -> ET.Element:
@@ -58,8 +58,9 @@ def _one_mib_idle_evidence(device: dict) -> dict:
         if memory.attrib or (memory.text or "").strip():
             raise ValueError("Malformed GPU XML memory table")
         used = value(memory, "used")
-        if used != "1 MiB" or device["memory_used_mib"] != 1:
-            raise ValueError("GPU XML memory differs from the 1 MiB inventory")
+        memory_used_mib = device["memory_used_mib"]
+        if not 1 <= memory_used_mib <= 4 or used != f"{memory_used_mib} MiB":
+            raise ValueError("GPU XML memory differs from the 1–4 MiB inventory")
         utilization = field(gpu, "utilization")
         if utilization.attrib or (utilization.text or "").strip():
             raise ValueError("Malformed GPU XML utilization table")
@@ -71,12 +72,12 @@ def _one_mib_idle_evidence(device: dict) -> dict:
             raise ValueError("GPU XML reports an active or unknown display")
     except (ET.ParseError, ValueError) as error:
         raise RuntimeError(
-            "Invalid or active 1 MiB GPU telemetry; no job started"
+            "Invalid or active 1–4 MiB GPU telemetry; no job started"
         ) from error
     captured = xml.encode("utf-8")
     return {
         "schema_version": 1,
-        "allowed_memory_used_mib": 1,
+        "allowed_memory_used_mib": memory_used_mib,
         "uuid": device["uuid"],
         "xml_query": command,
         "xml_query_timeout_s": 5,
@@ -84,7 +85,7 @@ def _one_mib_idle_evidence(device: dict) -> dict:
         "xml_hash_scope": "Captured text encoded as UTF-8",
         "xml_utf8_bytes": len(captured),
         "process_table": "present_empty_compute_graphics_other",
-        "xml_memory_used_mib": 1,
+        "xml_memory_used_mib": memory_used_mib,
         "gpu_utilization_percent": 0,
         "memory_utilization_percent": 0,
         "display_active": "Disabled",
@@ -161,14 +162,14 @@ def inspect_reserved_gpu(ordinal: int = 0) -> dict:
                 occupants.append(int(pid))
     except (ValueError, KeyError) as error:
         raise RuntimeError("Invalid GPU inventory; no job started") from error
-    if occupants or device["memory_used_mib"] > 1:
+    if occupants or device["memory_used_mib"] > 4:
         raise RuntimeError(
             f"Reserved GPU {ordinal} is occupied ({device['memory_used_mib']} MiB; "
             f"compute PIDs {occupants}). Existing jobs remain untouched."
         )
     evidence = {}
-    if device["memory_used_mib"] == 1:
-        evidence["idle_memory_allowance"] = _one_mib_idle_evidence(device)
+    if 1 <= device["memory_used_mib"] <= 4:
+        evidence["idle_memory_allowance"] = _idle_memory_evidence(device)
     return {
         **device,
         **evidence,
