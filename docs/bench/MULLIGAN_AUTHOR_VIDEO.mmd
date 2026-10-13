@@ -1,0 +1,27 @@
+flowchart LR
+  subgraph Root[Root: canonical process supervision and publication]
+    A[Pinned author checkpoint + paired start manifest]
+    L[Canonical GPU0 lease + original child prefix + CPU OSMesa]
+    P[Native acceptance and video publication: pending]
+  end
+  subgraph Author[Unchanged original Mulligan]
+    E[evaluate_manifest + step_rollouts_from_obs]
+    N[Policy / Normalizer / Panda controller / native reset and step]
+    O[Author point and aggregate outcome files]
+  end
+  subgraph Observer[ABC recorder: implemented, CPU-tested]
+    V[Scoped public SyncVectorEnv observer]
+    R[Original agentview renderer on selected slots]
+    M[1–3 complete MP4s + state/action traces + outcome-bound receipt]
+  end
+  A --> E
+  L -. control .-> E
+  E -. reset and step control .-> V
+  V -. unchanged delegate calls .-> N
+  N --> E
+  N --> R
+  R --> M
+  E --> O
+  O --> M
+  O --> P
+  M --> P
