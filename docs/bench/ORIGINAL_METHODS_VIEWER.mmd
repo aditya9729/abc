@@ -1,0 +1,19 @@
+flowchart LR
+  subgraph Package[ABC package ownership]
+    H[Exact pinned viewer HTML]
+    W[Built wheel with static package resource]
+    C[Installed stdlib export CLI]
+    H -->|package data| W
+    W -->|normal install| C
+  end
+  subgraph Root[Root publication ownership]
+    I[Explicit output directory]
+    O[index.html]
+    D[Existing results.json and videos]
+    S[Root-owned existing server]
+    I -->|CLI control| C
+    C -->|atomic HTML write| O
+    O -->|served data| S
+    D -->|preserved data, no exporter writes| S
+  end
+  A[Agent isolated source and wheel verification] -->|read-only validation| Package

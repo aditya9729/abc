@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EXPO-FT and FastTD3 in ABC-Sim</title>
+<style>
+body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max-width:1120px;margin:36px auto;padding:0 22px}h1{font-size:32px;line-height:1.2}h2{font-size:24px;margin-top:0}h3{font-size:18px;margin:22px 0 8px}p{color:#bdcbdc}a{color:#9fc8ff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.card{min-width:0;padding:24px;border:1px solid #35475c;border-radius:14px;background:#192533}.score{font-size:25px;color:#e7c991}.status{min-height:64px}.metric{padding:12px 0;border-top:1px solid #35475c}.metric strong{display:block;color:#a6e3c3;font-size:23px}small{color:#b2c0d0}details{margin-top:20px}summary{cursor:pointer}summary:focus-visible,a:focus-visible,.table-wrap:focus-visible{outline:2px solid #9fc8ff;outline-offset:4px}video{width:100%;margin-top:14px;background:#090e15}.note{padding:18px;border:1px solid #35475c;border-radius:10px}.current{border-left:3px solid #a6e3c3;padding-left:14px}.run-id{overflow-wrap:anywhere;font-size:14px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:8px 6px;vertical-align:top;overflow-wrap:anywhere;border-top:1px solid #35475c}.window-table{font-size:14px;min-width:440px}.window-table caption{text-align:left;color:#b2c0d0;padding:0 0 8px}.window-table th:first-child,.window-table td:first-child{white-space:nowrap}.comparison-table{table-layout:fixed}#error{color:#ffc6b9}@media(max-width:720px){.grid{grid-template-columns:1fr}main{margin-top:22px;padding:0 16px}.card{padding:20px}.status{min-height:0}}
+</style>
+</head>
+<body>
+<main>
+<h1>EXPO-FT and FastTD3 · ABC-Sim</h1>
+<p id="snapshot" role="status">Loading measured results…</p>
+<p id="error" role="alert"></p>
+<div class="grid">
+<section class="card" aria-labelledby="fast-heading">
+<h2 id="fast-heading">FastTD3 · current corrected reward</h2>
+<p>Random state policy, no demonstrations. It receives privileged robot and object state.</p>
+<div id="fast-score" class="score">Corrected frozen score pending</div>
+<p id="fast-status" class="status"></p>
+<p id="fast-admission" class="status"></p>
+<div class="current">
+<p id="fast-run" class="run-id"></p>
+<div class="metric"><strong id="fast-progress-value">—</strong><small id="fast-progress-label">Reported worker progress</small></div>
+<div class="metric"><strong id="fast-train-outcome">—</strong><small>Recorded complete TRAIN episodes · changing policy, separate from frozen validation</small></div>
+<p id="fast-observed"></p>
+</div>
+<h3>Root-authenticated TRAIN windows</h3>
+<p id="fast-window-scope">Waiting for complete native episode records.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Complete TRAIN episode windows">
+<table class="window-table">
+<caption>Final and peak bottle occupancy are separate measurements.</caption>
+<thead><tr><th scope="col">Window</th><th scope="col">TRAIN success</th><th scope="col">Final bottles</th><th scope="col">Peak bottles</th></tr></thead>
+<tbody id="fast-windows"></tbody>
+</table>
+</div>
+<p id="fast-state-check"></p>
+<p id="fast-budget"></p>
+<p id="fast-recipe"></p>
+<details>
+<summary>Historical flawed-reward run and video</summary>
+<p>The earlier run paid repeatedly for partial placement. Its results remain available as history.</p>
+<div id="fast-history-score" class="score">Historical frozen score unavailable</div>
+<p id="fast-history-training"></p>
+<p id="fast-history-warning"></p>
+<div id="fast-clips"></div>
+</details>
+</section>
+<section class="card" aria-labelledby="expo-heading">
+<h2 id="expo-heading">EXPO-FT · pi0.5</h2>
+<p>Pretrained image policy, then task adaptation with demonstrations. It uses the author's critic and action editor.</p>
+<div id="expo-score" class="score">Online task score pending</div>
+<p id="expo-status" class="status"></p>
+<div class="current">
+<h3>Latest live-camera capacity check</h3>
+<div class="metric"><strong id="expo-capacity-title">—</strong><small id="expo-capacity-label">Capacity check, separate from online task performance</small></div>
+<p id="expo-capacity"></p>
+<p id="expo-capacity-run" class="run-id"></p>
+</div>
+<h3>Online TRAIN run</h3>
+<p id="expo-prepared">Waiting for the prepared training job.</p>
+<p id="expo-train-run" class="run-id"></p>
+<p>Capacity proves that the measured update fits. It does not prove repeated-update capacity or task success.</p>
+<details>
+<summary>Completed online warmup video</summary>
+<p id="expo-warmup-note">A completed online recording will appear when it is verified.</p>
+<div id="expo-warmup-clips"></div>
+</details>
+<div class="metric"><strong id="sft-live-title">Task adaptation</strong><small id="sft-live-progress">Waiting for measured progress</small></div>
+<p id="sft-loss"></p>
+<details>
+<summary>Matching pi0.5 before RL videos</summary>
+<div id="matched-pre-clips"></div>
+</details>
+<details>
+<summary>Earlier prerequisite and capacity results</summary>
+<p id="sft-result"></p>
+<p>That earlier SFT episode used a different selected actor. It is separate from EXPO-FT online RL.</p>
+<p id="expo-history-capacity"></p>
+</details>
+<div id="expo-clips"></div>
+</section>
+</div>
+<p class="note" id="scope"></p>
+<section class="note" aria-labelledby="matched-heading">
+<h2 id="matched-heading">Matched captured validation</h2>
+<p>Each completed case uses the same captured starting scene and the full five-bottle judge. Pending cases have no score.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Matched frozen evaluation outcomes">
+<table class="comparison-table"><thead><tr><th scope="col">Policy</th><th scope="col">Evaluated scenes</th><th scope="col">Successful episodes</th><th scope="col">Bottles placed</th></tr></thead><tbody id="matched-results"></tbody></table>
+</div>
+<p id="matched-pre-progress"></p>
+<p>The training schedules and starting policies differ. These task results do not reproduce the paper experiments.</p>
+</section>
+<section class="note">
+<h2>What the comparison means</h2>
+<p>These runs compare complete training strategies. They cannot isolate algorithm superiority.</p>
+<table class="comparison-table"><thead><tr><th scope="col">Starting point</th><th scope="col">FastTD3</th><th scope="col">EXPO-FT</th></tr></thead><tbody><tr><th scope="row">Policy</th><td>Random state policy</td><td>Pretrained pi0.5, then task adapted</td></tr><tr><th scope="row">Observations</th><td>Robot and object state</td><td>RGB images and robot state</td></tr><tr><th scope="row">Demonstrations</th><td>None</td><td>3 complete TRAIN episodes</td></tr></tbody></table>
+<p id="comparison-reward"></p>
+<p>The same five-bottle judge measures outcomes. TRAIN windows use a changing policy; frozen validation measures the exported policy.</p>
+<p>Peak bottle occupancy is temporary placement. It does not establish a successful grasp or a frozen task score.</p>
+<p>Supervised validation loss measures demonstration agreement. A falling critic loss alone does not establish task success.</p>
+</section>
+<p><a href="results.json">Measured results and source receipts</a> · Snapshot refreshes every 30 seconds.</p>
+<script>
+const text = (id, value) => { document.getElementById(id).textContent = value; };
+const integer = (value, name, minimum = 0) => {
+  if (!Number.isInteger(value) || value < minimum) throw Error('Invalid ' + name);
+  return value;
+};
+const count = value => value.toLocaleString();
+function evaluation(method, scoreId, clipsId) {
+  const e = method.task_evaluation;
+  const box = document.getElementById(clipsId);
+  if (!e) {
+    box.replaceChildren();
+    delete box.dataset.identity;
+    return;
+  }
+  const episodes = integer(e.episodes, 'completed episodes', 1);
+  const successes = integer(e.successes, 'successful episodes');
+  if (successes > episodes) throw Error('Invalid completed episode counts');
+  if (scoreId) text(scoreId, successes + '/' + episodes + ' successful frozen episodes' +
+    (e.planned_episodes ? ' · ' + episodes + ' of ' + e.planned_episodes + ' evaluated' : ''));
+  const clips = e.clips || [];
+  const identity = JSON.stringify(clips);
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  for (const clip of clips) {
+    if (!/^[0-9a-f]{16}\.mp4$/.test(clip.video)) throw Error('Invalid video artifact');
+    const label = document.createElement('p');
+    label.textContent = clip.label;
+    const video = document.createElement('video');
+    video.controls = true;
+    video.preload = 'metadata';
+    video.src = clip.video;
+    box.append(label, video);
+  }
+  box.dataset.identity = identity;
+}
+function histogram(value, episodes) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw Error('Missing bottle histogram');
+  let total = 0;
+  const labels = Object.entries(value).sort(([a], [b]) => Number(a) - Number(b)).map(([bottles, number]) => {
+    if (!/^[0-5]$/.test(bottles)) throw Error('Invalid bottle count');
+    total += integer(number, 'histogram episode count');
+    return bottles + ' bottles: ' + number;
+  });
+  if (total !== episodes) throw Error('Bottle histogram does not cover complete episodes');
+  return labels.join(' · ');
+}
+function trainingWindows(active) {
+  if (!active) return [];
+  const observation = active.live_observation;
+  const rows = observation && Array.isArray(observation.windows) ? observation.windows :
+    Object.entries(active).filter(([name]) => name.endsWith('_complete_TRAIN_window'))
+      .map(([, value]) => value).sort((a, b) => String(a.recorded_at).localeCompare(String(b.recorded_at)));
+  return rows.map((row, position) => {
+    if (row.run_id && row.run_id !== active.run_id) throw Error('TRAIN window belongs to another run');
+    const episodes = integer(row.complete_TRAIN_episodes_in_window ?? row.complete_TRAIN_episodes, 'TRAIN window episodes', 1);
+    const successes = integer(row.successes, 'TRAIN successes');
+    if (successes > episodes) throw Error('Invalid TRAIN successes');
+    return {
+      index: integer(row.index ?? row.window_index ?? position, 'TRAIN window index'),
+      episodes, successes,
+      final: histogram(row.final_bottle_histogram, episodes),
+      peak: histogram(row.peak_bottle_histogram, episodes),
+      state: row.all_finite_warning_free ?? row.all_64_final_states_finite_and_warning_free,
+    };
+  }).sort((a, b) => a.index - b.index);
+}
+function renderFast(f) {
+  const interrupted = f.training_interrupted;
+  const active = interrupted || f.training_active;
+  const observation = active && active.live_observation;
+  const windows = trainingWindows(active);
+  const plan = f.reward_v2_plan;
+  text('fast-score', 'Corrected frozen score pending');
+  const admission = f.full_campaign_012_preparation;
+  text('fast-admission', admission?.status === 'CPU_preparation_verified_RAM_rejected_unlaunched'
+    ? 'Next full-task run has not started. Host RAM check: ' +
+      Math.ceil(integer(admission.required_host_RAM_kib, 'required host RAM', 1) / 1048576) +
+      ' GiB required; ' + Math.floor(integer(admission.available_host_RAM_kib, 'available host RAM', 1) / 1048576) +
+      ' GiB available at ' + admission.RAM_observed_at + '.' : '');
+
+  text('fast-status', interrupted ? 'Corrected-reward TRAIN run was interrupted on ' + integer(interrupted.num_envs, 'world count', 1) + ' worlds. No final export was produced; corrected frozen evaluation remains pending.' : active ? 'Corrected-reward training is ' + active.status + ' on ' + integer(active.num_envs, 'world count', 1) + ' worlds.' : f.status);
+  text('fast-run', active ? (interrupted ? 'Interrupted run: ' : 'Current run: ') + active.run_id : 'No corrected-reward run in this snapshot.');
+  const reported = observation?.last_stdout_vector_call ?? active?.last_stdout_vector_call;
+  text('fast-progress-value', Number.isInteger(reported) ? count(integer(reported, 'reported vector call')) + ' / ' + count(active.max_vector_calls) + ' vector calls' : 'Awaiting reported progress');
+  text('fast-progress-label', interrupted ? 'Last reported stdout progress from the interrupted run; final learner counters and export are unavailable.' : active?.stdout_progress_scope || 'Reported stdout progress only; final learner counters await completion.');
+  const episodes = observation ? integer(observation.complete_TRAIN_episodes, 'observed TRAIN episodes') : windows.reduce((sum, row) => sum + row.episodes, 0);
+  const successes = observation ? integer(observation.successes, 'observed TRAIN successes') : windows.reduce((sum, row) => sum + row.successes, 0);
+  if (successes > episodes) throw Error('Invalid observed TRAIN successes');
+  text('fast-train-outcome', count(successes) + ' / ' + count(episodes) + ' TRAIN successes');
+  text('fast-observed', observation?.observed_at ? 'Native episode records observed at ' + observation.observed_at + '.' : 'Complete episode records are shown when the coordinator publishes them.');
+  text('fast-window-scope', observation?.scope || 'Complete native TRAIN episodes under a changing policy. These are separate from frozen validation and final learning results.');
+  const table = document.getElementById('fast-windows');
+  table.replaceChildren();
+  for (const row of windows) {
+    const tr = document.createElement('tr');
+    for (const value of [String(row.index + 1), row.successes + ' / ' + row.episodes, row.final, row.peak]) {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.append(td);
+    }
+    table.append(tr);
+  }
+  text('fast-state-check', windows.length && windows.every(row => row.state === true) ? 'All reported final states in these windows are finite and warning-free.' : 'Final-state checks are not fully confirmed in this snapshot.');
+  text('fast-budget', plan ? (interrupted ? 'Interrupted run predeclared maximum: ' : 'Current maximum: ') + count(plan.max_vector_calls) + ' vector calls, ' + count(plan.max_transitions ?? active?.max_transitions ?? 0) + ' transitions. Task stopping starts after ' + count(plan.min_vector_calls_before_task_stop) + ' calls and ' + plan.min_completed_episodes_per_rank + ' complete episodes per world. No loss-based stopping.' : 'Corrected training bounds unavailable.');
+  const parallelism = plan?.runtime_gate64_completed?.parallelism || plan?.next_candidate;
+  text('fast-recipe', active?.num_envs === 64 || parallelism?.num_envs === 64 ? '64 worlds halve aggregate replay capacity to 3,276,800 transitions and double critic updates per collected transition to 2/64. Original learner settings stay fixed.' : '');
+  const historical = f.training_completed;
+  text('fast-history-training', historical ? 'Historical run: ' + historical.run_id + '. ' + count(historical.metrics.transitions) + ' training transitions; ' + historical.training_successes + '/' + historical.completed_training_episodes + ' successful TRAIN episodes. This is the earlier reward recipe.' : 'Historical training record unavailable.');
+  text('fast-history-warning', historical?.native_warnings?.length ? 'The historical log contains ' + historical.native_warnings.length + ' simulator instability warning. The message remains in results.json.' : '');
+  evaluation(f, 'fast-history-score', 'fast-clips');
+}
+function renderWarmup(observation, runId) {
+  const box = document.getElementById('expo-warmup-clips');
+  if (!observation) {
+    box.replaceChildren();
+    delete box.dataset.identity;
+    text('expo-warmup-note', 'A completed online recording will appear when it is verified.');
+    return;
+  }
+  if (observation.run_id !== runId || observation.phase !== 'pre_update_TRAIN_warmup' ||
+      observation.completed_original_update_calls_at_observation !== 0) throw Error('Invalid warmup recording scope');
+  const identity = JSON.stringify(observation);
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  text('expo-warmup-note', observation.scope);
+  for (const clip of observation.clips) {
+    if (!/^[0-9a-f]{16}\.mp4$/.test(clip.video) || clip.completed !== true) throw Error('Invalid completed warmup video');
+    integer(clip.seed, 'warmup seed');
+    integer(clip.controls, 'warmup controls', 1);
+    const label = document.createElement('p');
+    label.textContent = clip.label;
+    const video = document.createElement('video');
+    video.controls = true;
+    video.preload = 'metadata';
+    video.src = clip.video;
+    box.append(label, video);
+  }
+  box.dataset.identity = identity;
+}
+function renderExpo(e) {
+  text('expo-score', 'Online task score pending');
+  text('expo-status', e.status);
+  const capacity = e.serial_capacity_completed;
+  text('expo-capacity-title', capacity ? integer(capacity.completed_update_calls, 'capacity update calls') + ' original update call completed' : 'Latest capacity result unavailable');
+  text('expo-capacity-label', capacity ? 'Full B64 / UTD20 · live TRAIN images · serial batch scheduling' : 'Capacity check, separate from online task performance');
+  text('expo-capacity', capacity ? capacity.optimizer_counters.critic + ' critic / ' + capacity.optimizer_counters.actor + ' policy updates. ' + integer(capacity.native_controls, 'capacity native controls') + ' native controls · ' + integer(capacity.completed_online_episodes, 'capacity online episodes') + ' complete online task episodes. Capacity state discarded; no task score.' : '');
+  text('expo-capacity-run', capacity ? 'Capacity run: ' + capacity.run_id : '');
+  const prepared = e.serial_TRAIN_prepared;
+  const training = e.serial_TRAIN_active;
+  renderWarmup(e.online_TRAIN_visual_observation, training?.run_id);
+  const schedule = prepared || training;
+  text('expo-prepared', training?.status === 'failed' && e.task_evaluation
+    ? 'Original online TRAIN failed during host cleanup. Saved learner state was restored for evaluation only. ' + integer(e.task_evaluation.episodes, 'completed frozen episodes', 1) + ' frozen episodes completed; their results are shown above.'
+    : training ? 'Online TRAIN run is ' + training.status + (schedule ? ' · planned ' + integer(schedule.required_online_completions, 'planned completions', 1) + ' online episode completions / ' + integer(schedule.original_update_calls, 'planned update calls', 1) + ' original update calls. B' + schedule.batch_size + ' / UTD' + schedule.utd_ratio + '.' : '.') + ' Task outcome and frozen score remain pending.' : prepared ? (prepared.status.includes('not_launched') ? 'Prepared, not launched' : 'Prepared job status: ' + prepared.status) + ' · ' + integer(prepared.required_online_completions, 'planned completions', 1) + ' online episode completions / ' + integer(prepared.original_update_calls, 'planned update calls', 1) + ' original update calls. B' + prepared.batch_size + ' / UTD' + prepared.utd_ratio + '. Task outcome pending.' : 'Online task training is pending.');
+  text('expo-train-run', training ? 'Online TRAIN run: ' + training.run_id : '');
+  const sft = e.sft_completed;
+  if (sft) {
+    text('sft-live-title', 'Selected pi0.5 actor · SFT update ' + integer(sft.selected_update_count, 'selected SFT update', 1));
+    text('sft-live-progress', integer(sft.actual_steps, 'completed SFT updates') + ' supervised updates completed; selected actor is separate from online RL.');
+    if (!Number.isFinite(sft.selected_macro_episode_loss)) throw Error('Invalid selected supervised loss');
+    text('sft-loss', 'Selected supervised validation loss: ' + sft.selected_macro_episode_loss.toFixed(5) + '. This measures demonstration agreement, not task success.');
+  } else {
+    text('sft-live-title', 'Task adaptation');
+    text('sft-live-progress', 'Selected task-adapted actor unavailable in this snapshot.');
+    text('sft-loss', '');
+  }
+  const earlier = e.sft_prerequisite;
+  text('sft-result', earlier ? 'Earlier SFT actor: ' + earlier.sft_updates + ' supervised updates · ' + earlier.successes + '/' + earlier.episodes + ' complete episode · ' + earlier.bottles + '/5 bottles · ' + count(earlier.controls) + ' controls · zero RL updates.' : 'Earlier SFT episode unavailable.');
+  const oldCapacity = e.capacity_completed;
+  text('expo-history-capacity', oldCapacity ? 'Earlier capacity run: ' + oldCapacity.run_id + '. ' + oldCapacity.completed_update_calls + ' completed update call, ' + oldCapacity.online_controls + ' online controls. Separate from the current live-camera serial check.' : '');
+  if (e.task_evaluation) evaluation(e, 'expo-score', 'expo-clips');
+  evaluation({task_evaluation: e.matched_pre_RL_evaluation}, null, 'matched-pre-clips');
+}
+function renderMatched(data) {
+  const table = document.getElementById('matched-results');
+  table.replaceChildren();
+  const strategies = data.matched_frozen_current?.strategies;
+  if (!strategies) {
+    text('matched-pre-progress', 'Matched evaluation results are pending.');
+    return;
+  }
+  for (const [key, label] of [
+    ['pi05_sft75', 'pi0.5 before online RL'],
+    ['expo_post_rl', 'EXPO-FT saved post-RL policy'],
+    ['fasttd3', 'FastTD3 final policy'],
+  ]) {
+    const result = strategies[key];
+    if (!result || !Array.isArray(result.cases)) throw Error('Missing matched policy results');
+    const episodes = integer(result.accepted_episode_denominator, 'matched completed episodes');
+    const cases = result.cases.filter(row => row.status === 'accepted_complete_episode');
+    if (cases.length !== episodes || episodes > result.cases.length) throw Error('Inconsistent matched episode count');
+    let successes = 'Pending';
+    let bottles = 'Pending';
+    if (episodes) {
+      const number = integer(result.accepted_successes, 'matched successful episodes');
+      if (number > episodes || cases.filter(row => row.success === true).length !== number) throw Error('Inconsistent matched success count');
+      successes = number + ' / ' + episodes;
+      bottles = cases.map(row => {
+        const placed = integer(row.final_bottles_of_five, 'matched final bottle count');
+        if (placed > 5) throw Error('Invalid matched bottle count');
+        return 'Scene ' + integer(row.seed, 'matched scene seed') + ': ' + placed + '/5';
+      }).join(' · ');
+    } else if (result.accepted_successes !== null) {
+      throw Error('Unevaluated policy has a success count');
+    }
+    const tr = document.createElement('tr');
+    for (const [position, value] of [label, episodes + ' / ' + result.cases.length, successes, bottles].entries()) {
+      const cell = document.createElement(position === 0 ? 'th' : 'td');
+      if (position === 0) cell.scope = 'row';
+      cell.textContent = value;
+      tr.append(cell);
+    }
+    table.append(tr);
+  }
+  const active = data.expoft?.sft75_frozen_active;
+  text('matched-pre-progress', active?.status === 'running'
+    ? 'Matching pre-RL scene ' + integer(active.seed, 'active matched scene seed') + ' is running. Its final outcome is pending.'
+    : 'No matching pre-RL scene is reported running in this snapshot.');
+}
+async function refresh() {
+  try {
+    const response = await fetch('results.json', {cache: 'no-store'});
+    if (!response.ok) throw Error('Results unavailable');
+    const data = await response.json();
+    if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
+    renderFast(data.fasttd3);
+    renderExpo(data.expoft);
+    renderMatched(data);
+    text('snapshot', data.embodiment + ' · Snapshot ' + data.snapshot_utc);
+    text('scope', data.claim_scope);
+    text('comparison-reward', data.comparison_limits?.rewards || 'Current FastTD3 uses binary full success plus bounded progress shaping. EXPO uses binary full success.');
+    text('error', '');
+  } catch (error) {
+    text('error', error.message);
+  }
+}
+refresh();
+setInterval(refresh, 30000);
+</script>
+</main>
+</body>
+</html>

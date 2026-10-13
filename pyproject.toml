@@ -59,6 +59,7 @@ override-dependencies = [
 include = ["abc_minimal*", "abc_sim*", "deploy*", "abc_bench*"]
 
 [tool.setuptools.package-data]
+abc_bench = ["static/original-methods/index.html"]
 abc_sim = [
     "models/**/*",
     "models/assets/.abc_sim_asset_packages/*.sha256",
