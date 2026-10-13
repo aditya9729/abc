@@ -14,10 +14,16 @@ import numpy as np
 import pytest
 import torch
 
-from abc_bench import mulligan_video
+pytest.importorskip(
+    "mulligan",
+    reason="Run these integration checks in the separate locked Mulligan runtime",
+)
+
 from mulligan.sim import envs, vec_env
 from mulligan.sim.eval import grid_eval
 from mulligan.training.normalization import Normalizer
+
+from abc_bench import mulligan_video
 
 
 @pytest.fixture
@@ -134,18 +140,18 @@ def author_fixture(tmp_path, monkeypatch):
     manifest = grid_eval.make_equal_tile_manifest(points_per_cell=1, seed=7)
     manifest_path = tmp_path / "explicit-cpu-test-manifest.json"
     manifest_path.write_text(json.dumps(manifest))
-    evaluation = dict(
-        artifact_path="explicit-cpu-policy-double",
-        manifest_path=manifest_path,
-        output_dir=tmp_path / "recorded",
-        max_steps=4,
-        num_envs=2,
-        device="cpu",
-        use_sync_envs=True,
-        num_action_samples=32,
-        eval_seed=11,
-        env_seed=12,
-    )
+    evaluation = {
+        "artifact_path": "explicit-cpu-policy-double",
+        "manifest_path": manifest_path,
+        "output_dir": tmp_path / "recorded",
+        "max_steps": 4,
+        "num_envs": 2,
+        "device": "cpu",
+        "use_sync_envs": True,
+        "num_action_samples": 32,
+        "eval_seed": 11,
+        "env_seed": 12,
+    }
     return evaluation, made, factory_calls, faults
 
 
@@ -162,13 +168,13 @@ def test_original_evaluator_complete_video_and_render_off_parity(author_fixture)
     assert envs.create_robosuite_env is factory
     assert all(world.closed for world in made)
     assert calls == [
-        dict(
-            env_name="NutAssemblySquare",
-            robot_name="Panda",
-            camera_names=None,
-            visual_aids=False,
-            use_render_wrapper=render,
-        )
+        {
+            "env_name": "NutAssemblySquare",
+            "robot_name": "Panda",
+            "camera_names": None,
+            "visual_aids": False,
+            "use_render_wrapper": render,
+        }
         for render in [False, True, True]
     ]
     recorded = receipt(evaluation)

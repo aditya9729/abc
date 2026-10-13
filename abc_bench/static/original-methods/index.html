@@ -3,16 +3,25 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EXPO-FT and FastTD3 in ABC-Sim</title>
+<title>Original RL experiments</title>
 <style>
 body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max-width:1120px;margin:36px auto;padding:0 22px}h1{font-size:32px;line-height:1.2}h2{font-size:24px;margin-top:0}h3{font-size:18px;margin:22px 0 8px}p{color:#bdcbdc}a{color:#9fc8ff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.card{min-width:0;padding:24px;border:1px solid #35475c;border-radius:14px;background:#192533}.score{font-size:25px;color:#e7c991}.status{min-height:64px}.metric{padding:12px 0;border-top:1px solid #35475c}.metric strong{display:block;color:#a6e3c3;font-size:23px}small{color:#b2c0d0}details{margin-top:20px}summary{cursor:pointer}summary:focus-visible,a:focus-visible,.table-wrap:focus-visible{outline:2px solid #9fc8ff;outline-offset:4px}video{width:100%;margin-top:14px;background:#090e15}.note{padding:18px;border:1px solid #35475c;border-radius:10px}.current{border-left:3px solid #a6e3c3;padding-left:14px}.run-id{overflow-wrap:anywhere;font-size:14px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:8px 6px;vertical-align:top;overflow-wrap:anywhere;border-top:1px solid #35475c}.window-table{font-size:14px;min-width:440px}.window-table caption{text-align:left;color:#b2c0d0;padding:0 0 8px}.window-table th:first-child,.window-table td:first-child{white-space:nowrap}.comparison-table{table-layout:fixed}#error{color:#ffc6b9}@media(max-width:720px){.grid{grid-template-columns:1fr}main{margin-top:22px;padding:0 16px}.card{padding:20px}.status{min-height:0}}
 </style>
 </head>
 <body>
 <main>
-<h1>EXPO-FT and FastTD3 · ABC-Sim</h1>
+<h1>Original RL experiments</h1>
 <p id="snapshot" role="status">Loading measured results…</p>
 <p id="error" role="alert"></p>
+<section id="mulligan" class="card" aria-labelledby="mulligan-heading" style="margin-bottom:22px" hidden>
+<h2 id="mulligan-heading">Mulligan · native Panda simulation</h2>
+<p id="mulligan-score" class="score"></p>
+<p id="mulligan-pairing"></p>
+<p>Released seed-1 policies, 32 action candidates, the same 50 starts. This compares deployment-data rounds. It does not isolate the critic's contribution.</p>
+<div id="mulligan-viewer"></div>
+<p><small>Complete native episodes at 20 simulation frames per second. The three displayed starts are points 0, 1 and 2. Point 1 shows a failure followed by a success; point 0 fails with both policies. Playback speed does not measure wall-clock control latency.</small></p>
+<p id="mulligan-training"></p>
+</section>
 <section class="card" aria-labelledby="rtc-heading" style="margin-bottom:22px">
 <h2 id="rtc-heading">Real-Time EXPO-FT · current work</h2>
 <p id="rtc-status">Native RTC training and control checks pending.</p>
@@ -466,17 +475,86 @@ function renderMatched(data) {
     ? 'Matching pre-RL scene ' + integer(active.seed, 'active matched scene seed') + ' is running. Its final outcome is pending.'
     : 'No matching pre-RL scene is reported running in this snapshot.');
 }
+function renderMulligan(result) {
+  document.getElementById('mulligan').hidden = !result;
+  if (!result) return;
+  const policies = result.policies;
+  if (!Array.isArray(policies) || policies.length !== 2) throw Error('Invalid Mulligan policy pair');
+  const labels = policies.map(policy => {
+    const episodes = integer(policy.episodes, 'Mulligan episodes', 1);
+    const successes = integer(policy.successes, 'Mulligan successes');
+    if (successes > episodes) throw Error('Invalid Mulligan outcomes');
+    return policy.label + ': ' + successes + '/' + episodes + ' (' + (100 * successes / episodes).toFixed(0) + '%)';
+  });
+  text('mulligan-score', labels.join(' → '));
+  text('mulligan-pairing', result.pairing_text);
+  text('mulligan-training', result.training_text);
+  const box = document.getElementById('mulligan-viewer');
+  const identity = JSON.stringify(policies);
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  const label = document.createElement('label');
+  label.textContent = 'Compare the same start: ';
+  const select = document.createElement('select');
+  select.id = 'mulligan-point';
+  for (const point of [0, 1, 2]) {
+    const option = document.createElement('option');
+    option.value = point;
+    option.textContent = 'Point ' + point;
+    select.append(option);
+  }
+  select.value = '1';
+  label.append(select);
+  const play = document.createElement('button');
+  play.textContent = 'Replay both';
+  play.type = 'button';
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+  const show = () => {
+    for (const old of grid.querySelectorAll('video')) old.pause();
+    grid.replaceChildren();
+    for (const policy of policies) {
+      const clip = policy.clips.find(item => item.point === Number(select.value));
+      if (!clip || !/^[0-9a-f]{16}\.mp4$/.test(clip.video)) throw Error('Missing Mulligan video');
+      const panel = document.createElement('div');
+      const heading = document.createElement('h3');
+      heading.textContent = policy.label + ' · ' + clip.outcome + ' · ' + clip.control_steps + ' controls';
+      const video = document.createElement('video');
+      video.controls = true;
+      video.preload = 'metadata';
+      video.src = clip.video;
+      video.setAttribute('aria-label', heading.textContent);
+      panel.append(heading, video);
+      grid.append(panel);
+    }
+  };
+  select.onchange = show;
+  play.onclick = async () => {
+    try {
+      await Promise.all(Array.from(grid.querySelectorAll('video'), video => {
+        video.currentTime = 0;
+        return video.play();
+      }));
+    } catch (error) {
+      text('error', 'Playback unavailable: ' + error.message);
+    }
+  };
+  box.append(label, document.createTextNode(' '), play, grid);
+  show();
+  box.dataset.identity = identity;
+}
 async function refresh() {
   try {
     const response = await fetch('results.json', {cache: 'no-store'});
     if (!response.ok) throw Error('Results unavailable');
     const data = await response.json();
     if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
+    renderMulligan(data.mulligan);
     renderFast(data.fasttd3);
     renderRealtime(data.expoft?.real_time_current);
     renderExpo(data.expoft);
     renderMatched(data);
-    text('snapshot', data.embodiment + ' · Snapshot ' + data.snapshot_utc);
+    text('snapshot', (data.mulligan ? 'Mulligan: Panda · ABC history: ' : '') + data.embodiment + ' · Snapshot ' + data.snapshot_utc);
     text('scope', data.claim_scope);
     text('comparison-reward', data.comparison_limits?.rewards || 'Current FastTD3 uses binary full success plus bounded progress shaping. EXPO uses binary full success.');
     text('error', '');

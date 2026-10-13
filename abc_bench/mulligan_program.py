@@ -302,6 +302,8 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         + os.environ.get("PATH", ""),
         "MUJOCO_GL": "osmesa",
         "WANDB_MODE": "offline",
+        # Keep imageio's FFmpeg encoders in the coordinator's process group.
+        "IMAGEIO_FFMPEG_NO_PREVENT_SIGINT": "1",
         "WANDB_DIR": str(output / "wandb"),
         "TMPDIR": str(output / "tmp"),
         "MULLIGAN_OUTPUT_DIR": str(author_output),

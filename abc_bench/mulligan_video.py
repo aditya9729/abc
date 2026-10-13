@@ -224,7 +224,7 @@ def _observer_class(
                 for stream in getattr(self, "active", {}).values():
                     try:
                         stream.close()
-                    except Exception as exc:
+                    except Exception as exc:  # noqa: BLE001 - close every stream, then raise
                         errors.append(exc)
             finally:
                 super().close()

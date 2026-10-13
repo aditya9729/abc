@@ -53,6 +53,7 @@ The worker retains the existing GPU0 lease contract and `MUJOCO_GL=disable`.
 Only its original-command child gets `MUJOCO_GL=osmesa` and declared task-local
 `LD_LIBRARY_PATH`. CUDA visibility remains the reserved GPU UUID. All children
 remain in the canonical process group. Canonical cleanup reaps that group.
+`IMAGEIO_FFMPEG_NO_PREVENT_SIGINT=1` keeps imageio's encoders in that group.
 The worker records only direct-child cleanup; it does not claim descendant or
 native cleanup solely from the original shell's exit.
 

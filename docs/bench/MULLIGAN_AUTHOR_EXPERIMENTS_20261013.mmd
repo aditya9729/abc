@@ -1,0 +1,32 @@
+flowchart TD
+    subgraph Author[Original Mulligan source bc42da1: unchanged]
+        P[Released round-0 and round-1 DIVL policies]
+        D[Three pinned deployment datasets: 300 episodes]
+        G[Original Sobol start manifest]
+        L[Original IDQL training: 150000 updates, running]
+        V[Original frozen-actor DIVL stage: pending]
+        E[Original Panda Square-Narrow evaluator]
+        D -->|original actor and critic sample rules| L
+        L -. accepted final model required .-> V
+        V -. future trained policy evaluation .-> E
+        P -->|frozen policies| E
+        G -->|same 50 starts| E
+    end
+    subgraph Harness[Sadhana harness: root owns execution]
+        J[Canonical GPU0 lease and finite watchdog]
+        W[Process launcher: launcher agent]
+        O[Video observer: recorder agent]
+        R[Accepted outcomes and complete videos]
+        UI[Existing read-only viewer]
+        J -->|process control| W
+        W -->|original command| L
+        W -->|original command| E
+        E -->|unchanged native results| R
+        E -->|synchronous rendering observation| O
+        O -->|six full episodes and trace hashes| R
+        R -->|34/50 and 46/50, plus paired clips| UI
+    end
+    A[Independent reviewer: methods, source and artifact checks]
+    A -->|checks evidence and limits| R
+    T[Future R1 Lite task: Leela scene, controller, reward and reset contracts]
+    T -. new validated task adapter required .-> W

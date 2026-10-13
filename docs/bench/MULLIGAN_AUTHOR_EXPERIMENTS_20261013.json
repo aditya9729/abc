@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "evidence_root": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013",
+  "source_commit": "bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8",
+  "frozen_results": {
+    "round0": {
+      "successes": 34,
+      "episodes": 50
+    },
+    "round1": {
+      "successes": 46,
+      "episodes": 50
+    },
+    "both_success": 33,
+    "round1_only": 13,
+    "round0_only": 1,
+    "both_failure": 3
+  },
+  "scope": "One seed and50 paired starts; original released checkpoints. Not local trained gains, causal RL effect, full paper score, or R1Lite.",
+  "full_native_videos": 6,
+  "local_training": "running; acceptance pending",
+  "artifacts": {
+    "FROZEN_N32_RESULTS.json": "15ee39db0c952fc69fde110e3c3f28d4c9caa85e05365b3791e28dbbdffb9a47",
+    "NATIVE_VIDEO_ACCEPTANCE.json": "ceaa9489e245c61cd92c047ce57885ca4f5379cc1eebb388c3017a811c50a36a",
+    "VIEWER_BROWSER_RESULT.json": "bed6a98160478384c51ae43d4dda5cfc707e0756e3ea3934dbe64012920d23e8",
+    "VIEWER_RELEASE.json": "f864aad8e7cc8e6f4d9b80d8321e24723238f40aca4bda0725d673c964d7dffa",
+    "TRAINING_HANDLE.json": "1b76d63200929da2b1cd4b43bfc79b4e6c04fc87d19febf21cacaf059a76d3dd",
+    "DATA_INSPECTION.json": "a1ea284336c6f9a28ab30221f91fedf092bb75a83b49511d23bec7d5f7c7fbd5",
+    "../abc-mulligan-full-regression-20261013/REGRESSION_DIAGNOSIS.json": "65dac978a4515317cc5aad63c09a6ee6e8afa56263245fd1edaed05ec6e20f9d",
+    "results-review/AUDIT.json": "893c3052549332453e2dfceb35fe23f56a6f1532789cdf111f6465366baf5921"
+  }
+}

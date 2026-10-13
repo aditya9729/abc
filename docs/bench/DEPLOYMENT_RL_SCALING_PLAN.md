@@ -5,6 +5,11 @@ deployed policy. The harness must control collection, learning, and evaluation.
 More updates or more simulator instances do not establish that improvement.
 This document is a research-backed plan. It contains no new training result.
 
+Execution update: the [original Mulligan experiment](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.md)
+now has a working command launcher, matched released-policy scores and six full
+native videos. Original training is running. The wider collection feedback and
+R1 Lite connections below remain proposed.
+
 ## What the papers contribute
 
 | Work | Decision it changes | Implication for this harness |
