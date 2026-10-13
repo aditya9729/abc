@@ -11,6 +11,14 @@ The learner-side config can set `env=None` when ABC is unavailable.
 The original client imports no DROID module for this environment type.
 Its factory already calls `task_config.env(**dict(task_config))`.
 
+Use `--config-task-path abc_bench.realtime_expo_task` on the client.
+Set `ABC_REALTIME_EXPO_CLIENT_CONFIG` to an explicit pinned JSON task snapshot.
+Export the server's public `make_task_config()` metadata without its callable `env`.
+Root must fill the finite seed sequence and event path before native admission.
+The client loader restores float32 `example_action` and sets the public ABC environment class.
+It imports no server adapter, JAX, or OpenPI model.
+The separate offline server task config stays unchanged.
+
 ## Boundary
 
 The class uses existing public `make_original_env` and `reset_world`.
