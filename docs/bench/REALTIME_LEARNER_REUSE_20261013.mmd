@@ -1,0 +1,11 @@
+flowchart LR
+    P[Released Kinetix flow policy and pretrained assets] -. required backend wrapper .-> L[Released RealTimeEXPOFTLearner]
+    D[Released Kinetix task and data] -. required state replay and encoder .-> L
+    L -->|existing code| C[Action critic, noise critic, editor and base updates]
+    L -->|existing code| S[Slow candidate generation and fast current-state edits]
+    A[Original AsyncChunkSampler and training loop] -->|existing control path| S
+    S -. required task integration .-> E[Kinetix environment and renderer]
+    E -. planned observations and rewards .-> D
+    O[Root: integration and measured acceptance] -. owns .-> L
+    R[Reviewers: learner and boundary checks] -. verifies .-> C
+    E -. full experiment not yet run .-> V[Planned full rollout videos and scores]

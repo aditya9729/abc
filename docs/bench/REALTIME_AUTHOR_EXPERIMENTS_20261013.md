@@ -1,11 +1,13 @@
 # Original Real-Time EXPO-FT experiments: execution availability
 
 The user requested a visible reproduction on the authors' experiments.
-No local Real-Time EXPO-FT reproduction was executed in this check. The
-available public release does not yet provide a verified executable path
-for its Kinetix RL experiment. The released robot workflow needs physical
-DROID equipment and task assets. This is an availability finding for the
-checked sources, not a claim about private or unlinked releases.
+The original Real-Time EXPO-FT learner and its online training programs are
+released. The subsequent [implementation recheck](REALTIME_LEARNER_REUSE_20261013.md)
+corrects the earlier conclusion that we must obtain a separate trainer or
+reimplement the algorithm before proceeding. We can build the missing task
+integration around the released learner and disclose its required changes.
+There is still no verified local Kinetix full-method run. The shipped robot
+example needs physical DROID equipment and task assets.
 
 ## Visible author evidence
 
@@ -32,7 +34,7 @@ unchanged. No author video was inserted into our measured benchmark results.
 | Experiment | Available | Required before local execution |
 | --- | --- | --- |
 | Original DROID Real-Time EXPO-FT | RTC-SFT, online learner, client, and evaluation programs | Connected and calibrated DROID robot, task equipment, demonstrations, statistics, and task-trained policy |
-| Real-Time EXPO-FT on Kinetix | Paper settings; referenced simulator and pretrained baseline policies | Original Kinetix RL driver/configuration was not found in the checked release |
+| Real-Time EXPO-FT on Kinetix | Original RL learner; paper settings; referenced simulator and pretrained baseline policies | State-policy, encoder, replay, and task integration; no packaged Kinetix launcher found |
 | Original RTC Kinetix baseline | Source and public per-level imitation-policy assets | Separate runtime and selected policy download; this alone cannot reproduce EXPO RL |
 
 The official EXPO-FT repository remains at
@@ -60,31 +62,29 @@ entrypoint takes `--run-path`, not `--config.run-path`. Its CLI runs 96
 settings per level and discards the rendered video returned by its evaluation
 function. No command from this source review was claimed to have executed.
 
-## Exact next requirement
+## Corrected next requirement
 
-For the user's requested original implementation, obtain the authors' Kinetix
-Real-Time EXPO-FT driver and resolved task configuration. The published RTC
-base assets can supply the initialization once their compatibility is verified.
-A final RL checkpoint would permit evaluation before reproducing training.
+Reuse `RealTimeEXPOFTLearner` and its original control and update components.
+Integrate the released Kinetix state-flow policy, state encoder, task, and replay
+schema through explicit hooks. Review each source change against the paper.
+This integration does not require inventing another RL algorithm. A missing
+packaged experiment does not make the released learner unavailable.
 
-Reconstructing the missing simulation integration from the paper is a separate
-implementation. It must disclose all code and recipe differences. It cannot be
-labelled an execution of the authors' missing Kinetix implementation. No such
-substitution was made, and no new GPU or simulation job was launched.
-
-If the user selects a paper-based reproduction, the proposed first experiment
+The proposed first experiment
 is `catcher_v3`, one of the ten published Kinetix tasks. Reuse the original
 level, simulator, pretrained state-flow policy, and observation preprocessing.
 Keep the paper's action noise 0.1, chunk length 8, delay 4, replan length 4,
 and ten inference denoising steps. Implement and review the missing state-based
-RL integration explicitly; do not call it unchanged author code.
+integration explicitly; do not claim the complete Kinetix program is unchanged.
 
 First check the published baseline and prefix alignment on that task. Then
 train one seed with the paper's 100,000-transition budget. Record complete
 baseline and post-training episodes under the same evaluation conditions.
 Keep training statistics, checkpoint selection, and final evaluation separate.
 The paper's four-seed result requires a later full comparison; one seed cannot
-establish it. This route awaits clarification of the original-code requirement.
+establish it. The previous original-code-versus-new-algorithm question was too
+broad. Reuse of the original learner with disclosed task integration is the
+correct path to assess. No new GPU or simulation job was launched in this audit.
 
 ## Evidence and team
 
