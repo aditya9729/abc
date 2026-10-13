@@ -146,14 +146,15 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     env = {
         **os.environ,
         **config.get("environment", {}),
-        "WANDB_MODE": "disabled",
-        "WANDB_DISABLED": "true",
+        "WANDB_MODE": "offline",
+        "WANDB_DIR": str(output),
         "PYTHONDONTWRITEBYTECODE": "1",
         "ABC_REALTIME_OUTPUT_DIR": str(output / "environment"),
     }
     # Direct script execution preserves the author's local config imports.
     # No PYTHONPATH injection, runpy wrapper, or substituted update function.
     env.pop("PYTHONPATH", None)
+    env.pop("WANDB_DISABLED", None)
     command = [
         config["python"],
         "-u",
