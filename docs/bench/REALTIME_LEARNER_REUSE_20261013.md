@@ -104,3 +104,40 @@ Root owns the integration and claims. The learner reviewer checks update and
 sampling code. The boundary reviewer checks policy, replay, and driver APIs.
 [Corrected integration diagram](REALTIME_LEARNER_REUSE_20261013.mmd).
 This explanation uses STE guidance. Full ASD-STE100 compliance was not checked.
+
+## Later CPU readiness check: original Catcher policy
+
+The original Catcher BC epoch-24 policy is now downloaded and authenticated.
+Its 12,290,914 bytes have SHA256
+`926d2d3821fb31be8cfa24532711efe52ba10d62786e332a48c5a20431b43c00`.
+The original flow-policy implementation restored all 42 parameter leaves exactly.
+All 3,072,006 parameters are finite. Original task and velocity shape tracing
+confirmed 679 observation dimensions, six action dimensions and horizon eight.
+No environment step, sampled episode or optimizer update ran in this check.
+
+The original RTC source is pinned at `9296f31d62d5bfeb5779dcb2f9bcf71ca37f448b`.
+Its Kinetix submodule is pinned at `cf7453ea103fa0b77348af1a39f689c658161613`.
+Both checkouts remain clean. The separate CPU prefix is
+`/home/user/aditya/runtimes/rtc-kinetix-9296f31-catcher-py311`.
+Its 103 installed versions match the original lock. CUDA packages were omitted
+explicitly; GPU runtime readiness remains pending. The original training and
+evaluation entrypoints both passed their help/import checks.
+
+Pristine Kinetix packaging omitted 14 PNG textures required at import time.
+A separate packaging copy adds only their package-data declaration.
+The normal installed wheel preserves all 31 original Python and 14 PNG payloads.
+No author learning code changed. The top-level project keeps its original
+direct-script entrypoints. No editable install or Python path injection was used.
+
+The measured 679-versus-six dimensions confirm that the robot batch helper's
+shared state/action padding assumption needs an explicit state-task adapter.
+The encoder, supplied-noise, prefix-loss, replay and task boundaries above remain
+unfinished. This is initialization evidence, not a Real-Time EXPO benchmark.
+The expert dataset remains undownloaded; this check only needed the small policy.
+
+Receipts and the readiness diagram are under
+`/home/user/aditya/RL/builds/realtime-expo-next-experiment-20261013/`.
+Read `READINESS.md`, `CPU_ACTOR_RESULT.json`, `SOURCE_RUNTIME_AUDIT.json` and
+`READINESS_SEAL.json`. Root owns the later native run and its acceptance.
+The 21-member seal has SHA256
+`1e9baa0c6f9fd96c6a2bdf45f66876435d465fb9ffc4bc7f5e3e5e44a6b85685`.
