@@ -1,4 +1,16 @@
-# Original-methods ABC task results, 13 October 2026
+# ABC adaptation results, 13 October 2026
+
+**Status correction, 18:05 UTC:** the standard EXPO campaign was stopped for
+method reassessment. The user requires Real-Time EXPO-FT. No Real-Time EXPO-FT
+training or evaluation has run here. The results below are historical ABC
+adaptations, not reproductions of either paper. See the current
+[recipe audit](RECIPE_FIDELITY_AUDIT.md).
+
+Run `author-subset-20261013T171702-e41a5f` stopped during warmup with zero
+learner updates and no accepted export. Three episodes completed. The final
+host counted 11,433 controls; the stale worker receipt counted 11,428.
+The cancellation does not measure RL learning. Its parent, worker and host
+are gone, and the coordinator released its GPU lease.
 
 Nine native evaluations completed with clean parent, worker and host exits.
 Each evaluation used the same captured scene, full initial INTEGRATION state,

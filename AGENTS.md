@@ -10,6 +10,31 @@ The authorized campaign uses GPU 0 only. On 2026-10-08, the user said: "hi you c
 
 Show only executed measurements. Separate smoke tests, method adaptations, benchmarks, and embodiment preflight. Keep missing measurements unavailable. Native YAM results are not R1 results. Do not label candidate selection alone as Real-Time EXPO-FT.
 
+## Current method correction — 13 October 2026
+
+The user requires the exact author implementation and explicitly selected
+**Real-Time EXPO-FT**, not standard EXPO-FT. This supersedes the earlier standard
+EXPO serial campaign and pending FastTD3 ABC resource/training plans below.
+Keep their code and evidence, but do not resume those campaigns automatically.
+
+Use the author's real-time OpenPI branch, `RTCLearner` for prefix-conditioned
+SFT, `RealTimeEXPOFTLearner`, and the original training/evaluation drivers with
+`AsyncChunkSampler`. The ordinary SFT125 checkpoint is not RTC-SFT initialization.
+Do not replace the author loop, replay schedule, loss, filter, or stopping policy
+with locally written equivalents. Keep task/transport changes explicit and
+outside the learner. GPU0-only authorization still applies; do not execute
+author shell scripts that expose GPUs 1–3 unchanged.
+
+First establish FastTD3 on an author-supported task with its task-specific
+settings and original entrypoint. A scratch state policy and a pretrained VLA
+are different training strategies. Their ABC scores do not isolate algorithm
+quality. Preserve actual cancellation and incomplete-run evidence.
+For pristine upstream code, the author's direct script entrypoint is permitted.
+Do not rewrite imports or training programs just to fit our packaging convention.
+
+Read the current section of `docs/bench/RECIPE_FIDELITY_AUDIT.md` before launch.
+Passing adapter tests or matching update function hashes is not recipe fidelity.
+
 Keep downloaded assets, checkpoints, videos, and raw outputs outside Git. Commit the dependency lock and compact reproducibility evidence. Publish architecture diagrams and team explanations when goals finish. Follow ASD-STE100 guidance and state any missing compliance check.
 
 Captured host schema2 is developed separately from the historical clipping host.

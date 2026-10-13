@@ -1,5 +1,152 @@
 # Author recipe versus executed diagnostics
 
+## Current correction — 13 October 2026
+
+The user requires **Real-Time EXPO-FT**, with the authors' implementation.
+The standard EXPO campaign is stopped. The custom FastTD3 ABC campaign is on
+hold. Earlier correction steps below are historical and do not authorize those
+campaigns to resume.
+
+The central error was treating unchanged learner functions as sufficient
+evidence of method fidelity. Data, reward, action timing, replay sampling,
+update frequency, initialization and stopping rules also define the experiment.
+Our ABC runs changed several of these together. They cannot establish that the
+published methods fail. More compute alone does not correct that comparison.
+
+### What was wrong
+
+| Component | Actual ABC experiment | Required correction |
+| --- | --- | --- |
+| EXPO method | Standard `EXPOLearner`, delay 0, custom serial driver | Author `RealTimeEXPOFTLearner` and original driver/sampler |
+| OpenPI source | Installed standard EXPO branch | Author `real-time-expo-ft` branch; model and training modules differ |
+| Initialization | Ordinary task SFT on three demonstrations; selected step125 | Author RTC-SFT, which excludes clean prefix positions from the loss and supervises the postfix |
+| Online schedule | Three calls per eligible 3,540-control episode, plus custom caps/futility | Dynamic-pick author script derives calls from collected transitions with `step_interval=30` |
+| Latest run | Three completed warmups, zero learner updates | Treat as cancelled collection, with no RL performance result |
+| FastTD3 task | Custom ABC state/action contract and five-bottle reward with potential shaping | Verify original code on a supported author benchmark before assessing the ABC port |
+| FastTD3 collection | 64 worlds in the corrected campaign; custom run bounds | Preserve the selected author task's world count, horizon and budget |
+| Comparison | State-based scratch learning versus pretrained image-based pi0.5 with demonstrations | Report distinct training strategies; do not attribute all differences to the RL algorithm |
+
+FastTD3 learns its own value functions. The environment supplies rewards.
+No extra pretrained value model is required by the author recipe.
+Sparse delayed success can make exploration difficult, but that is a hypothesis
+for the ABC adaptation, not proof of a learner bug. A lack of early successes
+does not establish overtraining or justify a new convergence stopping rule.
+
+### Exact Real-Time EXPO-FT path
+
+The official release provides `scripts/dynamic_pick/` for a DROID robot.
+The selected upstream revisions are:
+
+- EXPO repository: `21fe3d3b7d913c80836496817965932f49e0aedf`.
+- OpenPI `real-time-expo-ft`: `2abe46282bfdf9f1bc0240f3f9960ec175d1b4a8`.
+- DROID `real-time-expo-ft`: `04b7551ff8a4901b9914cc4dbca4d066771ae9a7`.
+
+Root verified the three remote branch heads on 13 October. Preserve author
+source unchanged. Use the original entrypoints in this order:
+
+1. `train_offline_rtc.py` with `configs/model/rtc_pi_config.py` and the
+   `scripts/dynamic_pick/offline_train.sh` settings.
+2. `train_pi_robo.py` with `configs/model/realtime_expo_ft_pi_config.py` and
+   the `scripts/dynamic_pick/run_server.sh` settings.
+3. `eval_droid_policy.py` with the corresponding real-time evaluation settings.
+
+The released dynamic-pick example uses 25 demonstrations and 4,000 RTC-SFT
+steps. Its online script selects checkpoint2,000. It uses delay5 at30Hz,
+32 base candidates,32 edit candidates, a32-seed backup filter and one backup
+edit. Training derives update calls from30 collected transitions per call.
+Do not transplant the earlier three-calls-per-episode ABC schedule.
+These are the released example settings. The paper's Dynamic Picking table
+instead specifies delay3 and25 transitions per update call. Preserve this
+difference explicitly; do not call the example script an exact paper recipe.
+The author evaluation wrapper requests60 episodes; the paper reports30 trials.
+These are distinct settings, not an exact equality claim.
+
+`AsyncChunkSampler` starts the next base-policy inference while prior actions
+execute. Prefix conditioning preserves the committed action sequence.
+The edit policy uses the fresh observation when the next chunk is selected.
+The filter reduces expensive base-policy evaluations during critic backups.
+Keep these author components together. A delay flag or a faster sampler alone
+does not implement the method.
+
+Use the author's synchronous training driver on GPU0. It already supports
+overlapped action-chunk inference. The separate asynchronous training driver
+requires at least two GPUs and is outside current authorization.
+The supplied shell wrappers expose GPUs0–3, so the local launcher must restrict
+device visibility to GPU0 while retaining the author program and method flags.
+Do not start a DROID hardware client from this simulator workspace.
+
+The real-time paper also reports Kinetix simulation results. That experiment
+uses a state-based flow policy, not pi0.5. It uses four seeds, a four-step delay
+and100,000 online steps per run. The linked EXPO release inspected here contains
+the DROID workflow. The inspected author `expo-ft`, `EXPO`, `faster` and project
+website trees did not supply the Kinetix Real-Time EXPO-FT trainer or command.
+This is a scoped release check, not proof of global absence. Do not write our
+own simulator learner and present it as the official implementation.
+
+ABC is not the released DROID task. Its robot, observations, actions, reward and
+demonstrations require a declared environment integration. Preserve the author
+learner, control loop and replay behavior across that interface. Ordinary ABC
+SFT125 is not an RTC-trained checkpoint. Do not rename it or silently reuse it
+as such. Data and checkpoint readiness remain separate from import readiness.
+
+The released client can construct an environment through `task_config.env`.
+That is the intended ABC boundary. The released dataset loader accepts the
+DROID HDF5 trajectory schema, including saved observations and separate arm
+and gripper actions. Existing ABC files do not directly satisfy that schema.
+The environment, physical action/state transforms, camera mapping and data
+export need explicit verification. Do not disguise a different schema as DROID.
+
+The current ABC RPC host pauses during inference. It does not demonstrate
+real-time behavior. Verify action-prefix order, fresh observations at edit
+selection, and environment advancement during slow inference. Report simulated
+step delay separately from wall-clock control rate and deadline misses.
+
+### Cancellation and next evidence
+
+Root stopped run `author-subset-20261013T171702-e41a5f` through its authenticated
+parent at18:01:30UTC. The final host counted11,433 controls. The stale worker
+reported11,428 controls and zero updates. No accepted learner export exists.
+All known owned processes are gone; the GPU lease is released. Historical
+videos and evaluated scores remain unchanged.
+
+Evidence: `builds/expoft-sft125-campaign-normal-release-20261013/actual-launch/`
+contains `USER_DIRECTED_CANCELLATION.json` and `CANCELLATION_TERMINAL.json`,
+relative to this repository's parent.
+
+The next required evidence is a pristine real-time source/runtime check and
+an explicit list of missing data and environment interfaces. Then verify actual
+action-prefix timing and original updates before a learning claim. Do not
+substitute another custom training loop or a new collection of wrapper tests.
+
+```mermaid
+flowchart LR
+  A[Author sources and task settings] --> B[Runtime agent: pristine real-time dependencies]
+  B --> C[Author RTC-SFT]
+  D[Task demonstrations and statistics: required] --> C
+  C --> E[Author RealTimeEXPOFTLearner]
+  E --> F[Author AsyncChunkSampler]
+  F --> G[ABC environment interface: not integrated]
+  G -->|observations and rewards| H[Author replay and update loop]
+  H --> E
+  E --> I[Author evaluation]
+  J[Independent agent: recipe audit] -. checks .-> C
+  J -. checks .-> H
+  K[Root: integration and measured results] -. owns .-> G
+  K -. verifies .-> I
+```
+
+This diagram shows the intended author workflow and the missing ABC integration.
+It is not evidence of a running Real-Time EXPO-FT experiment. Root owns scope
+and results. Agents check source fidelity and prepare pristine dependencies.
+The explanation uses STE guidance; full compliance was not checked.
+
+Sources: [author repository](https://github.com/pd-perry/expo-ft),
+[real-time paper](https://arxiv.org/html/2609.18207v1),
+[FastTD3 author repository](https://github.com/younggyoseo/FastTD3), and
+[FastTD3 paper](https://arxiv.org/html/2505.22642v1).
+
+## Historical audit — 12 October 2026
+
 The original ABC-VLA placed all five bottles in one development scene. The
 other zero-success rollouts do not test the papers' training claims. Root used
 reduced data and training schedules to qualify integration, then evaluated those
