@@ -17,11 +17,26 @@ BUILD = Path(
 )
 
 
-def test_installed_real_metadata_preparation_is_not_native_or_training():
-    config, host, evidence = stage.load_config(
-        BUILD / "prepared-cpu-metadata/config.json"
+@pytest.fixture(scope="session")
+def installed_preparation(tmp_path_factory):
+    """Use genuine resource pins, with this installed interpreter and sources."""
+    reference = json.loads((BUILD / "prepared-cpu-metadata/config.json").read_text())
+    output = tmp_path_factory.mktemp("cache-metadata") / "prepared"
+    stage.prepare_job(
+        Path(reference["full_host"]["path"]),
+        Path(reference["resource_training_config"]["path"]),
+        Path(reference["resource_parent"]["path"]),
+        Path(reference["resource_worker"]["path"]),
+        output,
     )
-    job = load_job(BUILD / "prepared-cpu-metadata/job.json")
+    return output
+
+
+def test_installed_real_metadata_preparation_is_not_native_or_training(
+    installed_preparation,
+):
+    config, host, evidence = stage.load_config(installed_preparation / "config.json")
+    job = load_job(installed_preparation / "job.json")
     assert host["num_envs"] == 64 and config["ranks"] == [0, 55]
     assert len(evidence["worker_resources"]) == 64
     assert job["module"] == stage.MODULE and job["max_wall_s"] == 4200
@@ -33,8 +48,11 @@ def test_installed_real_metadata_preparation_is_not_native_or_training():
     "kind",
     ["rank", "mode", "resets", "controls", "action", "limits", "source", "python"],
 )
-def test_config_changes_rejected_before_native_import(tmp_path, kind):
-    value = json.loads((BUILD / "prepared-cpu-metadata/config.json").read_text())
+def test_config_changes_rejected_before_native_import(
+    tmp_path, kind, installed_preparation
+):
+    stage.load_config(installed_preparation / "config.json")
+    value = json.loads((installed_preparation / "config.json").read_text())
     if kind == "rank":
         value["ranks"] = [0, 1]
     elif kind == "mode":
