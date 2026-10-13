@@ -314,7 +314,7 @@ function renderRealtime(rt) {
   if (timing?.video && box.dataset.video !== timing.video) {
     if (!/^[0-9a-f]{16}\.mp4$/.test(timing.video)) throw Error('Invalid RTC diagnostic video');
     const label = document.createElement('p');
-    label.textContent = 'Short control diagnostic on a TRAIN scene. This clip is not a full task evaluation.';
+    label.textContent = 'Short control diagnostic on a TRAIN scene. Playback uses simulation time; actual execution was slower. This is not a full task evaluation.';
     const video = document.createElement('video');
     video.controls = true;
     video.preload = 'metadata';

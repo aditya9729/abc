@@ -1,0 +1,145 @@
+--- a/expo_ft/utils/train_utils.py
++++ b/expo_ft/utils/train_utils.py
+@@ -1,6 +1,7 @@
+ """Shared utilities for Pi robot training scripts."""
+ 
+ import dataclasses
++import importlib
+ import logging
+ import pathlib
+ from typing import Any, Dict
+@@ -159,6 +160,7 @@
+     pi05_assets_dir = agent_kwargs.pop("pi05_assets_dir", "") or None
+     pi05_asset_id = agent_kwargs.pop("pi05_asset_id", "") or None
+     model_cls = agent_kwargs.pop("model_cls")
++    factory_path = agent_kwargs.pop("pi05_train_config_factory", None)
+ 
+     pi05_train_config = openpi_config.get_config(
+         pi05_config_name, weight_loader_path=pi05_weight_loader_path
+@@ -180,6 +182,11 @@
+             pi05_train_config,
+             data=dataclasses.replace(pi05_train_config.data, assets=new_assets),
+         )
++    if factory_path is not None:
++        factory = resolve_task_callback(factory_path)
++        pi05_train_config = factory(pi05_train_config)
++        if not isinstance(pi05_train_config, openpi_config.TrainConfig):
++            raise TypeError("Task model factory must return public OpenPI TrainConfig")
+     return agent_kwargs, pi05_train_config, pi05_resize_size, model_cls
+ 
+ 
+@@ -208,3 +215,27 @@
+     """
+     combined = jax.tree_util.tree_map(_concat_leaves, online_batch, offline_batch)
+     return _shuffle_batch(rng, combined)
++
++
++def resolve_task_callback(path: str):
++    """Resolve an explicitly named installed public task callback."""
++    if not isinstance(path, str) or path.count(":") != 1:
++        raise ValueError("Task callback must be module:callable")
++    module_name, name = path.split(":")
++    if not module_name or not name.isidentifier() or name.startswith("_"):
++        raise ValueError("Task callback must name a public callable")
++    callback = getattr(importlib.import_module(module_name), name)
++    if not callable(callback):
++        raise TypeError("Task callback is not callable")
++    return callback
++
++
++def load_task_dataset(dataset_path, task_config, num_data=None):
++    """Task-specific data dispatch; the original DROID loader is unchanged."""
++    path = getattr(task_config, "dataset_loader", None)
++    if path is not None:
++        return resolve_task_callback(path)(dataset_path, task_config, num_data=num_data)
++    if task_config.env_type != "droid":
++        raise ValueError(f"Unsupported dataset type: {task_config.env_type}")
++    from expo_ft.env.droid_utils import process_droid_dataset
++    return process_droid_dataset(dataset_path, task_config, num_data=num_data)
+--- a/train_offline_rtc.py
++++ b/train_offline_rtc.py
+@@ -19,7 +19,7 @@
+ from expo_ft.data.batch_processor import BatchProcessor
+ from expo_ft.env.droid_utils import process_droid_dataset
+ from expo_ft.utils.train_utils import (
+-    get_batch_info, init_logging, init_wandb, set_compilation_cache_dir,
++    get_batch_info, init_logging, init_wandb, set_compilation_cache_dir, load_task_dataset,
+ )
+ from expo_ft.agents.alg.rtc import load_agent, restore_checkpoint, save_checkpoint
+ from expo_ft.agents.vla.pi05 import build_pi05
+@@ -72,7 +72,7 @@
+             f"train_offline_rtc.py supports model_cls=RTCLearner only; got {FLAGS.config.model_cls!r}. "
+             "Use configs/model/rtc_pi_config.py."
+         )
+-    if FLAGS.config_task.env_type != "droid":
++    if FLAGS.config_task.env_type != "droid" and not getattr(FLAGS.config_task, "dataset_loader", None):
+         raise ValueError(f"Unsupported env_type: {FLAGS.config_task.env_type}")
+     if FLAGS.batch_size % jax.device_count() != 0:
+         raise ValueError(
+@@ -102,7 +102,7 @@
+     init_wandb(checkpoint_dir_path, resuming, FLAGS.project_name, FLAGS.run_name)
+     wandb.config.update(FLAGS.flag_values_dict(), allow_val_change=resuming)
+ 
+-    dataset = process_droid_dataset(
++    dataset = load_task_dataset(
+         FLAGS.dataset_path,
+         FLAGS.config_task,
+         num_data=FLAGS.num_data,
+--- a/train_pi_robo.py
++++ b/train_pi_robo.py
+@@ -27,6 +27,7 @@
+ from expo_ft.utils.loop_utils import AsyncChunkSampler, EpisodeSink
+ from expo_ft.utils.timer import Timer
+ from expo_ft.utils.train_utils import (
++    load_task_dataset,
+     get_batch_info, init_logging, init_wandb, set_compilation_cache_dir,
+ )
+ from expo_ft.agents.vla.pi05 import build_pi05
+@@ -125,14 +126,11 @@
+     init_wandb(checkpoint_dir_path, resuming, FLAGS.project_name, FLAGS.run_name)
+     wandb.config.update(FLAGS.flag_values_dict(), allow_val_change=resuming)
+ 
+-    if FLAGS.config_task.env_type == "droid":
+-        dataset = process_droid_dataset(
+-            FLAGS.dataset_path,
+-            FLAGS.config_task,
+-            num_data=FLAGS.num_data,
+-        )
+-    else:
+-        raise ValueError(f"Unsupported dataset type: {FLAGS.config_task.env_type}")
++    dataset = load_task_dataset(
++        FLAGS.dataset_path,
++        FLAGS.config_task,
++        num_data=FLAGS.num_data,
++    )
+     if not dataset:
+         raise ValueError(f"No demos loaded from {FLAGS.dataset_path}.")
+     example_action = dataset[0]['actions'][np.newaxis]
+--- a/eval_droid_policy.py
++++ b/eval_droid_policy.py
+@@ -18,6 +18,7 @@
+ from expo_ft.data.replay_buffer import create_replay_buffer, _critic_key_to_storage
+ from expo_ft.env.env_client import EnvClientWrapper
+ from expo_ft.env.droid_utils import process_droid_dataset
++from expo_ft.utils.train_utils import load_task_dataset
+ 
+ import openpi.training.sharding as openpi_sharding
+ 
+@@ -66,7 +67,7 @@
+     )
+     logger = logging.getLogger(__name__)
+ 
+-    if config_task.env_type != "droid":
++    if config_task.env_type != "droid" and not getattr(config_task, "dataset_loader", None):
+         raise ValueError(
+             "This script is for DROID evaluation only; config_task.env_type must be 'droid'."
+         )
+@@ -100,7 +101,7 @@
+ 
+     example_action = config_task.example_action
+     # Dataset only for agent observation/action shapes (run one sample through transform)
+-    dataset = process_droid_dataset(
++    dataset = load_task_dataset(
+         FLAGS.dataset_path,
+         config_task,
+         num_data=FLAGS.num_data,

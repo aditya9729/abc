@@ -1,21 +1,26 @@
 flowchart LR
-  subgraph Data[ABC data boundary — data agent]
-    D[Three pinned TRAIN demonstrations] --> T[ABC state14, absolute actions14, three RGB views]
-    N[TRAIN normalization statistics] --> C[Public task TrainConfig factory]
+  subgraph Data[Data agent — ABC input boundary]
+    D[Three TRAIN demonstrations] --> R[Original replay: 14-dimensional state and action padded to 32]
+    N[TRAIN statistics and three RGB views] --> M[Original real-time OpenPI pi0.5]
   end
-  subgraph Author[Original author implementation]
-    T --> R[Original replay and batch processing]
-    C --> M[Real-time OpenPI pi0.5]
-    R --> S[train_offline_rtc.py and RTCLearner]
-    M --> S
-    S --> K[RTC checkpoint: actor, optimizer, RNG]
-    K -. pending native control proof .-> A[Original AsyncChunkSampler and real-time learner]
+  subgraph Author[Author algorithms — original loops]
+    R -->|training batches| S[RTCLearner RTC-SFT — one native update verified]
+    M -->|model parameters| S
+    S -->|saved training state| K[Checkpoint — actor, Adam, schedule and RNG verified]
+    K -->|restore state| V[Original RTC evaluator — delay 5 and replan 8]
+    K -. next training stage .-> A[RealTimeEXPOFTLearner and AsyncChunkSampler — pending]
   end
-  subgraph Control[Execution — root coordinator]
-    L[GPU0 exclusive lease and bounded watchdog] --> P[Process-only supervisor]
-    P --> S
-    P -. next native gate .-> E[Original WebSocket client]
-    E -. ABC environment boundary .-> W[Native ABC world — environment agent]
+  subgraph Execution[Root coordinator and environment agent]
+    L[GPU 0 lease and bounded process supervisor] -->|start and stop| S
+    L -->|start and stop| V
+    V -->|action commands| C[Original WebSocket client]
+    A -. pending .-> C
+    C -->|step simulation| E[ABC native environment — 32 controls verified]
+    E -->|observations and status| C
+    C -->|observations and status| V
   end
-  S --> O[Local offline training metrics]
-  K --> V[Checkpoint review — independent reviewer and root]
+  E --> O[Native event journal and short video]
+  S --> T[Local offline training metrics]
+  K --> Q[Independent reviewer — state and source checks]
+  O --> Q
+  Q --> U[Root — results and dashboard]

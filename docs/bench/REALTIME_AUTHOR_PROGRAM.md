@@ -31,3 +31,9 @@ boundary. The environment agent owns the ABC client boundary. The review agent
 checks method fidelity and checkpoint evidence. These roles exchange pinned files.
 [Architecture](REALTIME_AUTHOR_PROGRAM.mmd). STE guidance used; full dictionary
 and grammar compliance were not checked.
+
+The native checks are now complete. See [measured results](REALTIME_NATIVE_RESULTS_20261013.md).
+Install the ABC client task metadata dependency with `abc-minimal[realtime-expo]`.
+The separate client prefix also contains the original real-time OpenPI client wheel.
+It does not contain the server adapter or JAX. Runtime versions and wheel hashes
+are recorded in the release evidence.

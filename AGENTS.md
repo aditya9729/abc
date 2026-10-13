@@ -61,3 +61,18 @@ training producer before captured VAL9100/9101/9102 evaluation. Read
 `docs/bench/FASTTD3_FROZEN_STAGE.md`. Keep both children in the canonical
 process group. Admit only full native episodes, video and unchanged
 actor/normalizer/RNG evidence. Root owns serial1800s native jobs.
+
+## Verified original RTC path — 13 October 2026
+
+Read `docs/bench/REALTIME_NATIVE_RESULTS_20261013.md` for the two accepted native
+checks. Use `abc_bench.author_program` only as process supervision. The author
+owns training and control loops. Task/model dispatch is the checked four-file
+patch in `docs/bench/REALTIME_AUTHOR_TASK_DISPATCH.patch`.
+
+The one-update RTC checkpoint is a smoke artifact, not a trained benchmark actor.
+The 32-control TRAIN diagnostic misses 34 ms: median dispatch 91.7 ms. Do not present
+its simulation-clock video as wall-clock real-time execution. Original evaluation
+needs `only_base_actions=False` for RTC prefixes, two resets, and one extra loop
+slot to observe terminal state. Keep the native client dependencies in its own
+normally installed prefix; ABC's optional `realtime-expo` extra declares the task
+ConfigDict dependency. The original client wheel supplies its own dependencies.

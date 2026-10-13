@@ -1,0 +1,52 @@
+{
+  "expo_commit": "21fe3d3b7d913c80836496817965932f49e0aedf",
+  "real_time_openpi_commit": "2abe46282bfdf9f1bc0240f3f9960ec175d1b4a8",
+  "adapter_local_commit": "7878cf8",
+  "dispatch_patch_sha256": "da9910de4a84e424867aac0cc5c2bcb98d569829e725f0016044ee347a0219b3",
+  "modified_author_files": [
+    "train_offline_rtc.py",
+    "train_pi_robo.py",
+    "eval_droid_policy.py",
+    "expo_ft/utils/train_utils.py"
+  ],
+  "author_training_loop_bodies_unchanged": true,
+  "author_model_learner_replay_sampler_functions_unchanged": true,
+  "native_runs": [
+    "author-subset-20261013T184907-5e17c4",
+    "author-subset-20261013T190139-3c7729"
+  ],
+  "RTC_SFT": {
+    "batch_size": 64,
+    "seed": 42,
+    "prefix_max_delay": 10,
+    "updates": 1,
+    "actor_loss": 0.04043921083211899,
+    "gradient_norm": 0.5115536451339722,
+    "saved_counters": [
+      1,
+      1,
+      1
+    ],
+    "saved_rng": [
+      1705926158,
+      899080142
+    ]
+  },
+  "RTC_control": {
+    "native_controls": 32,
+    "delay": 5,
+    "replan_steps": 8,
+    "only_base_actions": false,
+    "TRAIN_seeds": [
+      9200,
+      9201
+    ],
+    "native_horizon": 32,
+    "author_horizon": 33,
+    "median_dispatch_interval_ms": 91.731333,
+    "target_interval_ms": 34,
+    "deadline_achieved": false,
+    "full_task_score": null,
+    "online_RealTimeEXPOFT_updates": 0
+  }
+}

@@ -1,6 +1,7 @@
 """Client metadata checks; no native factory or server adapter import."""
 
 import json
+import subprocess
 import sys
 
 import numpy as np
@@ -43,8 +44,25 @@ def test_client_snapshot_factory_preserves_server_metadata(tmp_path, monkeypatch
     assert config.example_action.tolist() == raw["example_action"]
     assert dict(config.cohort_pin) == raw["cohort_pin"]
     assert config.episode_seeds == raw["episode_seeds"]
-    assert not any(name in sys.modules for name in ("jax", "mujoco", "torch", "warp"))
-    assert "expo_abc_adapter" not in sys.modules
+    # Other benchmark tests can import native libraries into this process.
+    # Verify this import contract in a fresh installed-package interpreter.
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-c",
+            (
+                "import sys; from abc_bench.realtime_expo_task import get_config; "
+                "get_config(); assert not any(name in sys.modules for name in "
+                "('jax','mujoco','torch','warp','expo_abc_adapter'))"
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_missing_snapshot_setting_fails(monkeypatch):
