@@ -26,7 +26,7 @@ from abc_bench.bottle_success_reward import (
     reward_spec,
     transition_reward,
 )
-from abc_bench.fasttd3_campaign_contract import PHASES, PROFILE, campaign_spec
+from abc_bench.fasttd3_campaign_contract import PHASES, campaign_spec, world_count
 from abc_bench.fasttd3_host import receive_frame, write_json
 from abc_bench.subset import require_subset_lease
 from abc_bench.upstream_eval import artifact
@@ -52,11 +52,12 @@ def validate_config(config: Any) -> dict:
     }
     if type(config) is not dict or set(config) != fields:
         raise ValueError("Use the complete separate reward-v2 campaign config")
-    if config["profile"] != PROFILE or config["phase"] not in PHASES:
+    count = world_count(config)
+    if config["phase"] not in PHASES:
         raise ValueError("Reward-v2 has separate runtime_gate/training profiles")
     for key, expected in {
         "schema_version": 1,
-        "num_envs": 128,
+        "num_envs": count,
         "seed_base": 200000,
         "seed_stride": 128,
         "max_episode_steps": 3540,
@@ -578,18 +579,21 @@ class RewardVectorPool(native.VectorPool):
             raise
 
     def describe(self) -> dict:
-        return {
+        description = {
             **super().describe(),
             "reward": self.config["reward"],
             "campaign": self.config["campaign"],
             "physics_failure_policy": "fail_on_BADQPOS_BADQVEL_BADQACC_BADCTRL_nonfinite_or_internal_time_reset",
         }
+        if self.config["num_envs"] == 64:
+            description["qualification_scope"] = (
+                "64-world capacity and GPU learner pending"
+            )
+        return description
 
 
 def serve(config: dict[str, Any], socket_path: Path, output: Path) -> None:
     validate_config(config)
-    if config["profile"] != PROFILE:
-        raise ValueError("Native server admits only separate reward-v2 profiles")
     require_subset_lease()
     # Authenticate coordinator visibility and ancestry first. Hide CUDA only
     # in this CPU server process before native imports. The separate learner

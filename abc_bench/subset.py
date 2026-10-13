@@ -124,7 +124,15 @@ def load_job(path: Path) -> dict[str, Any]:
             type(config) is not dict
             or type(config.get("schema_version")) is not int
             or config["schema_version"] != 1
-            or config.get("phase") != "original_expo_task_rl"
+            or (
+                config.get("phase") != "original_expo_task_rl"
+                and not (
+                    config.get("phase") == "original_expo_task_rl_serial"
+                    and type(parameters) is dict
+                    and parameters.get("memory_scheduling_profile")
+                    == "original_queue3_serial_update_v1"
+                )
+            )
             or type(parameters) is not dict
             or any(
                 type(parameters.get(key)) is not int or parameters[key] != value

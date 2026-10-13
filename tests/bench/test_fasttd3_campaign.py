@@ -12,15 +12,15 @@ import pytest
 from abc_bench import fasttd3_campaign_host as host
 from abc_bench import fasttd3_campaign_stage as stage
 from abc_bench.bottle_success_reward import PBRS_PROFILE, SPARSE_PROFILE, reward_spec
-from abc_bench.fasttd3_campaign_contract import PROFILE, campaign_spec
+from abc_bench.fasttd3_campaign_contract import PROFILE, PROFILE64, campaign_spec
 
 
-def config(phase="runtime_gate", profile=PBRS_PROFILE):
+def config(phase="runtime_gate", profile=PBRS_PROFILE, num_envs=128):
     return {
         "schema_version": 1,
-        "profile": PROFILE,
+        "profile": PROFILE if num_envs == 128 else PROFILE64,
         "phase": phase,
-        "num_envs": 128,
+        "num_envs": num_envs,
         "seed_base": 200000,
         "seed_stride": 128,
         "max_episode_steps": 3540,
@@ -38,8 +38,9 @@ def config(phase="runtime_gate", profile=PBRS_PROFILE):
 
 
 @pytest.mark.parametrize("phase", ["runtime_gate", "training"])
-def test_separate_phases_preserve_declared_task_futility_contract(phase):
-    value = config(phase)
+@pytest.mark.parametrize("num_envs", [64, 128])
+def test_separate_phases_preserve_declared_task_futility_contract(phase, num_envs):
+    value = config(phase, num_envs=num_envs)
     assert host.validate_config(value) is value
     assert value["campaign"]["loss_based_stopping"] is False
     assert value["campaign"]["validation_seeds_used_for_stopping"] == []
@@ -47,6 +48,41 @@ def test_separate_phases_preserve_declared_task_futility_contract(phase):
         assert value["campaign"]["minimum_calls"] == 21240
         assert value["campaign"]["minimum_completed_episodes_per_rank"] == 6
         assert value["campaign"]["patience_windows"] == 3
+
+
+@pytest.mark.parametrize(
+    "profile,num_envs",
+    [
+        (PROFILE, 64),
+        (PROFILE64, 128),
+        (PROFILE64, 64.0),
+        (PROFILE64, True),
+        (PROFILE64, 2),
+    ],
+)
+def test_world_count_must_match_explicit_profile(profile, num_envs):
+    value = config()
+    value.update(profile=profile, num_envs=num_envs)
+    with pytest.raises(ValueError, match="world count"):
+        host.validate_config(value)
+
+
+def test_64_worlds_preserve_per_rank_reset_sequences_and_original_updates():
+    original, smaller = config(), config(num_envs=64)
+    for rank in (0, 63):
+        for episode in (0, 6, 780):
+            assert host.native.seed_for(
+                original, rank, episode
+            ) == host.native.seed_for(smaller, rank, episode)
+    assert stage.counters(64, num_envs=64) == {
+        "vector_steps": 64,
+        "transitions": 4096,
+        "critic_updates": 106,
+        "actor_updates": 53,
+    }
+    assert stage.counters(42480, num_envs=64)["transitions"] == 2718720
+    assert stage.recipe(config("training", num_envs=64))["batch_size"] == 32768
+    assert stage.recipe(config("training", num_envs=64))["buffer_size"] == 51200
 
 
 @pytest.mark.parametrize(

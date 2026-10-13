@@ -167,6 +167,26 @@ def test_memory_refusal_uses_fresh_available_memory(inputs, tmp_path):
     assert result["required_kib"] == 128 * 1000 * 1.25 + 8 * 1024**2
 
 
+def test_64_world_memory_admission_keeps_conservative_margin_and_128_default(tmp_path):
+    evidence = {"worker_resources": [{"measurement": {"maxrss_kib": 3707260}}]}
+    meminfo = tmp_path / "meminfo"
+    meminfo.write_text("MemAvailable: 366146160 kB\n")
+    result = stage.memory_admission(evidence, meminfo=meminfo, count=64)
+    assert result["required_kib"] == 304969408
+    assert result["cpu_worker_measured_peak_kib"] == 3707260
+    with pytest.raises(MemoryError, match="ABC128 requires estimated 601550208"):
+        stage.memory_admission(evidence, meminfo=meminfo)
+    meminfo.write_text("MemAvailable: 304969407 kB\n")
+    with pytest.raises(MemoryError, match="ABC64"):
+        stage.memory_admission(evidence, meminfo=meminfo, count=64)
+
+
+@pytest.mark.parametrize("count", [2, 32, 64.0, True, 256])
+def test_memory_admission_rejects_undeclared_world_counts(tmp_path, count):
+    with pytest.raises(ValueError, match="world counts"):
+        stage.memory_admission({}, meminfo=tmp_path / "absent", count=count)
+
+
 def test_lease_refusal_precedes_output_or_child_creation(inputs, tmp_path, monkeypatch):
     output = tmp_path / "run"
 

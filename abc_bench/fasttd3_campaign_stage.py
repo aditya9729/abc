@@ -16,6 +16,7 @@ from typing import Any
 
 from abc_bench import fasttd3_vector_stage as qualification
 from abc_bench.bottle_success_reward import PBRS_PROFILE, reward_config_sha256
+from abc_bench.fasttd3_campaign_contract import world_count
 from abc_bench.fasttd3_campaign_host import load_config as load_host
 from abc_bench.fasttd3_host import write_json
 from abc_bench.fasttd3_scratch_stage import EXPORT_CHECK, pin
@@ -61,25 +62,48 @@ def recipe(host: dict, *, actual: int | None = None) -> dict:
     return {
         **qualification.RECIPE,
         "exp_name": "FastTD3ABCRewardV2_" + host["phase"],
+        "num_envs": world_count(host),
         "total_timesteps": host["vector_steps"] if actual is None else actual,
     }
 
 
-def counters(calls: int) -> dict:
+def counters(calls: int, *, num_envs: int = 128) -> dict:
     if type(calls) is not int or calls < 12:
         raise ValueError(
             "A completed campaign must reach original critic and actor updates"
         )
+    if type(num_envs) is not int or num_envs not in (64, 128):
+        raise ValueError("Campaign accounting supports only explicit 64/128 worlds")
     return {
         "vector_steps": calls,
-        "transitions": 128 * calls,
+        "transitions": num_envs * calls,
         "critic_updates": 2 * (calls - 11),
         "actor_updates": calls - 11,
     }
 
 
+def parallelism(host: dict) -> dict:
+    count = world_count(host)
+    return {
+        "profile": host["profile"],
+        "num_envs": count,
+        "author_default_num_envs": 128,
+        "actual_rank_statistics_denominator": count,
+        "maximum_transitions": host["vector_steps"] * count,
+        "seed_bank_episode_stride": 128,
+        "replay_buffer_size_per_env": 51200,
+        "author_default_aggregate_replay_capacity": 6553600,
+        "actual_aggregate_replay_capacity": 51200 * count,
+        "critic_updates_per_vector_call": 2,
+        "author_default_critic_updates_per_collected_transition": 2 / 128,
+        "actual_critic_updates_per_collected_transition": 2 / count,
+        "recipe_difference": "64 worlds halve aggregate replay capacity and double critic updates per collected transition; original learner settings retained",
+    }
+
+
 def check_description(description: dict, host: dict) -> None:
-    qualification.check_description({**description, "profile": "training128"})
+    count = world_count(host)
+    qualification.check_description(description, count=count, profile=host["profile"])
     if (
         description.get("profile") != host["profile"]
         or description.get("reward") != host["reward"]
@@ -115,6 +139,7 @@ def wait_ready(process: Any, path: Path, seconds: int, host: dict) -> dict:
 
 
 def runtime_gate(parent_pin: dict, worker_pin: dict, host: dict, sources: dict) -> dict:
+    count = world_count(host)
     parent, worker = (
         json.loads(pin(parent_pin).read_text()),
         json.loads(pin(worker_pin).read_text()),
@@ -125,7 +150,7 @@ def runtime_gate(parent_pin: dict, worker_pin: dict, host: dict, sources: dict) 
         or parent.get("task") != "put_plastic_bottles_in_bin"
         or parent.get("worker_exit_code") != 0
         or parent.get("worker_receipt_sha256") != worker_pin["sha256"]
-        or parent.get("metrics") != counters(64)
+        or parent.get("metrics") != counters(64, num_envs=count)
     ):
         raise ValueError(
             "Training requires the actual completed canonical reward-v2 runtime gate"
@@ -134,21 +159,22 @@ def runtime_gate(parent_pin: dict, worker_pin: dict, host: dict, sources: dict) 
     if (
         worker.get("phase") != "fasttd3_reward_v2_runtime_gate"
         or worker.get("status") != "completed"
-        or worker.get("metrics") != counters(64)
+        or worker.get("metrics") != counters(64, num_envs=count)
         or worker.get("child_exit_codes") != {"host": 0, "learner": 0}
     ):
         raise ValueError("Reward-v2 runtime gate and cleanup did not complete")
     if (
         gate_host.get("phase") != "runtime_gate"
+        or world_count(gate_host) != count
         or gate_host.get("reward") != host["reward"]
         or worker.get("source_pins") != sources
     ):
         raise ValueError("Runtime gate used a different reward or executed source")
     native = json.loads(pin(worker["native_receipt"]).read_text())
-    validate_cleanup(native.get("worker_cleanup"), 128)
+    validate_cleanup(native.get("worker_cleanup"), count)
     if (
         native.get("vector_steps") != 64
-        or native.get("transitions") != 8192
+        or native.get("transitions") != 64 * count
         or native.get("status") != "completed"
     ):
         raise ValueError("Actual reward-v2 native runtime accounting differs")
@@ -331,11 +357,12 @@ def training_producer(parent_pin: dict, worker_pin: dict) -> dict:
 
 
 def verify_result(config: dict, host_config: dict, output: Path) -> dict:
+    count = world_count(host_config)
     learner = json.loads((output / "learner/receipt.json").read_text())
     campaign = json.loads((output / "learner/campaign.json").read_text())
     host = json.loads((output / "native_host/receipt.json").read_text())
     calls = campaign.get("controls")
-    expected = counters(calls)
+    expected = counters(calls, num_envs=count)
     if (
         any(row.get("status") != "completed" for row in (learner, campaign, host))
         or campaign.get("phase") != host_config["phase"]
@@ -344,7 +371,9 @@ def verify_result(config: dict, host_config: dict, output: Path) -> dict:
         raise RuntimeError(
             "Native host, original learner and campaign did not complete"
         )
-    validate_cleanup(host.get("worker_cleanup"), 128)
+    if count == 64 and campaign.get("parallelism") != parallelism(host_config):
+        raise RuntimeError("Reduced-world campaign disclosure or denominator differs")
+    validate_cleanup(host.get("worker_cleanup"), count)
     if any(Path(f"/proc/{row['pid']}").exists() for row in host["worker_cleanup"]):
         raise RuntimeError("An owned native worker remains alive")
     if (
@@ -410,7 +439,7 @@ def verify_result(config: dict, host_config: dict, output: Path) -> dict:
             or row.get("eligible") is not True
             or row.get("meaningful_improvement") != []
             or row.get("stale_windows") != index + 1
-            or len(row.get("rank_episode_counts", [])) != 128
+            or len(row.get("rank_episode_counts", [])) != count
             or min(row["rank_episode_counts"]) < 1
             for index, row in enumerate(tail)
         ):
@@ -419,7 +448,7 @@ def verify_result(config: dict, host_config: dict, output: Path) -> dict:
             )
     check_description(host["description"], host_config)
     episodes, summaries, proofs = [], [], []
-    for rank in range(128):
+    for rank in range(count):
         directory = output / "native_host" / f"world-{rank:03d}"
         summary_path = directory / "reward-summary.json"
         summary = json.loads(summary_path.read_text())
@@ -480,7 +509,7 @@ def verify_result(config: dict, host_config: dict, output: Path) -> dict:
         raise RuntimeError(
             "Client task windows differ from complete native episode records"
         )
-    counts = [sum(row["rank"] == rank for row in episodes) for rank in range(128)]
+    counts = [sum(row["rank"] == rank for row in episodes) for rank in range(count)]
     if decision.get("completed_episodes_per_rank") != counts:
         raise RuntimeError(
             "Task stopping rank coverage differs from actual native episodes"
@@ -492,7 +521,7 @@ def verify_result(config: dict, host_config: dict, output: Path) -> dict:
     pin(learner["checkpoint"])
     if campaign.get("checkpoint") != learner["checkpoint"]:
         raise RuntimeError("Campaign final checkpoint binding differs")
-    return {
+    result = {
         "metrics": expected,
         "stop_decision": decision,
         "completed_training_episodes": len(episodes),
@@ -504,6 +533,9 @@ def verify_result(config: dict, host_config: dict, output: Path) -> dict:
         "native_receipt": artifact(output / "native_host/receipt.json"),
         "learner_receipt": artifact(output / "learner/receipt.json"),
     }
+    if count == 64:
+        result["parallelism"] = parallelism(host_config)
+    return result
 
 
 def run(config_path: Path, output: Path) -> dict[str, Any]:
@@ -569,7 +601,9 @@ def run(config_path: Path, output: Path) -> dict[str, Any]:
             timeout=30,
         )
         receipt["learner_preflight"] = artifact(output / "learner_preflight.json")
-        receipt["memory_admission"] = memory_admission(evidence)
+        receipt["memory_admission"] = memory_admission(
+            evidence, count=world_count(host_config)
+        )
         socket_directory = ROOT / "builds" / ("abcrpc-" + uuid.uuid4().hex[:12])
         socket_directory.mkdir(mode=0o700)
         socket_path = socket_directory / "env.sock"

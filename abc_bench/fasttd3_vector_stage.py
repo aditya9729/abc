@@ -125,11 +125,17 @@ def _pin(value: Any) -> Path:
     return path
 
 
-def check_description(description: dict[str, Any], *, count: int = 128) -> None:
+def check_description(
+    description: dict[str, Any], *, count: int = 128, profile: str | None = None
+) -> None:
     expected = {
         **TASK,
         "num_envs": count,
-        "profile": "training128" if count == 128 else "cpu_acceptance2",
+        "profile": profile
+        if profile is not None
+        else "training128"
+        if count == 128
+        else "cpu_acceptance2",
     }
     if any(
         type(description.get(key)) is not type(value) or description.get(key) != value
@@ -290,25 +296,34 @@ def load_config(path: Path) -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def memory_admission(
-    evidence: dict[str, Any], *, meminfo: Path = Path("/proc/meminfo")
+    evidence: dict[str, Any],
+    *,
+    meminfo: Path = Path("/proc/meminfo"),
+    count: int = 128,
 ) -> dict[str, int | str]:
-    """Conservative admission estimate; this is not a measured 128-world peak."""
+    """Conservative admission estimate; this is not a measured aggregate peak."""
+    if type(count) is not int or count not in (64, 128):
+        raise ValueError("Memory admission supports only explicit 64/128 world counts")
     fields = {
         line.split(":", 1)[0]: int(line.split()[1])
         for line in meminfo.read_text().splitlines()
     }
     peak = max(row["measurement"]["maxrss_kib"] for row in evidence["worker_resources"])
-    required = math.ceil(128 * peak * 1.25) + 8 * 1024**2
+    required = math.ceil(count * peak * 1.25) + 8 * 1024**2
     available = fields["MemAvailable"]
     if available < required:
         raise MemoryError(
-            f"ABC128 requires estimated {required} KiB available; observed {available} KiB"
+            f"ABC{count} requires estimated {required} KiB available; observed {available} KiB"
         )
     return {
         "available_kib": available,
         "required_kib": required,
         "cpu_worker_measured_peak_kib": peak,
-        "scope": "128 times two-world maximum RSS with 25% margin plus 8 GiB; not observed aggregate peak",
+        "scope": (
+            "128 times two-world maximum RSS with 25% margin plus 8 GiB; not observed aggregate peak"
+            if count == 128
+            else "64 times admitted per-worker maximum RSS with 25% margin plus 8 GiB; not observed aggregate peak"
+        ),
     }
 
 

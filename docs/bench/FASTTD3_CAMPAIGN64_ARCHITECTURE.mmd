@@ -1,0 +1,13 @@
+flowchart LR
+  Historical["Completed historical128 author qualification"] --> Gate
+  Config["Explicit reward_v2_training64 config"] --> RAM["Conservative 64 × worker maximum RSS ×1.25 +8 GiB"]
+  RAM -->|"Admission passes"| Gate["Root: canonical64-world,64-call native gate"]
+  Gate -->|"4096 transitions,106 critic/53 actor updates,64 clean exits"| Train["Root: bounded64-world TRAIN campaign"]
+  Train --> Host["ABC native64-world pool: same reward, judge, physics, seed stride128"]
+  Host <-->|"Versioned vector RPC"| Fast["Fast peer: original learner/math; explicit64 adapter"]
+  Fast --> Stop["Same per-world minimum,6 episodes,3 complete task windows"]
+  Stop --> Export["Original final actor/normalizer export after natural loop exit"]
+  Export --> Frozen["Root: captured VAL9100..9102, single native world, live RGB and video"]
+  Stage["ABC agent: supervisor counters, source/cleanup/producer admission"] --> Gate
+  Stage --> Train
+  Stage --> Frozen

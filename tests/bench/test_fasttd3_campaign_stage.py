@@ -11,7 +11,7 @@ from abc_bench import fasttd3_campaign_frozen_stage as frozen
 from abc_bench import fasttd3_campaign_host as host
 from abc_bench import fasttd3_campaign_stage as stage
 from abc_bench.bottle_success_reward import SPARSE_PROFILE, reward_spec
-from abc_bench.fasttd3_campaign_contract import PROFILE, campaign_spec
+from abc_bench.fasttd3_campaign_contract import PROFILE, PROFILE64, campaign_spec
 from abc_bench.subset import load_job
 
 
@@ -21,13 +21,14 @@ def write(path, value):
     return stage.artifact(path)
 
 
-@pytest.fixture
-def evidence(tmp_path):
+@pytest.fixture(params=[128, 64])
+def evidence(tmp_path, request):
+    count = request.param
     config = {
         "schema_version": 1,
-        "profile": PROFILE,
+        "profile": PROFILE if count == 128 else PROFILE64,
         "phase": "runtime_gate",
-        "num_envs": 128,
+        "num_envs": count,
         "seed_base": 200000,
         "seed_stride": 128,
         "max_episode_steps": 3540,
@@ -44,7 +45,8 @@ def evidence(tmp_path):
     }
     description = {
         **stage.qualification.TASK,
-        "profile": PROFILE,
+        "profile": config["profile"],
+        "num_envs": count,
         "reset_options": host.native.RESET_OPTIONS,
         "reset_seed_bank": {
             "base": 200000,
@@ -65,7 +67,7 @@ def evidence(tmp_path):
     decision = {
         "reason": "runtime_gate_completed",
         "controls": 64,
-        "completed_episodes_per_rank": [0] * 128,
+        "completed_episodes_per_rank": [0] * count,
         "stale_windows": 0,
     }
     learner = {
@@ -80,7 +82,7 @@ def evidence(tmp_path):
         "status": "completed",
         "phase": "runtime_gate",
         "controls": 64,
-        "transitions": 8192,
+        "transitions": count * 64,
         "declared_maximum_args": stage.recipe(config),
         "effective_final_args": stage.recipe(config),
         "actual_updates": learner["actual_updates"],
@@ -88,15 +90,17 @@ def evidence(tmp_path):
         "stopping": {"spec": config["campaign"], "decision": decision, "windows": []},
         "episodes": [],
     }
+    if count == 64:
+        campaign["parallelism"] = stage.parallelism(config)
     native = {
         "status": "completed",
         "config": config,
         "description": description,
         "vector_steps": 64,
-        "transitions": 8192,
+        "transitions": count * 64,
         "worker_cleanup": [
             {"rank": i, "pid": 1900000000 + i, "exitcode": 0, "alive": False}
-            for i in range(128)
+            for i in range(count)
         ],
     }
     physics = {
@@ -108,7 +112,7 @@ def evidence(tmp_path):
             for name in ("BADQPOS", "BADQVEL", "BADQACC", "BADCTRL")
         },
     }
-    for rank in range(128):
+    for rank in range(count):
         write(
             path / "native_host" / f"world-{rank:03d}" / "reward-summary.json",
             {
@@ -125,14 +129,136 @@ def evidence(tmp_path):
     return config, path, description
 
 
-def test_completed_gate_binds128_cleanup_original_counts_and_final_export(evidence):
+def test_completed_gate_binds_exact_world_cleanup_counts_and_final_export(evidence):
     config, path, _ = evidence
     result = stage.verify_result({}, config, path)
-    assert result["metrics"] == stage.counters(64)
-    assert len(result["reward_summaries"]) == 128
+    assert result["metrics"] == stage.counters(64, num_envs=config["num_envs"])
+    assert len(result["reward_summaries"]) == config["num_envs"]
     assert result["completed_training_episodes"] == 0
     assert result["training_successes"] == 0
     assert result["first_geometry_proofs"] == []
+
+
+def test_runtime_gate_cannot_admit_a_different_parallel_world_count(evidence, tmp_path):
+    config, _, _ = evidence
+    other = 64 if config["num_envs"] == 128 else 128
+    worker_pin = write(tmp_path / "other-worker.json", {})
+    parent = {
+        "status": "completed",
+        "embodiment": "native_yam",
+        "task": "put_plastic_bottles_in_bin",
+        "worker_exit_code": 0,
+        "worker_receipt_sha256": worker_pin["sha256"],
+        "metrics": stage.counters(64, num_envs=other),
+    }
+    with pytest.raises(ValueError, match="runtime gate"):
+        stage.runtime_gate(
+            write(tmp_path / "other-parent.json", parent), worker_pin, config, {}
+        )
+
+
+def test_completed_training_export_binds_exact_world_frozen_producer(evidence):
+    config, path, _ = evidence
+    count = config["num_envs"]
+    calls = 42480
+    config.update(
+        phase="training", vector_steps=calls, campaign=campaign_spec("training")
+    )
+    native_path = path / "native_host/receipt.json"
+    native = json.loads(native_path.read_text())
+    native.update(config=config, vector_steps=calls, transitions=calls * count)
+    native["description"]["campaign"] = config["campaign"]
+    write(native_path, native)
+    episodes = []
+    for rank in range(count):
+        directory = path / "native_host" / f"world-{rank:03d}"
+        summary_path = directory / "reward-summary.json"
+        summary = json.loads(summary_path.read_text())
+        summary.update(controls=calls, completed_episodes=6)
+        write(summary_path, summary)
+        for index in range(6):
+            episode = {"rank": rank, "episode_index": index, "success": False}
+            write(directory / f"episode-{index:04d}.json", episode)
+            episodes.append(episode)
+    learner_path = path / "learner/receipt.json"
+    learner = json.loads(learner_path.read_text())
+    updates = {"critic": 84938, "actor": 42469}
+    learner.update(
+        controls=calls, configuration=stage.recipe(config), actual_updates=updates
+    )
+    write(learner_path, learner)
+    campaign_path = path / "learner/campaign.json"
+    campaign = json.loads(campaign_path.read_text())
+    campaign.update(
+        phase="training",
+        controls=calls,
+        transitions=calls * count,
+        declared_maximum_args=stage.recipe(config),
+        effective_final_args=stage.recipe(config),
+        actual_updates=updates,
+        episodes=episodes,
+    )
+    if count == 64:
+        campaign["parallelism"] = stage.parallelism(config)
+    campaign["stopping"].update(
+        spec=config["campaign"],
+        decision={
+            "reason": "declared_maximum_completed",
+            "controls": calls,
+            "completed_episodes_per_rank": [6] * count,
+            "stale_windows": 0,
+        },
+    )
+    write(campaign_path, campaign)
+    host_pin = write(path / "host.json", config)
+    config_pin = write(path / "input.json", {"host_config": host_pin})
+    result = stage.verify_result({}, config, path)
+    export_pin = write(
+        path / "export.json",
+        {
+            "global_step": calls,
+            "state_fingerprints": {
+                name: {"sha256": "explicit export fingerprint double"}
+                for name in (
+                    "actor_state_dict",
+                    "qnet_state_dict",
+                    "qnet_target_state_dict",
+                    "obs_normalizer_state",
+                    "critic_obs_normalizer_state",
+                )
+            },
+        },
+    )
+    worker_pin = write(
+        path / "receipt.json",
+        {
+            "status": "completed",
+            "phase": "fasttd3_reward_v2_training",
+            "child_exit_codes": {"host": 0, "learner": 0},
+            "input_config": config_pin,
+            "host_config": host_pin,
+            "export_check": export_pin,
+            **result,
+        },
+    )
+    parent_pin = write(
+        path / "parent.json",
+        {
+            "status": "completed",
+            "embodiment": "native_yam",
+            "task": "put_plastic_bottles_in_bin",
+            "worker_exit_code": 0,
+            "worker_receipt_sha256": worker_pin["sha256"],
+            "metrics": result["metrics"],
+        },
+    )
+    producer = stage.training_producer(parent_pin, worker_pin)
+    assert producer["metrics"]["transitions"] == 42480 * count
+    assert producer["completed_training_episodes"] == 6 * count
+    if count == 64:
+        assert producer["parallelism"]["actual_rank_statistics_denominator"] == 64
+    else:
+        assert "parallelism" not in producer
 
 
 @pytest.mark.parametrize(
@@ -200,7 +326,9 @@ def test_canonical_lifecycle_uses_finite_samegroup_children_and_one_shutdown(
         lambda _path: (config, {"explicit": "CPU admission double"}),
     )
     monkeypatch.setattr(
-        stage, "memory_admission", lambda _value: {"explicit": "RAM double"}
+        stage,
+        "memory_admission",
+        lambda _value, *, count: {"explicit": "RAM double", "count": count},
     )
     monkeypatch.setattr(stage, "ROOT", tmp_path)
     (tmp_path / "builds").mkdir()
