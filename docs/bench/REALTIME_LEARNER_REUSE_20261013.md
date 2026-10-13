@@ -141,3 +141,9 @@ Read `READINESS.md`, `CPU_ACTOR_RESULT.json`, `SOURCE_RUNTIME_AUDIT.json` and
 `READINESS_SEAL.json`. Root owns the later native run and its acceptance.
 The 21-member seal has SHA256
 `1e9baa0c6f9fd96c6a2bdf45f66876435d465fb9ffc4bc7f5e3e5e44a6b85685`.
+
+Later [input and runtime checks](REALTIME_CATCHER_BOUNDARIES_20261013.md)
+verify an optional selected-noise/prefix hook candidate and 32 scripted Catcher
+controls on CPU. They record the diagnostic JIT correction, PRNG default change,
+and unresolved dependency metadata conflicts. Full learner integration and
+native policy results remain pending.

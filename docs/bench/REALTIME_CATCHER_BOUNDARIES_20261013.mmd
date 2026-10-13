@@ -1,0 +1,12 @@
+flowchart LR
+    B[Original Catcher BC24 weights] --> A[Original FlowPolicy plus optional input hooks]
+    A --> T[Verified CPU default, noise and prefix checks]
+    A -. backend candidate in progress .-> L[Released RealTimeEXPOFTLearner]
+    S[Symbolic encoder and replay candidate] -. combined installed test pending .-> L
+    E[Original Catcher physics] --> P[32 scripted CPU controls in two runtimes]
+    R[Integration runtime: two metadata conflicts remain] --> P
+    E -. task driver and full schedule pending .-> L
+    L -. no native learning result yet .-> V[Future baseline and post-training scores and videos]
+    O[Root: integration and native acceptance] -. owns .-> L
+    I[Independent reviewer] -. checks .-> T
+    I -. checks .-> P

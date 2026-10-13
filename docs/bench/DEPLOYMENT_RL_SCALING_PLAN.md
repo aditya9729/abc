@@ -3,7 +3,8 @@
 The objective is to measure whether additional useful experience improves a
 deployed policy. The harness must control collection, learning, and evaluation.
 More updates or more simulator instances do not establish that improvement.
-This document is a research-backed plan. It contains no new training result.
+This document separates the scaling plan from measured implementation progress.
+It contains no accepted result from local training yet.
 
 Execution update: the [original Mulligan experiment](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.md)
 now has a working command launcher, matched released-policy scores and six full
@@ -55,10 +56,10 @@ The inspected repositories provide different parts of the system:
 | Existing component | What it provides | Remaining connection |
 | --- | --- | --- |
 | Legacy `nrh/scaling.py` and `SCALING_AND_GENERATION.md`, Sadhana branch `e59322e` | Nested data-diversity cohorts, fixed training budgets, lineage checks, comparisons | An outcome-driven choice of the next collection start |
-| `abc_bench/runner.py` and `author_program.py` | GPU0 job supervision, bounded execution, original EXPO program launches | A narrow launcher for original Mulligan commands; the current EXPO whitelist does not admit them |
+| `abc_bench/runner.py`, `author_program.py`, and `mulligan_program.py` | GPU0 job supervision and bounded original EXPO/Mulligan command launches | Accept completed local training and connect collection feedback |
 | `abc_bench/captured_reset.py` | Captured ABC validation resets | A separate validated TRAIN reset bank; validation captures must not become curriculum data |
 | Current Sadhana `mixture.py`, `rollout_artifacts.py`, and `rollout_execution.py`, inspected at `85fe831` | Real-data floor sampling, persistent rollout evidence, execution events | Method-specific collection feedback and an original RL learner connection |
-| Existing result viewer | Episode results and full videos | Learning curves against data, compute, and supervision cost; per-start failure maps |
+| Existing result viewer | Matched Mulligan released-policy scores and six full native videos | Local learning curves against data, compute, and supervision cost; per-start failure maps |
 
 The current real-data floor applies over an epoch. It is not an exact
 per-update actor/critic balance. The legacy comparison also requires equal
@@ -127,8 +128,9 @@ controller while checking the recipe. Proceed in this order:
    the same 50-start simulation shard. Save full successes and failures.
 3. Retrain one released Square-Narrow round with its exact data, actor/critic
    rules, and original entrypoints. Record all recipe deviations, if any.
-4. Compare uniform and targeted collection at the same round and supervision
-   budget. Compare the original single-candidate and 32-candidate reranking
+4. Compare the released collection recipes at the same round and episode
+   quota. Record their actual human supervision; it is not equal by construction.
+   Compare the original single-candidate and 32-candidate reranking
    modes. Confirm useful results across the paper's five
    training seeds and the full locked evaluation grid before claiming its
    reported performance.
@@ -140,17 +142,38 @@ does not match starts. Document R0's shared-grid override as a pilot change.
 The reviewed grid evaluator does not expose a video flag. Add a declared
 rendering recorder without changing the original policy or task behavior.
 
-The clean first collection comparison uses these released R1 recipes:
+The next collection comparison uses these released R1 recipes:
 
 | Collection strategy | Original recipe | Evaluation settings per checkpoint |
 | --- | --- | --- |
-| Sobol coverage, without counterfactual demonstrations | `square-narrow-r01-sobol-no-cf` | `--stage divl_head --num-action-samples 1` and `32` |
-| Mulligan targeting, without counterfactual demonstrations | `square-narrow-r01-mulligan-no-cf` | `--stage divl_head --num-action-samples 1` and `32` |
+| Shared failure promotion, then Sobol fill; no counterfactual demonstrations | `square-narrow-r01-sobol-no-cf` | `--stage divl_head --num-action-samples 1` and `32` |
+| Shared failure promotion, then local perturbations and coverage fill; no counterfactual demonstrations | `square-narrow-r01-mulligan-no-cf` | `--stage divl_head --num-action-samples 1` and `32` |
 
-Both use the same R0 Sobol data, 100 R1 collection episodes, and the same
-diagnostic rollout source. This is a clearer test of collection allocation
-than the full baseline-versus-Mulligan recipes, which also change the initial
-design and counterfactual demonstrations. With one candidate, ranking cannot
+Both use the same R0 Sobol data, a quota of 100 successful R1 team episodes,
+and the same diagnostic rollout source. Both promote the same 21 failure starts.
+They then choose 79 Sobol starts, or 20 local perturbations and 59 coverage starts.
+The two views share 21 source episodes; their union has 179 distinct episodes.
+This is a comparison of the remaining collection allocation, not failure
+promotion against pure uniform sampling.
+
+Human supervision also differs. The released sidecars contain 1,667 human-tagged
+records for Sobol and 1,928 for Mulligan. They summarize raw records; each view
+has 100 invalid records. Possible valid-human counts are 1,567–1,667 and
+1,828–1,928 respectively.
+The Mulligan view therefore has at least 161 more valid human records.
+Exact valid-human counts require the trajectory payloads, which this metadata
+check did not download. Neither these counts nor the successful episode quota
+measure operator time, reset effort, or discarded attempts. This is an equal
+episode-quota comparison, not an equal-human-effort causal experiment.
+
+The complete metadata and prepared four-job contract are in
+`/home/user/aditya/RL/builds/mulligan-collection-comparison-20261013/`.
+The four evaluations are prepared, not executed. Each uses the same 50 starts.
+These checks use released checkpoints, separately from the live local retraining.
+Released checkpoint metadata says step 150001, while the summaries say 150000
+training steps. Preserve both fields; do not infer an extra measured update.
+
+With one candidate, ranking cannot
 change the selected action, but the evaluator still computes Q. Do not call
 that timing measurement critic-free. Record the additional computation for
 32 candidates. Restore the full Mulligan recipe as a separate comparison.
@@ -163,7 +186,10 @@ does not demonstrate a fresh autonomous collection loop. Replaying recorded
 operator segments is also not a new human intervention policy. Label both.
 The 50-start run is a visible pilot; it does not reproduce the full grid score.
 
-The original README documents these entrypoints. They were inspected, not run:
+The original README documents these entrypoints. The design check and the
+matched 50-start released-policy evaluation have run. Original IDQL training
+is live. The later DIVL stage must use the accepted local parent's absolute
+`checkpoints/final_model` path. Do not let `--parent local` resolve a different run:
 
 ```bash
 python -m mulligan.sampling.sim_design \
@@ -175,12 +201,12 @@ bash scripts/sim/eval_cell.sh square-narrow-r01-mulligan \
 
 bash scripts/sim/train_cell.sh square-narrow-r01-mulligan --seed 1
 bash scripts/sim/train_divl_heads.sh square-narrow-r01-mulligan \
-  --seed 1 --parent local
+  --seed 1 --parent "${ACCEPTED_MULLIGAN_PARENT:?Set the accepted checkpoint path}"
 ```
 
 The release reports hours per seed, not seconds. Measure this host before a
-campaign. Use GPU0 serially through the shared runner after adding its narrow
-author-command adapter. Keep caches and outputs under `/home/user/aditya`.
+campaign. Use GPU0 serially through the installed original-command adapter
+and shared runner. Keep caches and outputs under `/home/user/aditya`.
 Downloads remain scoped to the selected task, round, and seed.
 
 ## What scaling must measure
@@ -234,10 +260,11 @@ versioned data and scene artifacts; this plan does not establish new bindings.
 Independent method and harness notes are under
 `/home/user/aditya/RL/builds/deployment-rl-scaling-study-20261013/`.
 The Mulligan source check used revision
-`bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8`. Source inspection confirmed its
-evaluation controls and public metadata; it did not load models or datasets.
+`bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8`. The initial study inspected source
+and metadata only. The linked experiment report records subsequent model/data
+downloads, actual evaluations, videos, and ongoing training.
 
 [Architecture source](DEPLOYMENT_RL_SCALING_PLAN.mmd). Solid connections show
 existing component relationships. Dashed connections show proposed integration.
-No simulator, GPU job, dependency installation, or dataset download was made
-for this study. Text uses STE guidance; full ASD-STE100 compliance was not checked.
+The initial study made no simulator runs or downloads. Later execution evidence
+is identified above. Text uses STE guidance; full ASD-STE100 compliance was not checked.

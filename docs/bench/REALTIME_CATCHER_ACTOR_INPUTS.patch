@@ -1,0 +1,111 @@
+diff --git a/src/model.py b/src/model.py
+index 9e04c86..cade435 100644
+--- a/src/model.py
++++ b/src/model.py
+@@ -157,7 +157,10 @@ class FlowPolicy(nnx.Module):
+         x = self.out_proj(x)
+         return x
+ 
+-    def action(self, rng: jax.Array, obs: jax.Array, num_steps: int) -> jax.Array:
++    def action(
++        self, rng: jax.Array, obs: jax.Array, num_steps: int, *, noise: jax.Array | None = None
++    ) -> jax.Array:
++        """Original solver; optional float32[B,H,D] noise replaces only its initial draw."""
+         dt = 1 / num_steps
+ 
+         def step(carry, _):
+@@ -165,7 +168,14 @@ class FlowPolicy(nnx.Module):
+             v_t = self(obs, x_t, time)
+             return (x_t + dt * v_t, time + dt), None
+ 
+-        noise = jax.random.normal(rng, shape=(obs.shape[0], self.action_chunk_size, self.action_dim))
++        if noise is None:
++            noise = jax.random.normal(rng, shape=(obs.shape[0], self.action_chunk_size, self.action_dim))
++        else:
++            noise = jnp.asarray(noise)
++            if noise.shape != (obs.shape[0], self.action_chunk_size, self.action_dim):
++                raise ValueError("noise must have shape (batch, action_chunk_size, action_dim)")
++            if noise.dtype != jnp.float32:
++                raise ValueError("supplied noise must be float32")
+         (x_1, _), _ = jax.lax.scan(step, (noise, 0.0), length=num_steps)
+         assert x_1.shape == (obs.shape[0], self.action_chunk_size, self.action_dim), x_1.shape
+         return x_1
+@@ -226,7 +236,10 @@ class FlowPolicy(nnx.Module):
+         prefix_attention_horizon: int,
+         prefix_attention_schedule: PrefixAttentionSchedule,
+         max_guidance_weight: float,
++        *,
++        noise: jax.Array | None = None,
+     ) -> jax.Array:
++        """Original RTC solver with an optional explicit float32[B,H,D] initial noise."""
+         dt = 1 / num_steps
+ 
+         def step(carry, _):
+@@ -259,12 +272,30 @@ class FlowPolicy(nnx.Module):
+                 v_t = pinv_corrected_velocity(obs, x_t, prev_action_chunk, time)
+             return (x_t + dt * v_t, time + dt), None
+ 
+-        noise = jax.random.normal(rng, shape=(obs.shape[0], self.action_chunk_size, self.action_dim))
++        if noise is None:
++            noise = jax.random.normal(rng, shape=(obs.shape[0], self.action_chunk_size, self.action_dim))
++        else:
++            noise = jnp.asarray(noise)
++            if noise.shape != (obs.shape[0], self.action_chunk_size, self.action_dim):
++                raise ValueError("noise must have shape (batch, action_chunk_size, action_dim)")
++            if noise.dtype != jnp.float32:
++                raise ValueError("supplied noise must be float32")
+         (x_1, _), _ = jax.lax.scan(step, (noise, 0.0), length=num_steps)
+         assert x_1.shape == (obs.shape[0], self.action_chunk_size, self.action_dim), x_1.shape
+         return x_1
+ 
+-    def loss(self, rng: jax.Array, obs: jax.Array, action: jax.Array):
++    def loss(
++        self, rng: jax.Array, obs: jax.Array, action: jax.Array, *, prefix_lengths: jax.Array | None = None
++    ):
++        """Original loss; int[B] prefix lengths opt into its existing clean-prefix formula.
++
++        Supplied lengths override simulated_delay's random choice. They must lie
++        in [0,H]. H is an entirely clean, unsupervised row (zero loss); if all
++        rows use H, loss and parameter gradients are zero. Out-of-range values
++        produce NaN, including under JIT; validate lengths before updating.
++        Default loss paths and
++        the original prefix branch's token-count normalization are unchanged.
++        """
+         assert action.dtype == jnp.float32
+         assert action.shape == (obs.shape[0], self.action_chunk_size, self.action_dim), action.shape
+         noise_rng, time_rng, delay_rng = jax.random.split(rng, 3)
+@@ -272,18 +303,29 @@ class FlowPolicy(nnx.Module):
+         noise = jax.random.normal(noise_rng, shape=action.shape)
+         u_t = action - noise
+ 
+-        if self.simulated_delay is None:
++        if self.simulated_delay is None and prefix_lengths is None:
+             x_t = (1 - time[:, None, None]) * noise + time[:, None, None] * action
+             pred = self(obs, x_t, time)
+             return jnp.mean(jnp.square(pred - u_t))
+ 
+-        w = jnp.exp(jnp.arange(0, self.simulated_delay)[::-1])
+-        w = w / jnp.sum(w)
+-        delay = jax.random.choice(delay_rng, self.simulated_delay, (obs.shape[0],), p=w)
++        if prefix_lengths is None:
++            w = jnp.exp(jnp.arange(0, self.simulated_delay)[::-1])
++            w = w / jnp.sum(w)
++            delay = jax.random.choice(delay_rng, self.simulated_delay, (obs.shape[0],), p=w)
++        else:
++            delay = jnp.asarray(prefix_lengths)
++            if delay.shape != (obs.shape[0],):
++                raise ValueError("prefix_lengths must have shape (batch,)")
++            if not jnp.issubdtype(delay.dtype, jnp.integer):
++                raise ValueError("prefix_lengths must contain integers")
+         mask = jnp.arange(self.action_chunk_size)[None, :] < delay[:, None]
+         time = jnp.where(mask, 1.0, time[:, None])
+         x_t = (1 - time[:, :, None]) * noise + time[:, :, None] * action
+         pred = self(obs, x_t, time)
+         loss = jnp.square(pred - u_t)
+         loss_mask = jnp.logical_not(mask)[:, :, None]
+-        return jnp.sum(loss * loss_mask) / (jnp.sum(loss_mask) + 1e-8)
++        result = jnp.sum(loss * loss_mask) / (jnp.sum(loss_mask) + 1e-8)
++        if prefix_lengths is not None:
++            valid = jnp.all((delay >= 0) & (delay <= self.action_chunk_size))
++            result = jnp.where(valid, result, jnp.nan)
++        return result

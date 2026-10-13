@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "scope": "CPU integration candidates and prepared collection comparison; no new native policy score or learner training result",
+  "artifacts": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/actor/ACTOR_HOOK_SEAL.json",
+      "sha256": "c82b28f7b4a87053f7aafc34bca23f791ce5e416d3226900a9771c524edd22e9",
+      "bytes": 2626
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/parity/PRNG_COUNTERCHECK.json",
+      "sha256": "392bfb9a526bd206b76c30def7241dfbd6aaadca336a635a700c697497b1923d",
+      "bytes": 488
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/parity/RUNTIME_COMPARISON.json",
+      "sha256": "5f4cabe1c8cf2611a93700fdc8b2e89e72f233d1287d25f7f79c7ac93fc156c8",
+      "bytes": 416
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/parity/PHYSICS_RUNTIME_COMPARISON.json",
+      "sha256": "082e189f05a019860df0a691e0fa30fce15fae4e1ca37ea3d393b2010cad2934",
+      "bytes": 3375
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/parity/check_original_model.py",
+      "sha256": "98ddd5f8a9aae93c4244b64691d2fa9ceb4e52ac337850528475c7c87067c830",
+      "bytes": 3162
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/parity/check_original_environment.py",
+      "sha256": "c0c04f45dfbbcbb5ebc8888d31cc63ea134dfeecb9699bc5a568686c6e85c707",
+      "bytes": 3246
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/parity/check_original_environment_fixed_params.py",
+      "sha256": "4519c248783d8d3bc8c0fef67bf0ec24ee77d92aac0e631becfb1c38c1e1ba30",
+      "bytes": 3405
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/COMMON_RUNTIME_VERSION_DIFFERENCES.json",
+      "sha256": "095d28cb0c253fa57f6815b6e29937d612391e69464dfc42aef90fd0f13eef0c",
+      "bytes": 7313
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-comparison-20261013/SEAL.json",
+      "sha256": "5962e555f42175a0373b8b8f545195197a8c2d23909c25b3e9dd8a860a7a6a07",
+      "bytes": 3195
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/requirements-observed.txt",
+      "sha256": "b97d12ca295c9650a83ae770aa1554e28214d5a7215a6df7d9d6868c4cb07f3f",
+      "bytes": 5090
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime/DEPENDENCY_CHECK.log",
+      "sha256": "cb8a07bff214dc65722f610630c83cbfde1266302a338f0c12ecd95890cfd83c",
+      "bytes": 326
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/runtime-review/REVIEW.json",
+      "sha256": "95326a2fd0db089277d31a5616529207bdc80edd52fbe66bc6af6a6fc9e2a1c0",
+      "bytes": 17306
+    }
+  ],
+  "actor_candidate_commit": "5accbcd202e13352d2e46fb3d222f285753bd3df",
+  "original_sources": {
+    "rtc": "9296f31d62d5bfeb5779dcb2f9bcf71ca37f448b",
+    "kinetix": "cf7453ea103fa0b77348af1a39f689c658161613",
+    "expo": "21fe3d3b7d913c80836496817965932f49e0aedf"
+  },
+  "runtime_metadata_check": "failed:2declaredversionconflicts; no dependency metadata suppressed",
+  "version_report_note": "COMMON_RUNTIME_VERSION_DIFFERENCES.json predates decorator correction. requirements-observed.txt captures current package versions.",
+  "independent_review": "No blocking defect in diagnostic closure or actor hooks; full integration and exact dependency reproduction remain unaccepted."
+}
