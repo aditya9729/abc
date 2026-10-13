@@ -88,11 +88,46 @@ Limit0 reduced these separate process peaks by 36–39%. The unchanged formula,
 The root check observed 227,061,908 KiB available. This does not admit training.
 It is an estimate, not a simultaneous aggregate measurement or a policy score.
 
-A separate default-off unused-mesh candidate removes only unreferenced declarations
-before compilation. Its installed CPU checks passed. Native equivalence and memory
-savings remain pending. The original learner, reward and full64 guard are unchanged.
+The corrected default-off unused-mesh candidate completed native run
+`164627-a64c76` in 110.124 seconds. Four fresh processes ran 52 controls.
+Rank0 covered 12 resets; rank55 covered its heavy initial reset. Both comparisons
+passed the explicit XML deletion check, retained mesh geometry, remaining physical
+arrays/options, full INTEGRATION and native state/action/reward/judge checks.
+Raw XML and complete array inventories differ by design. This is not byte-identical
+MJB evidence. The earlier `162141-ead7ca` failure remains failed: it rejected
+unnamed mesh declarations in the original input. Version0.1.3 retains those
+declarations unchanged and removes only explicitly named, unreferenced meshes.
+
+| TRAIN rank | Unpruned peak RAM | Pruned peak RAM | Reduction |
+| --- | --- | --- | --- |
+| 0 | 3,632,804 KiB | 2,896,732 KiB | 20.3% |
+| 55 | 3,151,260 KiB | 2,518,576 KiB | 20.1% |
+
+Both variants used scene limit0 and the unchanged compiler cache. These are
+within-test comparisons, not an additive savings claim across earlier tests.
+The unchanged 64-world formula now estimates 240,127,168 KiB, below the
+279,913,112 KiB available at root review. No simultaneous 64-world test or
+training ran. Production wiring, a fresh source-matched resource proof and a
+64-world qualification remain required. Root evidence is
+`builds/abc-fasttd3-implicit-mesh-retention-20261013/actual-native-launch/ACTUAL_TERMINAL_RESULT.json`
+relative to this repository's parent. Worker receipt SHA256:
+`fa12cc04b6dbfc96fa2edc8c074e7037b2a0f82111e5c1b9e20d6c14449e48c5`.
+The original learner, reward and full64 guard are unchanged.
 The original ABC0.1.0 captured host remains installed. Resource candidates use
 separate runtime prefixes; they cannot bypass the original capture contract.
+
+FastTD3 already learns its own twin value functions. No external value model is
+missing. This adapter uses the author's HumanoidBench defaults, not a published
+ABC task recipe. At 0.034 seconds/control, gamma0.99 gives a 3.38-second e-fold
+horizon. Successful TRAIN demonstrations take 35–48 seconds. Sparse five-bottle
+success, reward scale and exploration are therefore task-fit concerns.
+Gamma alone is not a proven bug: original author tasks also use short horizons,
+with different rewards. Potential shaping preserves the discounted objective;
+it does not extend the horizon or provide successful replay. Finite update
+gradients do not establish useful learning. More training is not a proven fix.
+The source-bound audit is
+`builds/abc-fasttd3-task-design-read-only-20261013/NOTE.md`, relative to this
+repository's parent. It separates reward arithmetic from learning performance.
 
 ## Viewer and owners
 
@@ -111,6 +146,7 @@ Leela's jobs and other GPUs remain untouched.
 
 [Viewer architecture](ORIGINAL_METHODS_VIEWER.mmd) and
 [resource diagnostic architecture](FASTTD3_COMPILER_CACHE_DIAGNOSTIC.mmd)
-show the component boundaries. The scene-cache measurements are complete.
-Unused-mesh native proof and FastTD3 training results remain pending.
+show the component boundaries. The scene-cache and unused-mesh diagnostic
+measurements are complete. FastTD3 production integration and training results
+remain pending. No new EXPO RL result exists for the selected125 policy.
 This explanation uses STE guidance. A full compliance check was not performed.
