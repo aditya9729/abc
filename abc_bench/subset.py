@@ -67,6 +67,49 @@ def require_subset_lease() -> None:
         raise RuntimeError("The coordinator GPU 0 lease is not held")
 
 
+def validate_expo_campaign_watchdog(config: dict, maximum: float) -> None:
+    """Separate repeated-call campaign; keep the old extended recipe unchanged."""
+    parameters = config.get("parameters")
+    fixed = {
+        "seed": 42,
+        "batch_size": 64,
+        "utd_ratio": 20,
+        "completed_episode_warmup": 10,
+        "updates_per_trigger": 3,
+        "max_controls": 53100,
+        "sampler_timing_plans": 0,
+        "max_episode_completions": 15,
+        "max_update_calls": 15,
+        "max_seconds": 18000,
+        "soft_seconds": 12000,
+        "futility_start_calls": 6,
+        "futility_min_calls": 9,
+        "futility_patience": 2,
+    }
+    if (
+        set(config) != {"schema_version", "phase", "parameters"}
+        or type(config.get("schema_version")) is not int
+        or config["schema_version"] != 1
+        or config.get("phase") != "original_expo_task_rl_serial_campaign"
+        or type(parameters) is not dict
+        or any(
+            type(parameters.get(k)) is not int or parameters[k] != v
+            for k, v in fixed.items()
+        )
+        or parameters.get("memory_scheduling_profile")
+        != "original_queue3_serial_update_v1"
+        or parameters.get("checkpoint_retention") != "terminal_complete_only"
+        or parameters["max_seconds"] > maximum - 300
+        or type(parameters.get("episode_seeds")) is not list
+        or len(parameters["episode_seeds"]) != 15
+        or any(type(seed) is not int for seed in parameters["episode_seeds"])
+        or len(set(parameters["episode_seeds"])) != 15
+    ):
+        raise ValueError(
+            "Extended EXPO campaign requires fifteen episodes/calls, fixed original recipe, explicit stop/storage bounds and300s cleanup margin"
+        )
+
+
 def load_job(path: Path) -> dict[str, Any]:
     """Require a finite job and a normal installed, explicitly selected worker."""
     job = json.loads(path.read_text())
@@ -114,45 +157,51 @@ def load_job(path: Path) -> dict[str, Any]:
             )
         config = json.loads(config_path.read_text())
         parameters = config.get("parameters") if type(config) is dict else None
-        fixed = {
-            "seed": 42,
-            "batch_size": 64,
-            "utd_ratio": 20,
-            "completed_episode_warmup": 10,
-            "updates_per_trigger": 3,
-            "max_controls": 38940,
-            "sampler_timing_plans": 0,
-        }
         if (
-            type(config) is not dict
-            or type(config.get("schema_version")) is not int
-            or config["schema_version"] != 1
-            or (
-                config.get("phase") != "original_expo_task_rl"
-                and not (
-                    config.get("phase") == "original_expo_task_rl_serial"
-                    and type(parameters) is dict
-                    and parameters.get("memory_scheduling_profile")
-                    == "original_queue3_serial_update_v1"
-                )
-            )
-            or type(parameters) is not dict
-            or any(
-                type(parameters.get(key)) is not int or parameters[key] != value
-                for key, value in fixed.items()
-            )
-            or type(parameters.get("max_seconds")) is not int
-            or not 1 <= parameters["max_seconds"] <= 18000
-            or parameters["max_seconds"] > maximum - 300
-            or type(parameters.get("episode_seeds")) is not list
-            or len(parameters["episode_seeds"]) != 11
-            or any(type(seed) is not int for seed in parameters["episode_seeds"])
-            or len(set(parameters["episode_seeds"])) != 11
+            type(config) is dict
+            and config.get("phase") == "original_expo_task_rl_serial_campaign"
         ):
-            raise ValueError(
-                "Extended EXPO requires the original eleven-episode B64/UTD20 "
-                "phase, an at-most18000s worker and300s parent cleanup margin"
-            )
+            validate_expo_campaign_watchdog(config, maximum)
+        else:
+            fixed = {
+                "seed": 42,
+                "batch_size": 64,
+                "utd_ratio": 20,
+                "completed_episode_warmup": 10,
+                "updates_per_trigger": 3,
+                "max_controls": 38940,
+                "sampler_timing_plans": 0,
+            }
+            if (
+                type(config) is not dict
+                or type(config.get("schema_version")) is not int
+                or config["schema_version"] != 1
+                or (
+                    config.get("phase") != "original_expo_task_rl"
+                    and not (
+                        config.get("phase") == "original_expo_task_rl_serial"
+                        and type(parameters) is dict
+                        and parameters.get("memory_scheduling_profile")
+                        == "original_queue3_serial_update_v1"
+                    )
+                )
+                or type(parameters) is not dict
+                or any(
+                    type(parameters.get(key)) is not int or parameters[key] != value
+                    for key, value in fixed.items()
+                )
+                or type(parameters.get("max_seconds")) is not int
+                or not 1 <= parameters["max_seconds"] <= 18000
+                or parameters["max_seconds"] > maximum - 300
+                or type(parameters.get("episode_seeds")) is not list
+                or len(parameters["episode_seeds"]) != 11
+                or any(type(seed) is not int for seed in parameters["episode_seeds"])
+                or len(set(parameters["episode_seeds"])) != 11
+            ):
+                raise ValueError(
+                    "Extended EXPO requires the original eleven-episode B64/UTD20 "
+                    "phase, an at-most18000s worker and300s parent cleanup margin"
+                )
         maximum_allowed = 18300
     if (
         type(maximum) not in (int, float)
