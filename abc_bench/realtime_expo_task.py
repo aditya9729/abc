@@ -53,15 +53,19 @@ def load_client_task(path: str | Path) -> ConfigDict:
         "episode_seeds",
         "event_log_path",
     }
-    if set(raw) != required or raw["env_type"] != "abc_yam":
+    if (
+        not required <= set(raw)
+        or set(raw) - required - {"environment_profile"}
+        or raw["env_type"] != "abc_yam"
+    ):
         raise ValueError(
             "Client snapshot must match the explicit ABC server task fields"
         )
     example = np.asarray(raw["example_action"], dtype=np.float32)
     if example.shape != (1, 14) or not np.isfinite(example).all():
         raise ValueError("Client example_action must be finite float32[1,14]")
+    raw["example_action"] = example
     config = ConfigDict(raw)
-    config.example_action = example
     config.env = ABCYamEnv
     return config
 

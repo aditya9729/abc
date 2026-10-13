@@ -46,8 +46,8 @@ class ABCYamEnv:
     State/actions: left joints1..6, left gripper, right joints1..6, right
     gripper. Joints use radians; grippers retain ABC's policy coordinates.
     Images are actual uint8 HWC RGB[168,224,3]. No command clipping is added.
-    ``env_usage='eval'`` is deliberately unavailable until a captured contract
-    is supplied; random TRAIN resets are not matched frozen evaluation.
+    The explicit TRAIN-scene timing diagnostic also permits ``env_usage='eval'``.
+    Random TRAIN resets are not matched frozen evaluation.
     """
 
     _active: ABCYamEnv | None = None
@@ -61,12 +61,26 @@ class ABCYamEnv:
         control_hz: float = CONTROL_HZ,
         max_episode_steps: int = 3540,
         env_usage: str = "train",
+        environment_profile: str = "original_train_v1",
         language_instruction: str = PROMPT,
         video_dir: str = "",
         **task_config: Any,
     ):
-        if env_usage != "train":
-            raise ValueError("ABCYamEnv currently admits explicit TRAIN resets only")
+        if environment_profile == "original_train_v1":
+            if env_usage != "train":
+                raise ValueError("ABCYamEnv default admits explicit TRAIN resets only")
+        elif environment_profile == "train_scene_timing_diagnostic":
+            if (
+                env_usage != "eval"
+                or max_episode_steps != 32
+                or not isinstance(episode_seeds, (list, tuple))
+                or len(episode_seeds) != 2
+            ):
+                raise ValueError(
+                    "Timing diagnostic requires eval/32controls/two TRAIN seeds"
+                )
+        else:
+            raise ValueError("Unknown ABC Real-Time EXPO environment profile")
         if language_instruction != PROMPT:
             raise ValueError(f"ABC task prompt must be {PROMPT!r}")
         if not math.isfinite(control_hz) or not math.isclose(
@@ -82,6 +96,7 @@ class ABCYamEnv:
         ):
             raise ValueError("ABC requires an explicit unique TRAIN seed sequence")
         self.seeds = tuple(check_seed(seed) for seed in episode_seeds)
+        self.environment_profile = environment_profile
         example = np.asarray(example_action, dtype=np.float32)
         if example.shape == (1, 14):
             example = example[0]
@@ -108,7 +123,7 @@ class ABCYamEnv:
         self.native_reward = 0.0
         self._last_observation = None
         self._video_control = -1
-        self._startup_pending = True
+        self._startup_pending = env_usage == "train"
         try:
             self.env = make_original_env(
                 {"save_video": True, "max_episode_steps": max_episode_steps}
@@ -120,12 +135,22 @@ class ABCYamEnv:
                 or not math.isclose(float(self.env.model.opt.timestep), 0.002)
             ):
                 raise ValueError("Require original dual-YAM14/dt0.002/decimation17")
-            if not np.array_equal(self.example_action, _action(self.env.get_init_q())):
+            if self._startup_pending and not np.array_equal(
+                self.example_action, _action(self.env.get_init_q())
+            ):
                 raise ValueError(
                     "Startup example_action differs from native initial hold"
                 )
             ABCYamEnv._active = self
-            self._record("constructed", control_hz=CONTROL_HZ, control_dt=CONTROL_DT)
+            self._record(
+                "constructed",
+                control_hz=CONTROL_HZ,
+                control_dt=CONTROL_DT,
+                environment_profile=environment_profile,
+                env_usage=env_usage,
+                max_episode_steps=max_episode_steps,
+                benchmark_evaluation=False,
+            )
             atexit.register(self.close)
         except BaseException:
             self.close()
@@ -139,6 +164,12 @@ class ABCYamEnv:
             "wall_time_ns": time.time_ns(),
             "episode_index": self.episode_index,
             "actual_controls": self.controls,
+            "environment_profile": self.environment_profile,
+            "split": "train",
+            "purpose": "timing_diagnostic"
+            if self.environment_profile == "train_scene_timing_diagnostic"
+            else "training",
+            "benchmark_evaluation": False,
             **fields,
         }
         if self.env is not None:

@@ -54,6 +54,15 @@ Native randomization and retry records enter the event log.
 Matched captured evaluation is unavailable through this initial TRAIN class.
 Random TRAIN resets cannot prove a captured VAL result.
 
+The explicit `environment_profile='train_scene_timing_diagnostic'` permits author evaluation on two TRAIN resets.
+It requires `env_usage='eval'` and a32-control native horizon.
+The original evaluation program resets twice and sends no startup hold.
+This profile therefore disables startup hold validation and preserves both resets.
+Use the author loop bound33 to observe truncation after32 native controls.
+Mark every output as a TRAIN-scene timing diagnostic, not a benchmark score.
+This checks the one-update RTC checkpoint with delay5/replan8; it does not establish task quality.
+The default TRAIN profile and3540-control horizon remain available.
+
 The native full-five-bottle judge supplies success.
 The author interface receives sparse success reward1 and terminal mask0.
 Partial native bottle reward remains diagnostic evidence.
