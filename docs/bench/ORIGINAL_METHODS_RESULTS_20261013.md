@@ -112,6 +112,11 @@ training ran. Production wiring, a fresh source-matched resource proof and a
 `builds/abc-fasttd3-implicit-mesh-retention-20261013/actual-native-launch/ACTUAL_TERMINAL_RESULT.json`
 relative to this repository's parent. Worker receipt SHA256:
 `fa12cc04b6dbfc96fa2edc8c074e7037b2a0f82111e5c1b9e20d6c14449e48c5`.
+The diagnostic covers rank0 resets0..11. It does not cover the final autoreset
+after twelve full episodes. The earlier scene-cache test reached its largest
+rank0 peak at reset12. The production proof must include that transition before
+using its peak for memory admission. The estimate above is incomplete lifecycle
+coverage; it does not establish that the full campaign fits.
 The original learner, reward and full64 guard are unchanged.
 The original ABC0.1.0 captured host remains installed. Resource candidates use
 separate runtime prefixes; they cannot bypass the original capture contract.
