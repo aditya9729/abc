@@ -18,6 +18,7 @@ from abc_bench.subset import require_subset_lease
 PROGRAMS = {"train_offline_rtc.py", "train_pi_robo.py", "eval_droid_policy.py"}
 ENVIRONMENT_KEYS = {
     "ABC_REALTIME_CONFIG",
+    "ABC_REALTIME_EXPO_CLIENT_CONFIG",
     "HF_HUB_OFFLINE",
     "TRANSFORMERS_OFFLINE",
     "XLA_PYTHON_CLIENT_MEM_FRACTION",

@@ -13,6 +13,14 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <h1>EXPO-FT and FastTD3 · ABC-Sim</h1>
 <p id="snapshot" role="status">Loading measured results…</p>
 <p id="error" role="alert"></p>
+<section class="card" aria-labelledby="rtc-heading" style="margin-bottom:22px">
+<h2 id="rtc-heading">Real-Time EXPO-FT · current work</h2>
+<p id="rtc-status">Native RTC training and control checks pending.</p>
+<p id="rtc-training"></p>
+<p id="rtc-timing"></p>
+<div id="rtc-clips"></div>
+<p><small>ABC-YAM task adaptation. RTC-SFT trains the base policy. Online critic/filter training and task-success benchmarks remain separate. The earlier standard EXPO results below are history.</small></p>
+</section>
 <div class="grid">
 <section class="card" aria-labelledby="fast-heading">
 <h2 id="fast-heading">FastTD3 · current status</h2>
@@ -291,6 +299,30 @@ function renderWarmup(observation, runId) {
   }
   box.dataset.identity = identity;
 }
+function renderRealtime(rt) {
+  if (!rt) return;
+  text('rtc-status', rt.status);
+  const sft = rt.rtc_sft;
+  if (sft?.checkpoint_verified === true) {
+    const updates = integer(sft.actor_step, 'verified RTC updates', 1);
+    if (!Number.isFinite(sft.actor_loss) || !Number.isFinite(sft.gradient_norm)) throw Error('Invalid RTC training metrics');
+    text('rtc-training', updates + ' original RTC-SFT update verified · batch ' + integer(sft.batch_size, 'RTC batch', 1) + ' · loss ' + sft.actor_loss.toFixed(5) + ' · gradient norm ' + sft.gradient_norm.toFixed(5) + '. This is a training-path check, not a task-success result.');
+  }
+  const timing = rt.timing;
+  text('rtc-timing', timing?.description || 'Native delayed-control check pending. No achieved real-time deadline is claimed.');
+  const box = document.getElementById('rtc-clips');
+  if (timing?.video && box.dataset.video !== timing.video) {
+    if (!/^[0-9a-f]{16}\.mp4$/.test(timing.video)) throw Error('Invalid RTC diagnostic video');
+    const label = document.createElement('p');
+    label.textContent = 'Short control diagnostic on a TRAIN scene. This clip is not a full task evaluation.';
+    const video = document.createElement('video');
+    video.controls = true;
+    video.preload = 'metadata';
+    video.src = timing.video;
+    box.replaceChildren(label, video);
+    box.dataset.video = timing.video;
+  }
+}
 function renderExpo(e) {
   text('expo-score', 'Online task score pending');
   text('expo-status', e.status);
@@ -419,6 +451,7 @@ async function refresh() {
     const data = await response.json();
     if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
     renderFast(data.fasttd3);
+    renderRealtime(data.expoft?.real_time_current);
     renderExpo(data.expoft);
     renderMatched(data);
     text('snapshot', data.embodiment + ' · Snapshot ' + data.snapshot_utc);

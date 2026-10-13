@@ -1,0 +1,21 @@
+flowchart LR
+  subgraph Data[ABC data boundary — data agent]
+    D[Three pinned TRAIN demonstrations] --> T[ABC state14, absolute actions14, three RGB views]
+    N[TRAIN normalization statistics] --> C[Public task TrainConfig factory]
+  end
+  subgraph Author[Original author implementation]
+    T --> R[Original replay and batch processing]
+    C --> M[Real-time OpenPI pi0.5]
+    R --> S[train_offline_rtc.py and RTCLearner]
+    M --> S
+    S --> K[RTC checkpoint: actor, optimizer, RNG]
+    K -. pending native control proof .-> A[Original AsyncChunkSampler and real-time learner]
+  end
+  subgraph Control[Execution — root coordinator]
+    L[GPU0 exclusive lease and bounded watchdog] --> P[Process-only supervisor]
+    P --> S
+    P -. next native gate .-> E[Original WebSocket client]
+    E -. ABC environment boundary .-> W[Native ABC world — environment agent]
+  end
+  S --> O[Local offline training metrics]
+  K --> V[Checkpoint review — independent reviewer and root]

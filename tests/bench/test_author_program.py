@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -84,3 +85,27 @@ def test_failed_program_stays_failed(tmp_path, monkeypatch):
     assert receipt["status"] == "failed"
     assert receipt["author_exit_code"] == 1
     assert receipt["owned_children_stopped"] is True
+
+
+def test_graceful_client_interrupt_flushes_exit_cleanup(tmp_path):
+    marker = tmp_path / "closed.txt"
+    code = (
+        "import atexit,time\nfrom pathlib import Path\n"
+        f"atexit.register(lambda:Path({str(marker)!r}).write_text('closed'))\n"
+        "print('ready',flush=True)\ntime.sleep(60)\n"
+    )
+    child = subprocess.Popen(
+        [sys.executable, "-u", "-c", code],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        text=True,
+    )
+    try:
+        assert child.stdout.readline().strip() == "ready"
+        assert author_program._stop(child, graceful=True) == "sigint"
+        assert marker.read_text() == "closed"
+        assert child.poll() is not None
+    finally:
+        if child.poll() is None:
+            child.kill()
+            child.wait()
