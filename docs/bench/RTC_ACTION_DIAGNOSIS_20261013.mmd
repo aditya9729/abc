@@ -1,0 +1,16 @@
+flowchart LR
+    D[Three successful TRAIN demos and task statistics] -->|data| S[Original RTC-SFT: one update]
+    F[pi0.5 foundation checkpoint] -->|parameters| S
+    S -->|checkpoint 1| E[Original RTC evaluator: delay 5, chunk 8]
+    E -->|absolute joint and gripper targets| A[ABC task adapter]
+    A -->|commands| M[Native YAM simulator]
+    M -->|images and state| E
+    M -->|recorded targets and video| V[Observed 0 of 5; abrupt target changes]
+    O[Root: experiment selection and claims] -. control .-> S
+    O -. control .-> E
+    P[Method reviewer: papers and author source] -. audit .-> S
+    T[Data reviewer: transforms and prefix indices] -. audit .-> E
+    N[Environment reviewer: units, order, actuator limits] -. audit .-> A
+    S -. readiness not established .-> G[Required task-policy validation]
+    G -. planned after qualification .-> R[Original online RealTimeEXPOFTLearner]
+    R -. planned .-> Q[Editor, action critic, and backup noise critic]

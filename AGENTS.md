@@ -70,6 +70,12 @@ owns training and control loops. Task/model dispatch is the checked four-file
 patch in `docs/bench/REALTIME_AUTHOR_TASK_DISPATCH.patch`.
 
 The one-update RTC checkpoint is a smoke artifact, not a trained benchmark actor.
+Read `docs/bench/RTC_ACTION_DIAGNOSIS_20261013.md` before further RTC work.
+The full trace has abrupt joint-target changes at chunk boundaries. Source and
+CPU checks found no mapping defect, but actual model prefix tensors were not
+recorded. Do not admit checkpoint 1 as online-RL initialization. Establish task
+readiness with the original RTC-SFT recipe and validation behavior first. The
+RTC-only clip contains no EXPO editor or critics and cannot assess their method.
 The 32-control TRAIN diagnostic misses 34 ms: median dispatch 91.7 ms. Do not present
 its simulation-clock video as wall-clock real-time execution. Original evaluation
 needs `only_base_actions=False` for RTC prefixes, two resets, and one extra loop

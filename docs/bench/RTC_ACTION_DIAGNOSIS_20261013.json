@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "run_id": "author-subset-20261013T193655-d2c6f5",
+  "scope": "Command targets, not measured joint velocities. Demo episodes end successfully; RTC1 comparison is unmatched TRAIN scene.",
+  "events_sha256": "8fdf46795138484753be6cdc4a3ab974f3a5e5e01d855f58f78e7b30a17aa872",
+  "rtc1": {
+    "controls": 3540,
+    "max_joint_target_change_per_control_degrees": {
+      "median": 4.165629863739014,
+      "p95": 32.581204223632795,
+      "p99": 63.28896224975575,
+      "max": 141.296875
+    },
+    "outside_joint_range_fraction": 0.3313559322033898
+  },
+  "successful_train_demonstrations": {
+    "controls": 3538,
+    "max_joint_target_change_per_control_degrees": {
+      "median": 1.0549499988555908,
+      "p95": 2.5192051410675047,
+      "p99": 3.3885526084899897,
+      "max": 6.351501941680908
+    },
+    "outside_joint_range_fraction": 0.0
+  },
+  "rtc1_chunk_boundary_change_degrees": {
+    "median": 26.32470417022705,
+    "p95": 79.2059406280517,
+    "p99": 95.62077690124504,
+    "max": 141.296875
+  },
+  "rtc1_inside_chunk_change_degrees": {
+    "median": 3.6796343326568604,
+    "p95": 13.73509044647216,
+    "p99": 23.266077957153303,
+    "max": 58.419559478759766
+  },
+  "method_status": "RTC-only diagnostic; online RealTimeEXPOFTLearner not run",
+  "source_artifacts": [
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-action-diagnosis-20261013/COMMAND_DIAGNOSTIC.json",
+      "sha256": "5b289adc849c7c868ccde56e57677a25e8947cb3c948328779f71a36cb42c07a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-action-diagnosis-20261013/native-review/analyze.py",
+      "sha256": "b39fc543edc2514823cb6f9f78b805cd2bf62e180d900ec3377c480ca5c6b7a6"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-action-diagnosis-20261013/native-review/ANALYSIS.json",
+      "sha256": "6fbc76d545ecf5b59becb8d2829358694e531522467a67d5454fd17cb05f097e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-action-diagnosis-20261013/data-review/check_boundary.py",
+      "sha256": "6971ee5139fc9d2681821a2a19b0833bbff33b1ed6c08e18182b084c42a6e34e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-action-diagnosis-20261013/data-review/CPU_BOUNDARY_RESULT.json",
+      "sha256": "c58f873b0e7880e3a937e239618b81ef66f731c33ad47c3181e492ba7454fa23"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-action-diagnosis-20261013/paper-review/REVIEW.md",
+      "sha256": "1af2aebf8791168005f3565823d6ab65a8822f0f26e259a4012f85feb633a50f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/rtc-action-diagnosis-20261013/paper-review/SOURCE_PINS.json",
+      "sha256": "c172a33a44eae2569bf2ec66635967f033c6ae7bb809b64ed98f45e9c83cf31e"
+    }
+  ]
+}

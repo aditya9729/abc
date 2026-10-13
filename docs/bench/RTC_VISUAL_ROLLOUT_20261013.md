@@ -11,6 +11,11 @@ ended at the time limit with **0/5 bottles in the bin** and no task success.
 One bottle was briefly counted during the episode. This is one observation,
 not a measured success rate across tasks or seeds.
 
+The subsequent [command and method audit](RTC_ACTION_DIAGNOSIS_20261013.md)
+found abrupt target changes, especially at chunk boundaries. Task-policy
+readiness has not been established for this checkpoint. The clip cannot assess online
+Real-Time EXPO-FT, whose editor and critics were absent.
+
 The policy has one RTC-SFT update and no online RL updates. The evaluator
 restored that genuine checkpoint. It used delay 5, replan 8 and prefix
 conditioning. The original learner, evaluator and client programs are unchanged.
