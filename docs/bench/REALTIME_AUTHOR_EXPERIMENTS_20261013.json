@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "local_realtime_expoft_runs": 0,
+  "status": "original_experiment_not_runnable_from_checked_release",
+  "author_video_playback_verified": true,
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-author-experiments-20261013/source-review/SOURCE_REVIEW_MANIFEST.json",
+      "sha256": "cd51a19673ab368dc9394bafbaa13b81ad002edb3dc8a5d71ea73e028b6542a6"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-author-experiments-20261013/assets-review/SEAL.json",
+      "sha256": "30aff05d260882e74d44b5721a4c35fa6db72d943ab79a36035ed4c1b63a3372"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-author-experiments-20261013/kinetix-readiness/SOURCE_AUTHENTICATION.json",
+      "sha256": "5ea05fff6fcebc9d208635d34c25bd9fdb7b4581a52d82b65e8e0c57b1a0d91e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-author-experiments-20261013/HF_ACCESS_CHECK.json",
+      "sha256": "e379281029ac5217c3ad3d9046889a466136c14168c982fc5cf394081fbdba92"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-author-experiments-20261013/reference-videos/MANIFEST.json",
+      "sha256": "1dc275bd7280fa84a3a76d26724d9f229cf7d752f549f4da43cc1eba51e4195e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-author-experiments-20261013/reference-videos/BROWSER_RESULT.json",
+      "sha256": "3ea6ec2b4f239d4980f9f7fa0e54f2ad5fcff8aa3c254ae90b745dcff58c203a"
+    }
+  ]
+}

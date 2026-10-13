@@ -1,0 +1,10 @@
+flowchart LR
+    W[Authors' project website] -->|downloaded unchanged| V[Author evaluation and training recordings]
+    V -->|CPU playback check| P[Visible reference only]
+    R[Root: execution and evidence] -. verifies .-> P
+    S[Source reviewer: official repositories] -->|available| D[Original DROID learner and client]
+    A[Asset reviewer: task data and checkpoints] -->|missing local prerequisites| H[Configured DROID hardware and task assets]
+    H -. required .-> D
+    K[Runtime reviewer: original RTC Kinetix source] -->|verified source and public metadata| B[Simulator and pretrained BC baseline]
+    B -. required integration .-> X[Original Kinetix Real-Time EXPO-FT driver: not found]
+    X -. unavailable execution .-> E[Local full-method reproduction: not run]
