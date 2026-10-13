@@ -1,0 +1,14 @@
+flowchart LR
+  Root[Root: release and actual execution] -->|existing canonical lease and finite job| Stage[New resource-only stage]
+  Host[Unchanged full64 task and TRAIN seed config] --> Stage
+  Old[Actual old64 gate resource pins] -->|resource evidence only| Stage
+  Stage -->|spawn one owned CPU child at a time| Case[Fresh rank0 or55 process]
+  Case -->|before first native model| Cache[Public default or0 compiler cache]
+  Case -->|unchanged public constructor and reset| World[Original RewardWorld: five bottles]
+  World -->|original env.step exactly once| Physics[Original native physics and judge]
+  Physics -->|read before autoreset; same return tuple| Observe[Read-only state and resource observer]
+  Observe --> Files[Full integration bytes, hashes, native outputs and RAM samples]
+  Files --> Stage
+  Stage -->|exact paired bytes; no training or RAM admission| Receipt[Resource and equivalence receipt]
+  Agent[Preparation agent] -->|isolated wheel, CPU tests, pins| Root
+  Receipt -.->|future root review still required| Full[Full64 runtime gate and training: pending]
