@@ -316,7 +316,7 @@ function renderExpo(e) {
     if (selected > updates || !Number.isFinite(loss) || loss < 0 || (latest && sft.status !== 'completed')) throw Error('Invalid selected supervised state');
     text('sft-live-title', 'Selected pi0.5 actor · SFT update ' + selected);
     text('sft-live-progress', updates + ' supervised updates completed' + (latest?.early_stopping_reason === 'heldout_macro_loss_plateau' ? ' · stopped early for held-out loss plateau' : '') + '; selected actor is separate from online RL.');
-    text('sft-loss', 'Selected supervised validation loss: ' + loss.toFixed(5) + '. This measures demonstration agreement, not task success.' + (latest ? ' Fresh restart from the original base, with a maximum of200 updates.' : ''));
+    text('sft-loss', 'Selected supervised validation loss: ' + loss.toFixed(5) + '. This measures demonstration agreement, not task success.' + (latest ? ' Fresh restart from the original base, with a maximum of 200 updates.' : ''));
   } else {
     text('sft-live-title', 'Task adaptation');
     text('sft-live-progress', 'Selected task-adapted actor unavailable in this snapshot.');
