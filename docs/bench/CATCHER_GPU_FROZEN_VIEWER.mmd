@@ -1,4 +1,5 @@
 flowchart LR
+  T[Root: separate client-SIGINT artifact recovery proofs] -. required for recovered branch .-> R
   R[Root: accepted full GPU checkpoint restore] -. future projection .-> M[Actual actor/critic/filter clocks + restore receipt pin]
   B[Accepted BC24 cases: reused four seeds] -. future mapping .-> C[catcher.gpu_frozen_comparison]
   G[Root: future accepted GPU4096 frozen cases] -. future mapping .-> C

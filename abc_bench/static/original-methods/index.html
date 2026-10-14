@@ -39,6 +39,7 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <div id="catcher-gpu-frozen" hidden>
 <h3 id="catcher-gpu-frozen-heading">Frozen Catcher · GPU 4,096 checkpoint</h3>
 <p id="catcher-gpu-frozen-summary"></p>
+<p id="catcher-gpu-frozen-producer" class="note" role="status" hidden></p>
 <p id="catcher-gpu-frozen-updates"></p>
 <p>RTC-guided BC24 is reused for four seeded development trials on one level. The learned GPU checkpoint uses the same environment seeds, delay 4, C4/H8, and action noise 0.1. This compares the starting base with the learned whole policy, including candidate selection and editing.</p>
 <p>This one-level pilot has one trial per environment seed. These trials are not held out. This comparison does not establish reliable improvement or reproduce the paper experiment. Training index 4,096 is not a count of learner updates. Server seed 42 initializes BC24; the learned policy keeps its restored checkpoint random state.</p>
@@ -772,7 +773,12 @@ function renderCatcherGpuFrozen(result) {
   if (result == null) return;
   if (result.schema !== 'catcher.gpu-frozen-comparison/v1' || result.status !== 'accepted_matched_development' || !Array.isArray(result.rows) || result.rows.length !== 4) throw Error('Invalid GPU frozen Catcher comparison');
   const restore = result.restore;
-  if (!restore || restore.status !== 'original_full_checkpoint_restore_verified' || restore.checkpoint_step !== 4096 || !restore.receipt || typeof restore.receipt.path !== 'string' || !restore.receipt.path || !Number.isSafeInteger(restore.receipt.bytes) || restore.receipt.bytes < 1 || typeof restore.receipt.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(restore.receipt.sha256)) throw Error('Missing accepted Catcher restore evidence');
+  const recovered = restore?.status === 'original_full_checkpoint_restore_verified_with_client_sigint';
+  if (!restore || (!recovered && restore.status !== 'original_full_checkpoint_restore_verified') || restore.checkpoint_step !== 4096 || !restore.receipt || typeof restore.receipt.path !== 'string' || !restore.receipt.path || !Number.isSafeInteger(restore.receipt.bytes) || restore.receipt.bytes < 1 || typeof restore.receipt.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(restore.receipt.sha256)) throw Error('Missing accepted Catcher restore evidence');
+  if (recovered) {
+    const producer = result.producer;
+    if (!producer || Object.keys(producer).sort().join(',') !== 'author_exit_code,clean_shutdown,client_exit_code,run_id' || producer.run_id !== 'author-subset-20261014T053638-6a599b' || producer.author_exit_code !== 0 || producer.client_exit_code !== -2 || producer.clean_shutdown !== false) throw Error('Invalid recovered Catcher producer provenance');
+  } else if (result.producer != null) throw Error('Recovery producer requires the recovered checkpoint status');
   const calls = integer(restore.original_update_calls, 'Catcher actor updates', 1);
   const actor = restore.counters?.actor_train_state?.step;
   const critic = restore.counters?.critic?.step;
@@ -794,6 +800,9 @@ function renderCatcherGpuFrozen(result) {
   });
   const successes = arms.map(arm => rows.filter(row => row.clips.find(item => item.arm === arm).clip.solved).length);
   text('catcher-gpu-frozen-summary', 'Accepted development episodes: reused RTC-guided BC24 ' + successes[0] + '/4 · learned GPU checkpoint ' + successes[1] + '/4. Four seeded development trials on one level; no held-out or paper claim.');
+  const provenance = document.getElementById('catcher-gpu-frozen-producer');
+  provenance.textContent = recovered ? 'The learner exited normally. The environment client ended on SIGINT (-2) during shutdown. The checkpoint was recovered and checked separately.' : '';
+  provenance.hidden = !recovered;
   text('catcher-gpu-frozen-updates', 'Saved training index 4,096 · actor updates ' + count(calls) + ' · critic updates ' + count(critic) + ' · filter updates ' + count(filter) + '. Counts come from the accepted checkpoint restore.');
   const box = document.getElementById('catcher-gpu-frozen-rows');
   const identity = JSON.stringify(result.rows);

@@ -74,3 +74,35 @@ The candidate adds no framework, learner, sampler, server, or dependency.
 
 See [the architecture](CATCHER_GPU_FROZEN_VIEWER.mmd).
 This explanation uses ASD-STE100 guidance. It has not had a full compliance check.
+
+
+## Additive client-SIGINT recovery profile
+
+The sealed v1 remains a separate candidate.
+The v2 renderer also supports `original_full_checkpoint_restore_verified_with_client_sigint`.
+Use that exact status only from root's separately accepted recovered checkpoint proof.
+The original clean producer checker still rejects the non-clean producer.
+
+The recovery record requires this exact `producer` projection:
+
+```json
+{
+  "run_id": "author-subset-20261014T053638-6a599b",
+  "author_exit_code": 0,
+  "client_exit_code": -2,
+  "clean_shutdown": false
+}
+```
+
+All four keys and values are required. Extra or ambiguous producer fields reject.
+This object records provenance. It does not itself establish artifact-recovery acceptance.
+Root must accept the separate process/resource, trace/replay and full-state recovery proofs first.
+Root then maps accepted frozen cases with their genuine restore counts and receipt pin.
+Clean future checkpoint records keep the original status and omit `producer`.
+
+A prominent note inside the new panel states:
+
+> The learner exited normally. The environment client ended on SIGINT (-2) during shutdown. The checkpoint was recovered and checked separately.
+
+The earlier CPU-R2 results and every scientific limitation stay unchanged.
+Tests cover both branches with explicit synthetic evidence only.

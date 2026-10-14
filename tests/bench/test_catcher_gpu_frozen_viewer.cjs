@@ -157,3 +157,47 @@ test('parent dispatch preserves the older CPU-R2 comparison and its active playe
   assert.equal(p.elements.get('catcher-gpu-frozen').hidden, true);
   assert.equal(p.elements.get('catcher-frozen').hidden, false);
 });
+
+
+test('recovered synthetic checkpoint displays the exact shutdown caveat inside its panel', () => {
+  const p = page(); const value = fixture();
+  value.restore.status = 'original_full_checkpoint_restore_verified_with_client_sigint';
+  value.producer = {run_id: 'author-subset-20261014T053638-6a599b', author_exit_code: 0,
+    client_exit_code: -2, clean_shutdown: false};
+  p.render(value);
+  const note = p.elements.get('catcher-gpu-frozen-producer');
+  assert.equal(note.hidden, false);
+  assert.equal(note.textContent, 'The learner exited normally. The environment client ended on SIGINT (-2) during shutdown. The checkpoint was recovered and checked separately.');
+  const rows = p.elements.get('catcher-gpu-frozen-rows').children;
+  const video = rows[0].children[1].children[1]; video.currentTime = 1.75;
+  p.render(value);
+  assert.equal(p.elements.get('catcher-gpu-frozen-rows').children, rows);
+  assert.equal(video.currentTime, 1.75);
+  p.render(fixture());
+  assert.equal(note.hidden, true); assert.equal(note.textContent, '');
+});
+
+test('recovered status requires the exact non-clean producer and rejects clean-status ambiguity', () => {
+  const changes = [
+    value => { delete value.producer; },
+    value => { value.producer.run_id = 'another-run'; },
+    value => { value.producer.author_exit_code = 1; },
+    value => { value.producer.client_exit_code = 0; },
+    value => { value.producer.client_exit_code = '-2'; },
+    value => { value.producer.clean_shutdown = true; },
+    value => { delete value.producer.clean_shutdown; },
+    value => { value.producer.extra = true; },
+    value => { value.restore.status = 'original_full_checkpoint_restore_verified'; },
+  ];
+  for (const change of changes) {
+    const p = page(); const value = fixture();
+    value.restore.status = 'original_full_checkpoint_restore_verified_with_client_sigint';
+    value.producer = {run_id: 'author-subset-20261014T053638-6a599b', author_exit_code: 0,
+      client_exit_code: -2, clean_shutdown: false};
+    change(value);
+    assert.throws(() => p.render(value));
+    assert.equal(p.elements.get('catcher-gpu-frozen').hidden, true);
+    assert.equal(p.elements.has('catcher-gpu-frozen-summary'), false);
+    assert.equal(p.elements.has('catcher-gpu-frozen-producer'), false);
+  }
+});
