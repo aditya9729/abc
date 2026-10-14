@@ -92,7 +92,16 @@ not a frozen performance gain or the full paper experiment.
 The [matched frozen comparison](REALTIME_CATCHER_FROZEN_20261014.md) now records
 BC24 success on 1/4 starts and short R2 success on 0/4. All eight full videos are published.
 These four development starts show no measured gain. They do not establish a reliable difference.
-The frozen runtime reports four dependency metadata conflicts, as recorded in that report.
+The larger [original-evaluator readiness check](CATCHER_READINESS_20261014.md)
+now scores BC without delay 96/100, naive delayed BC 15/100, and RTC guidance
+54/100. The delayed profiles both use four controls of latency. These are
+frozen inference results on one level, with no RL updates. They use a different
+driver, batch, runtime and RNG path from the four-start EXPO-client cohort;
+do not pool them or transfer the 54% baseline to that client without a matched
+check. The same-delay result supports RTC guidance in this specific sample.
+The earlier EXPO-client runtime reports four dependency metadata conflicts, as
+recorded in its frozen-comparison report. The separate original RTC evaluation
+runtime passes its dependency check.
 The 34 actor calls also remain inside the backend's 1,000-update learning-rate
 warmup. This limits any inference about training effectiveness. The next study
 must declare update density and offline/online replay exposure before extending

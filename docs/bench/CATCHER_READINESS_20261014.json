@@ -1,0 +1,168 @@
+{
+  "schema": "sadhana.catcher-readiness/v1",
+  "status": "three_completed_frozen_profiles",
+  "scope": "Original RTC evaluator; fixed author BC24; no EXPO updates",
+  "seed": 20261014,
+  "num_streams_per_profile": 100,
+  "single_fixed_level": true,
+  "paired_per_stream_outcomes_available": false,
+  "same_delay_naive_control": "completed",
+  "profiles": [
+    {
+      "profile": "bc_delay0_c4",
+      "streams": 100,
+      "inferred_successes": 96,
+      "original_metrics": {
+        "returned_episode_lengths": 67.62999725341797,
+        "returned_episode_returns": 0.9899999499320984,
+        "returned_episode_solved": 0.9599999785423279
+      },
+      "end_to_end_seconds": 315.1639589059632,
+      "video": {
+        "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/bc_delay0_c4/native/bc_delay0_c4.mp4",
+        "bytes": 67415,
+        "sha256": "98fd34638c425d603dd6f4c35e58d16f22e8f47a98ad118d14a63793c8ac4e04"
+      }
+    },
+    {
+      "profile": "naive_delay4_c4",
+      "streams": 100,
+      "inferred_successes": 15,
+      "original_metrics": {
+        "returned_episode_lengths": 66.58999633789062,
+        "returned_episode_returns": -0.25999999046325684,
+        "returned_episode_solved": 0.14999999105930328
+      },
+      "end_to_end_seconds": 332.4844425250776,
+      "video": {
+        "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/actual/naive_delay4_c4/native/naive_delay4_c4.mp4",
+        "bytes": 60088,
+        "sha256": "a0d69bc5188420d4d790c94189cd6061617b3190590efba3a58945b5111e07c9"
+      }
+    },
+    {
+      "profile": "rtc_guidance_delay4_c4",
+      "streams": 100,
+      "inferred_successes": 54,
+      "original_metrics": {
+        "returned_episode_lengths": 67.18999481201172,
+        "returned_episode_returns": 0.3400000035762787,
+        "returned_episode_solved": 0.5399999618530273
+      },
+      "end_to_end_seconds": 299.6086962360423,
+      "video": {
+        "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/rtc_guidance_delay4_c4/native/rtc_guidance_delay4_c4.mp4",
+        "bytes": 55264,
+        "sha256": "c1971b41f607b99024b156557edd69ee3d1562f3b0ae9353acffe4898e5130dc"
+      }
+    }
+  ],
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/CONTRACT.json",
+      "bytes": 6206,
+      "sha256": "c19ab76f2ef29db54c61b25ad2e840472e2bb6712090e34192f56c07266ec426"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/SEAL.json",
+      "bytes": 3480,
+      "sha256": "c35ad0690c9506ee82d83454f0dc0fd9c517e12d8039351c986c6ec4b7a66797"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/ROOT_INSTALL_AUTHENTICATION.json",
+      "bytes": 374,
+      "sha256": "9a105b4b282a9ec8165af6c3d89762b7df29eded633c3bc91ad5d9e03318e6f6"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/ROOT_DEPENDENCY_CHECK.log",
+      "bytes": 168,
+      "sha256": "76d4158a64647a7ac07f92c2dfe5ccd4b4ddd24b8bf4df6ca8582da9331c8028"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/independent-review/FINAL_REVIEW.json",
+      "bytes": 2836,
+      "sha256": "74f7e81ae16eb5f6ae240dedb67ae1dfe823f7e1910cd8aa2d01c05c699edd03"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/bc_delay0_c4/PROCESS.json",
+      "bytes": 2506,
+      "sha256": "7e476223e688944fea0d7eac5f7a83e9c2df507604bbbfb9a1d1670170fafe03"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/bc_delay0_c4/native/RESULT.json",
+      "bytes": 3297,
+      "sha256": "e790ddbee3c9ebf392d5147817aea976f653b087e8de2d4cc95a2567f5e53ac2"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/bc_delay0_c4/ROOT_ACCEPTANCE.json",
+      "bytes": 1222,
+      "sha256": "6b76987828b9f749488e6aca7e16661c88a1c619583f46d13cc5153e973cd818"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/rtc_guidance_delay4_c4/PROCESS.json",
+      "bytes": 2546,
+      "sha256": "4a3c7342882653a0844975b6e2b25e7f0e5127a7c45db5c02d3658098530df24"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/rtc_guidance_delay4_c4/native/RESULT.json",
+      "bytes": 3338,
+      "sha256": "f8d93d51167098c841430ebe39f6af0e3f79f44f5b0141ee6275da840525e9a7"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/actual/rtc_guidance_delay4_c4/ROOT_ACCEPTANCE.json",
+      "bytes": 1252,
+      "sha256": "fae112cfe8cb72038e1f733d87a706b1b15857c60162fb84a335745806800f76"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-20261014/independent-review/ACTUAL_COHORT_REVIEW.json",
+      "bytes": 8272,
+      "sha256": "5f640f39e9fc62eb912e47f5d8913d5ccfc9d815029f1178b05e90cd3ecd9657"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/CONTRACT.json",
+      "bytes": 7391,
+      "sha256": "357687cd88db83d1d2d3a440154ddc3eb85b7a32db3e93215826aadb97685635"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/SEAL.json",
+      "bytes": 4378,
+      "sha256": "2e45010b4fe9a34677aa80196c3d844d0200c7af1e3cf5f0c28e44849c01a7fb"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/ROOT_INSTALL_AUTHENTICATION.json",
+      "bytes": 534,
+      "sha256": "b8f896826eb7958f1773dc25ebe91045c168caa1606fbc89e9e7d285fe6e6d69"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/ROOT_DEPENDENCY_CHECK.log",
+      "bytes": 168,
+      "sha256": "76d4158a64647a7ac07f92c2dfe5ccd4b4ddd24b8bf4df6ca8582da9331c8028"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/ROOT_LIVE_IDENTITY.json",
+      "bytes": 944,
+      "sha256": "79459bb1b78636d3f44e4d6e1fdbe69bf0f0eb1d946dedf0ca5a9c1655026022"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/actual/naive_delay4_c4/PROCESS.json",
+      "bytes": 2574,
+      "sha256": "a11697faabdbe37a1256c354f4a2f2bcfbbebb53b1af172b228c82b317993e2c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/actual/naive_delay4_c4/native/RESULT.json",
+      "bytes": 3327,
+      "sha256": "8056c99e0d00d45ea0209593835ce34e1402835f5c7e68bc98a68d3b9c5abd9f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/actual/naive_delay4_c4/ROOT_ACCEPTANCE.json",
+      "bytes": 1248,
+      "sha256": "717fb58125c19ba9a1162aff554262dc164e668b45bb98d028833224e1b8bb2e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-readiness-naive-control-20261014/independent-review/FINAL_REPORT_REVIEW.json",
+      "bytes": 11648,
+      "sha256": "6c1eacab20aba7cbb94b2b298f74f472d58e1f1df5c5bc262a45607ba3e75c0c"
+    }
+  ],
+  "same_delay_guidance_minus_naive_percentage_points": 39
+}
