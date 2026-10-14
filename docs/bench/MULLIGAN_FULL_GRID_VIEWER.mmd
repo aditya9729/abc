@@ -4,8 +4,9 @@ flowchart LR
     R -->|explicit projection| J[Optional full_grid_evaluation record]
     J -->|release and publish after acceptance| V[Static viewer]
   end
-  subgraph Candidate[Isolated UI candidate]
-    C[Small card renderer] -->|presentation source| V
+  subgraph Candidate[Prepared UI package]
+    C[Small card renderer] -->|normal wheel| W[Separate installed resource check]
+    W -.->|canonical install after native acceptance| V
     F[Synthetic DOM and export fixtures] -->|CPU contract checks| C
   end
   V -->|display| O[Pending count or accepted 8,000-start outcomes]

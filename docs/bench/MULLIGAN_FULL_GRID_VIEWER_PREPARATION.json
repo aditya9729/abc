@@ -1,0 +1,79 @@
+{
+  "schema": "mulligan.full-grid-viewer-package-preparation/v1",
+  "status": "prepared_not_published",
+  "created_at_utc": "2026-10-14T15:07:07.218978+00:00",
+  "implementation_commit": "7a23bb89d48f78d43533e00b2d2e23a6d73abfd6",
+  "wheel": {
+    "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/wheel/abc_minimal-0.1.0-py3-none-any.whl",
+    "bytes": 48923038,
+    "sha256": "fcf9e2aac086dd2365b98931072ecf6698a4eae47ec7ab6f73d79f9de9f87237"
+  },
+  "source_wheel_installed_payloads": 1149,
+  "native_assets": 933,
+  "canonical_payloads_unchanged": 1148,
+  "only_canonical_payload_difference": "abc_bench/static/original-methods/index.html",
+  "installed_export_exact": true,
+  "existing_fixture_files_preserved": true,
+  "synthetic_dom_checks_passed": 32,
+  "canonical_prefix_changed": false,
+  "live_viewer_changed": false,
+  "native_result_accepted": false,
+  "remaining": [
+    "Accept complete original evaluation and clean process/GPU release",
+    "Install checked wheel in canonical runtime and authenticate installed payloads",
+    "Publish actual accepted full-grid record without changing prior measurements",
+    "Verify actual browser rendering and earlier videos"
+  ],
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/SEAL.json",
+      "bytes": 3854,
+      "sha256": "84e4c8528e01b37762000df9741ce370820e78951da16c6a34b599b8f792c20a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/MANIFEST.json",
+      "bytes": 4578,
+      "sha256": "6ec2acef61df14f74cf5939e31463de166b1b1c8cf225b88f62f333abfaa338d"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/DOM_CHECKS.log",
+      "bytes": 7365,
+      "sha256": "d82e8141eab7c34e0573a390762c58c90229728a68f609b4d19242b2356e39c6"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/BUILD_LAUNCH.json",
+      "bytes": 575,
+      "sha256": "7bf1ecfb3fc332e12bfdac68476b5b371c58096cff57c4caeb1a8add66c81380"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/BUILD_EXIT.json",
+      "bytes": 69,
+      "sha256": "868e7f4dda6771d33d21ff876495e60a36de4d7b741c7e74fa388a30c1b6c9d9"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/BUILD.log",
+      "bytes": 337135,
+      "sha256": "88ee2590475da42cdcaa806a3b35cc0b8e0f54e2b03ec18469e86cfa3d27e123"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/INSTALL.json",
+      "bytes": 944,
+      "sha256": "8ce62125deda74df8b70f8c4afdb41212ad308feda469c6271e3ac3309e9f977"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/INSTALLED_RESOURCE_CHECK.json",
+      "bytes": 250297,
+      "sha256": "b775d0fa65a1373afec6d4016657778f09b98765be54e0135cbfcf00e46da3af"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/PACKAGE_DELTA.json",
+      "bytes": 302,
+      "sha256": "8959914f52bfaced1e799d1af1af3274d211c74cc3b5d005e4725146b5312906"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-full-grid-ui-20261014/root-wheel-preparation-01/LIVE_PREFIX_BEFORE.json",
+      "bytes": 1005,
+      "sha256": "993c37232691718d98a89a8271822a51b9f2cf7039173ef8339c5d2a670fd992"
+    }
+  ]
+}

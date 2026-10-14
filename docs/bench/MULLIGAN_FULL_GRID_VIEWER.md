@@ -44,11 +44,25 @@ The old renderer bodies and video data remain unchanged.
 The Node checks use explicit synthetic records. They check hidden/absent and
 pending states, complete accepted counts, malformed scope/evidence rejection,
 and prior video identity/position across refresh, completion and removal.
-The export check supplies the candidate HTML as an explicit resource fixture to
-the existing normally installed exporter. It verifies exact bytes and prior
-fixture data preservation. It does not establish installed candidate-wheel
-fidelity. Root builds and normally installs the full wheel after native result
-acceptance, then runs the installed exporter and actual browser checks.
+The initial export check supplies the candidate HTML as an explicit resource
+fixture to the existing normally installed exporter. It verifies exact bytes
+and prior fixture data preservation. That fixture does not establish installed
+candidate-wheel fidelity.
+
+Root has now built the normal full-asset wheel and installed it in a separate
+environment for resource inspection. All 1,149 payloads match source, wheel and
+that installation, including 933 native assets. The real installed exporter
+produces the exact candidate HTML and preserves existing synthetic result and
+media files. Compared with the current canonical installation, only the HTML
+payload differs; the other 1,148 payloads match. The separate inspection
+environment deliberately has no training dependencies. No model, simulator or
+GPU ran for these checks. [Preparation evidence](MULLIGAN_FULL_GRID_VIEWER_PREPARATION.json).
+
+The canonical runtime and live viewer remain unchanged while the original
+evaluation runs. After native acceptance, root must install the checked wheel
+in the canonical runtime, verify the installed payloads, export the viewer,
+publish the actual accepted record and run the actual browser checks. The
+prepared wheel and fixture checks do not accept the native result.
 
 The [diagram](MULLIGAN_FULL_GRID_VIEWER.mmd) shows this handoff.
 The explanation uses ASD-STE100 guidance. Full compliance was not checked.
