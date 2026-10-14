@@ -22,6 +22,7 @@ ENVIRONMENT_KEYS = {
     "ABC_REALTIME_CONFIG",
     "ABC_REALTIME_EXPO_CLIENT_CONFIG",
     "REALTIME_EXPO_CATCHER_SETTINGS",
+    "SADHANA_R1LITE_EXPO_SETTINGS",
     "HF_HUB_OFFLINE",
     "TRANSFORMERS_OFFLINE",
     "XLA_PYTHON_CLIENT_MEM_FRACTION",
@@ -340,7 +341,7 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         "status": "running",
         "command": command,
         "source_manifest": config["source_manifest"],
-        "claim_scope": "Original program execution with declared ABC IO integration; no task-success or paper-reproduction claim",
+        "claim_scope": "Original program execution with declared task IO integration; no task-success or paper-reproduction claim",
         "metrics": {},
     }
     if config["schema_version"] == 2:

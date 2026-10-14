@@ -64,19 +64,22 @@ def test_changed_source_refuses_execution(tmp_path, monkeypatch):
     assert not (tmp_path / "out").exists()
 
 
-def test_catcher_settings_and_original_prng_reach_child(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    "settings_key", ["REALTIME_EXPO_CATCHER_SETTINGS", "SADHANA_R1LITE_EXPO_SETTINGS"]
+)
+def test_task_settings_and_original_prng_reach_child(tmp_path, monkeypatch, settings_key):
     monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
     settings = tmp_path / "catcher.json"
     settings.write_text('{"env_seed": 42}\n')
     config = fixture_config(
         tmp_path,
         "import json,os\nfrom pathlib import Path\n"
-        "settings = Path(os.environ['REALTIME_EXPO_CATCHER_SETTINGS'])\n"
+        f"settings = Path(os.environ[{settings_key!r}])\n"
         "assert json.loads(settings.read_text())['env_seed'] == 42\n"
         "assert os.environ['JAX_THREEFRY_PARTITIONABLE'] == 'false'\n",
     )
     config["environment"] = {
-        "REALTIME_EXPO_CATCHER_SETTINGS": str(settings),
+        settings_key: str(settings),
         "JAX_THREEFRY_PARTITIONABLE": "false",
     }
     config_path = tmp_path / "job.json"
