@@ -496,4 +496,6 @@ def test_render_supervises_module_and_preserves_failure(
     assert commands and receipt["direct_child_stopped"]
     assert receipt["status"] == ("completed" if mode == "passed" else "failed")
     assert receipt["metrics"] == {} and not receipt["experiment_accepted"]
-    assert "egl_render_receipt" in receipt
+    # A timeout or signal can stop Python before the child writes its receipt.
+    if mode not in {"timeout", "cancel"}:
+        assert "egl_render_receipt" in receipt

@@ -121,7 +121,7 @@ the normal virtual-environment symlink case; its failure log is preserved.
 Root integrated the supervisor and runtime provenance changes into main.
 The full normal wheel has 1149 authenticated source/wheel/installed payloads,
 including 914 assets. It is installed in an idle regression prefix.
-All 58 selected installed supervisor, admission and viewer tests pass.
+All 86 selected installed supervisor, render-probe, admission and viewer tests pass.
 Actual source/runtime metadata checks authenticate 12 Fast and 2780 HumanoidBench
 payloads. Prepared 1-call, 12-call and full-job configurations pass admission.
 Ruff and the patch whitespace check pass. The earlier full-suite failures remain
@@ -135,6 +135,9 @@ The live canonical prefix remains unchanged while Mulligan holds GPU0.
 No Fast GPU/EGL qualification, full 128-world run or score exists yet.
 The prepared jobs are not queued. Admission tests establish configuration validity only.
 Root must accept native rendering, allocation and update behavior before training.
+The separate [EGL check](FASTTD3_EGL_RENDER_QUALIFICATION.md) is now integrated.
+Its helper has a normal installation in the idle author prefix. Native execution
+still waits for the existing Mulligan GPU0 job to finish.
 
 Root reviews, releases and executes the command. The runtime agent qualifies
 dependencies and assets. The recipe reviewer checks original task defaults.

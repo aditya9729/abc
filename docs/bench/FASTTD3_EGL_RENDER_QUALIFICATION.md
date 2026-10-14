@@ -93,3 +93,25 @@ wheels, and runs the canonical job. The runtime agent owns the original
 dependency and asset checks. The method reviewer checks the author recipe.
 The [diagram](FASTTD3_EGL_RENDER_QUALIFICATION.mmd) shows these boundaries.
 This text follows STE guidance. Full ASD-STE100 compliance was not checked.
+
+## Root integration status
+
+Root merged the candidate and built the full ABC wheel from main.
+All 1,149 source/wheel/installed payloads match, including 914 assets.
+The helper is normally installed in the idle original author prefix.
+Its import initializes no native library or simulator. Actual probe metadata
+and canonical job admission pass without hardware calls.
+
+The final installed selection passes 86 checks. Five optional Catcher UI DOM
+checks also pass. Main-repository Ruff and whitespace checks pass.
+The first selected run passed 85 checks and exposed one test assumption:
+a timed-out child can exit before writing its own render receipt.
+The test now permits that valid failure path and still requires failed status
+and a stopped child. The earlier log is retained. No production timeout or
+cleanup behavior changed. Historical full-suite failures remain unresolved.
+
+Evidence is in
+`/home/user/aditya/RL/builds/fasttd3-egl-root-release-20261014/`.
+The full wheel is installed only in the idle regression prefix.
+The live canonical prefix remains unchanged while Mulligan owns GPU0.
+No native EGL render, 128-world qualification or Fast training score is accepted.

@@ -8,10 +8,9 @@ import sys
 import types
 import uuid
 
+import fasttd3_egl_probe as probe
 import numpy as np
 import pytest
-
-import fasttd3_egl_probe as probe
 
 ORIGINAL_DEVICE_QUERIES = probe.DeviceQueries
 
@@ -32,6 +31,7 @@ def test_installed_import_has_no_native_or_gpu_side_effects():
         capture_output=True,
         text=True,
         timeout=20,
+        check=False,
     )
     assert completed.returncode == 0, completed.stderr
 
