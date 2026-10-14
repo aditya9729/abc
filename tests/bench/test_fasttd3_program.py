@@ -307,7 +307,13 @@ def test_normal_runtime_metadata_complete_payloads_and_rejection(
     result = {
         "prefix": str(Path(sys.prefix).resolve()),
         "distributions": {},
-        "versions": {"torch": "2.6.0+cu124", "tensordict": "0.7.2", "torchrl": "0.7.2"},
+        "versions": {
+            "torch": "2.6.0+cu124",
+            "tensordict": "0.7.2",
+            "torchrl": "0.7.2",
+            "jax": "fixture-unpinned-jax",
+            "jaxlib": "fixture-unpinned-jaxlib",
+        },
     }
     for name, namespace, field, version in (
         ("fast-td3", "fast_td3", "source_root", "0.1.0"),
@@ -331,7 +337,10 @@ def test_normal_runtime_metadata_complete_payloads_and_rejection(
         return json.dumps(result)
 
     monkeypatch.setattr(worker.subprocess, "check_output", metadata)
-    assert ORIGINAL_VERIFY_RUNTIME(config)["distributions"]["fast-td3"]["payloads"] == 1
+    inspected = ORIGINAL_VERIFY_RUNTIME(config)
+    assert inspected["distributions"]["fast-td3"]["payloads"] == 1
+    assert inspected["versions"]["jax"] == "fixture-unpinned-jax"
+    assert inspected["versions"]["jaxlib"] == "fixture-unpinned-jaxlib"
     result["distributions"]["humanoid-bench"]["files"].clear()
     with pytest.raises(ValueError, match="payloads"):
         ORIGINAL_VERIFY_RUNTIME(config)

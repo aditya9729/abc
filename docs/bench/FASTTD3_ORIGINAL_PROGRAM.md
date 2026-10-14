@@ -78,6 +78,11 @@ The short1/12-call phase never reaches the original5000-call rendering cadence.
 Fast requires Torch2.6.0; HumanoidBench declares Torch2.3.1.
 The selected normal runtime uses2.6.0+cu124 and retains that declared conflict.
 Payload equality and CPU fixtures do not settle native dependency compatibility.
+Runtime provenance also records installed JAX and JAXlib versions.
+The authors do not pin these versions. Cached JAX0.4.28 rejected the original
+`JAX_DEFAULT_MATMUL_PRECISION=highest` setting before CLI help.
+Root owns a declared compatible runtime repair and actual original CLI checks.
+The supervisor changes no author environment setting or import.
 
 ## Output, evaluation and cleanup
 

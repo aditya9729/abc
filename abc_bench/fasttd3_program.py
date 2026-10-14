@@ -193,7 +193,7 @@ for name,namespace in [('fast-td3','fast_td3/'),('humanoid-bench','humanoid_benc
   if str(f).startswith(namespace) and '__pycache__' not in str(f) and not str(f).endswith('.pyc'):
    p=d.locate_file(f).resolve(); rows[str(f)]={'path':str(p),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
  result['distributions'][name]={'version':d.version,'files':rows}
-result['versions']={name:distribution(name).version for name in ['torch','tensordict','torchrl','mujoco','gymnasium','stable-baselines3','wandb']}
+result['versions']={name:distribution(name).version for name in ['torch','tensordict','torchrl','mujoco','gymnasium','stable-baselines3','wandb','jax','jaxlib']}
 print(json.dumps(result))
 """
     result = json.loads(
