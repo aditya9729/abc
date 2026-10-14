@@ -36,6 +36,7 @@ ALLOWED_MODULES = {
     "abc_bench.fasttd3_campaign_frozen_stage",
     "expo_abc_adapter.stage",
     "sadhana_fasttd3_hb.stage",
+    "sadhana_r1lite.fasttd3",
     "nrh.qf3_training",
 }
 
@@ -152,6 +153,57 @@ def _author_config(job: dict[str, Any]) -> dict[str, Any] | None:
     return load_config(path)
 
 
+def _r1lite_config(job: dict[str, Any]) -> tuple[dict, bytes, bytes]:
+    """Validate the cross-package boundary without importing the task runtime."""
+    arguments = job["arguments"]
+    if len(arguments) != 2 or arguments[0] != "--config":
+        raise ValueError("R1 Lite jobs require one explicit --config")
+
+    def read_json(value: Any) -> tuple[dict, bytes]:
+        path = Path(value) if type(value) is str else None
+        if (
+            path is None
+            or not path.is_absolute()
+            or path.is_symlink()
+            or not path.is_file()
+            or not 0 < path.stat().st_size <= 1024**2
+        ):
+            raise ValueError("R1 Lite configs require absolute regular JSON files")
+        raw = path.read_bytes()
+        config = json.loads(raw)
+        if type(config) is not dict:
+            raise ValueError("R1 Lite configs must contain JSON objects")
+        return config, raw
+
+    config, raw = read_json(arguments[1])
+    fixed = {
+        "schema_version": 1,
+        "seed": 1,
+        "phase": "original_fasttd3_r1lite",
+        "author_source_commit": "dce87035e2d58608c015f01f3ee332d6ba84a86b",
+        "adapter_version": "0.1.0",
+    }
+    if (
+        set(config) != {*fixed, "task_config", "total_timesteps", "timeout_s"}
+        or any(
+            type(config.get(k)) is not type(v) or config[k] != v
+            for k, v in fixed.items()
+        )
+        or type(config.get("total_timesteps")) is not int
+        or not 12 <= config["total_timesteps"] <= 10000
+        or type(config.get("timeout_s")) not in (int, float)
+        or not math.isfinite(config["timeout_s"])
+        or not 0 < config["timeout_s"] <= 7100
+        or job.get("task") != "r1lite_remote_into_tray"
+        or job.get("embodiment") != "r1lite_2025"
+    ):
+        raise ValueError(
+            "R1 Lite requires the fixed task, embodiment and bounded worker config"
+        )
+    _, task_raw = read_json(config["task_config"])
+    return config, raw, task_raw
+
+
 def load_job(path: Path) -> dict[str, Any]:
     """Require a finite job and a normal installed, explicitly selected worker."""
     job = json.loads(path.read_text())
@@ -179,6 +231,14 @@ def load_job(path: Path) -> dict[str, Any]:
     maximum_allowed = (
         12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
     )
+    if job["module"] == "sadhana_r1lite.fasttd3":
+        config, _, _ = _r1lite_config(job)
+        if (
+            type(maximum) not in (int, float)
+            or not math.isfinite(maximum)
+            or config["timeout_s"] + 60 > maximum
+        ):
+            raise ValueError("R1 Lite jobs need the worker timeout plus 60s cleanup")
     if job["module"] == "abc_bench.author_program":
         from abc_bench.author_program import CATCHER_CLEANUP_SECONDS
 
@@ -323,6 +383,18 @@ def run_job(args: Any) -> dict[str, Any]:
     if args.training_config is None:
         raise ValueError("author-subset requires --training-config")
     job = load_job(args.training_config)
+    r1lite_config = None
+    if job["module"] == "sadhana_r1lite.fasttd3":
+        r1lite_config, r1lite_raw, task_raw = _r1lite_config(job)
+        if (
+            type(args.timeout_seconds) not in (int, float)
+            or not math.isfinite(args.timeout_seconds)
+            or min(job["max_wall_s"], args.timeout_seconds)
+            < r1lite_config["timeout_s"] + 60
+        ):
+            raise ValueError(
+                "Effective R1 Lite parent timeout must contain worker plus 60s cleanup"
+            )
     catcher_profile = False
     if job["module"] == "abc_bench.author_program":
         from abc_bench.author_program import CATCHER_CLEANUP_SECONDS
@@ -375,6 +447,29 @@ def run_job(args: Any) -> dict[str, Any]:
             "expo_abc_adapter.stage": "expoft",
         }.get(job["module"])
         worker_out = out / subdirectory if subdirectory is not None else out
+        worker_arguments = job["arguments"]
+        config_snapshots = None
+        if r1lite_config is not None:
+            task_snapshot = (out / "task-config.json").resolve()
+            task_snapshot.write_bytes(task_raw)
+            task_snapshot.chmod(0o444)
+            worker_snapshot = (out / "worker-config.json").resolve()
+            write_json(
+                worker_snapshot, {**r1lite_config, "task_config": str(task_snapshot)}
+            )
+            worker_snapshot.chmod(0o444)
+            worker_arguments = ["--config", str(worker_snapshot)]
+            config_snapshots = {
+                "worker_original_path": job["arguments"][1],
+                "worker_original_sha256": hashlib.sha256(r1lite_raw).hexdigest(),
+                "worker_snapshot_path": str(worker_snapshot),
+                "worker_snapshot_sha256": hashlib.sha256(
+                    worker_snapshot.read_bytes()
+                ).hexdigest(),
+                "task_original_path": r1lite_config["task_config"],
+                "task_snapshot_path": str(task_snapshot),
+                "task_sha256": hashlib.sha256(task_raw).hexdigest(),
+            }
         command = [
             job["python"],
             "-I",
@@ -382,7 +477,7 @@ def run_job(args: Any) -> dict[str, Any]:
             "-B",
             "-m",
             job["module"],
-            *job["arguments"],
+            *worker_arguments,
             "--out" if job["module"] == "nrh.qf3_training" else "--output",
             str(worker_out),
         ]
@@ -395,6 +490,8 @@ def run_job(args: Any) -> dict[str, Any]:
             "status": "running",
             "task": "Catcher-v3"
             if catcher_profile
+            else "r1lite_remote_into_tray"
+            if r1lite_config is not None
             else "h1hand-stand-v0"
             if job["module"] == "sadhana_fasttd3_hb.stage"
             else "h1hand-hurdle-v0"
@@ -404,6 +501,8 @@ def run_job(args: Any) -> dict[str, Any]:
             else "put_plastic_bottles_in_bin",
             "embodiment": "kinetix_symbolic"
             if catcher_profile
+            else "r1lite_2025"
+            if r1lite_config is not None
             else "unitree_h1_with_hands"
             if job["module"]
             in {"sadhana_fasttd3_hb.stage", "abc_bench.fasttd3_program"}
@@ -414,6 +513,8 @@ def run_job(args: Any) -> dict[str, Any]:
                 "claim_scope",
                 "Original Real-Time EXPO learner with declared Catcher integration; no frozen score or paper-reproduction claim"
                 if catcher_profile
+                else "Original FastTD3 learner with declared R1 Lite task adapter; native results require separate acceptance"
+                if r1lite_config is not None
                 else "Bounded original FastTD3 Stand integration/capacity; no convergence, ABC transfer or paper reproduction claim"
                 if job["module"] == "sadhana_fasttd3_hb.stage"
                 else "Original FastTD3 Hurdle process execution; native returns, checkpoints and recipe fidelity require separate acceptance"
@@ -436,6 +537,8 @@ def run_job(args: Any) -> dict[str, Any]:
             ],
             "blockers": [],
         }
+        if config_snapshots is not None:
+            receipt["config_snapshots"] = config_snapshots
         publish(receipt, RESULTS)
         ledger["charged_seconds"] = charged + timeout
         ledger["active_parent_pid"] = os.getpid()

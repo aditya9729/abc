@@ -1,0 +1,11 @@
+flowchart LR
+  A[Root: explicit R1 Lite job and two JSON configs]
+  B[ABC: validate identity, version pins and bounded time]
+  C[ABC: freeze both configs and record original hashes]
+  D[Separate installed sadhana_r1lite.fasttd3 worker]
+  E[ABC: truthful task and embodiment receipt]
+  A -->|data| B -->|validated data| C
+  C -->|control: bounded GPU0 lease and absolute snapshot| D
+  D -->|data: worker outcome| E
+  F[Root: native result acceptance remains separate]
+  E -->|handoff| F
