@@ -94,6 +94,13 @@ def test_worker_requires_a_held_ancestor_lease(tmp_path, monkeypatch):
             False,
             False,
         ),
+        (
+            "abc_bench.author_program",
+            "r1lite_remote_into_organizer",
+            "r1lite_2025",
+            False,
+            True,
+        ),
     ],
 )
 def test_author_stage_keeps_output_contract_and_truthful_task(
@@ -125,6 +132,8 @@ def test_author_stage_keeps_output_contract_and_truthful_task(
     }
     if not explicit_scope:
         del job["claim_scope"]
+    if module == "abc_bench.author_program":
+        job.update(task=task, embodiment=embodiment)
     path = tmp_path / "job.json"
     path.write_text(json.dumps(job))
 

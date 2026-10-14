@@ -153,6 +153,47 @@ def _author_config(job: dict[str, Any]) -> dict[str, Any] | None:
     return load_config(path)
 
 
+def _extended_rtc_config(job: dict[str, Any]) -> dict[str, Any] | None:
+    """Admit a longer finite original offline run, without changing its schedule."""
+    from abc_bench.author_program import load_config
+
+    maximum = job.get("max_wall_s")
+    if job["module"] != "abc_bench.author_program":
+        return None
+    arguments = job["arguments"]
+    parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    parser.add_argument("--config")
+    try:
+        selected, _ = parser.parse_known_args(arguments)
+        path = Path(selected.config) if selected.config else None
+        read_path = path
+        if path is not None and not path.is_absolute():
+            from abc_bench.runner import ROOT
+
+            read_path = ROOT / path
+        value = json.loads(read_path.read_text()) if read_path is not None else None
+    except (argparse.ArgumentError, OSError, ValueError):
+        path = value = None
+    extended_parent = type(maximum) in (int, float) and maximum > 7200
+    timeout = value.get("timeout_s") if isinstance(value, dict) else None
+    extended_worker = type(timeout) in (int, float) and timeout > 7100
+    if not extended_parent and not extended_worker:
+        return None
+    if not (
+        len(arguments) == 2
+        and arguments[0] == "--config"
+        or len(arguments) == 1
+        and arguments[0].startswith("--config=")
+    ):
+        raise ValueError("Extended RTC jobs require one explicit --config")
+    if path is None or not path.is_absolute() or not path.is_file():
+        raise ValueError("Extended RTC jobs require an absolute config file")
+    config = load_config(path)
+    if config["schema_version"] != 1 or config["program"] != "train_offline_rtc.py":
+        raise ValueError("Extended RTC admission is only for original offline RTC")
+    return config
+
+
 def _r1lite_config(job: dict[str, Any]) -> tuple[dict, bytes, bytes]:
     """Validate the cross-package boundary without importing the task runtime."""
     arguments = job["arguments"]
@@ -227,6 +268,9 @@ def load_job(path: Path) -> dict[str, Any]:
         not isinstance(job["claim_scope"], str) or not job["claim_scope"].strip()
     ):
         raise ValueError("claim_scope must be a nonempty description")
+    for name in ("task", "embodiment"):
+        if name in job and (not isinstance(job[name], str) or not job[name].strip()):
+            raise ValueError(f"{name} must be a nonempty description")
     maximum = job.get("max_wall_s")
     maximum_allowed = (
         12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
@@ -240,7 +284,19 @@ def load_job(path: Path) -> dict[str, Any]:
         ):
             raise ValueError("R1 Lite jobs need the worker timeout plus 60s cleanup")
     if job["module"] == "abc_bench.author_program":
-        from abc_bench.author_program import CATCHER_CLEANUP_SECONDS
+        from abc_bench.author_program import (
+            CATCHER_CLEANUP_SECONDS,
+            OFFLINE_RTC_CLEANUP_SECONDS,
+            OFFLINE_RTC_MAX_SECONDS,
+        )
+
+        rtc_config = _extended_rtc_config(job)
+        if rtc_config is not None:
+            if rtc_config["timeout_s"] + OFFLINE_RTC_CLEANUP_SECONDS > maximum:
+                raise ValueError(
+                    "Extended RTC jobs need worker timeout plus100s cleanup"
+                )
+            maximum_allowed = OFFLINE_RTC_MAX_SECONDS + OFFLINE_RTC_CLEANUP_SECONDS
 
         config = _author_config(job)
         if config is not None and (
@@ -383,6 +439,17 @@ def run_job(args: Any) -> dict[str, Any]:
     if args.training_config is None:
         raise ValueError("author-subset requires --training-config")
     job = load_job(args.training_config)
+    rtc_config = _extended_rtc_config(job)
+    if rtc_config is not None:
+        from abc_bench.author_program import OFFLINE_RTC_CLEANUP_SECONDS
+
+        if (
+            type(args.timeout_seconds) not in (int, float)
+            or not math.isfinite(args.timeout_seconds)
+            or min(job["max_wall_s"], args.timeout_seconds)
+            < rtc_config["timeout_s"] + OFFLINE_RTC_CLEANUP_SECONDS
+        ):
+            raise ValueError("Effective RTC parent timeout must include100s cleanup")
     r1lite_config = None
     if job["module"] == "sadhana_r1lite.fasttd3":
         r1lite_config, r1lite_raw, task_raw = _r1lite_config(job)
@@ -539,6 +606,9 @@ def run_job(args: Any) -> dict[str, Any]:
         }
         if config_snapshots is not None:
             receipt["config_snapshots"] = config_snapshots
+        if job["module"] == "abc_bench.author_program" and not catcher_profile:
+            for name in ("task", "embodiment"):
+                receipt[name] = job.get(name, receipt[name])
         publish(receipt, RESULTS)
         ledger["charged_seconds"] = charged + timeout
         ledger["active_parent_pid"] = os.getpid()

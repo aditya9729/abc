@@ -65,9 +65,73 @@ def test_changed_source_refuses_execution(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
+    "program,timeout,accepted",
+    [
+        ("train_offline_rtc.py", 36000, True),
+        ("train_offline_rtc.py", 36001, False),
+        ("train_offline_rtc.py", float("inf"), False),
+        ("train_offline_rtc.py", True, False),
+        ("train_pi_robo.py", 36000, False),
+        ("eval_droid_policy.py", 36000, False),
+    ],
+)
+def test_extended_watchdog_is_offline_only(tmp_path, program, timeout, accepted):
+    config = fixture_config(tmp_path, "raise AssertionError('must not run')\n")
+    config.update(program=program, timeout_s=timeout)
+    path = tmp_path / "worker.json"
+    path.write_text(json.dumps(config))
+    if accepted:
+        assert author_program.load_config(path)["timeout_s"] == timeout
+    else:
+        with pytest.raises(ValueError, match="timeout_s"):
+            author_program.load_config(path)
+
+
+def test_extended_offline_job_retains_parent_cleanup_and_original_limits(tmp_path):
+    from abc_bench import subset
+
+    config = fixture_config(tmp_path, "raise AssertionError('must not run')\n")
+    config["timeout_s"] = 36000
+    worker_path = tmp_path / "worker.json"
+    worker_path.write_text(json.dumps(config))
+    job = {
+        "schema_version": 1,
+        "label": "offline RTC process-only fixture",
+        "python": sys.executable,
+        "module": "abc_bench.author_program",
+        "arguments": ["--config", str(worker_path)],
+        "max_wall_s": 36100,
+    }
+    job_path = tmp_path / "job.json"
+    job_path.write_text(json.dumps(job))
+    assert subset.load_job(job_path)["max_wall_s"] == 36100
+    import argparse
+
+    # Reject before touching the real ledger or GPU, even if the CLI lowers time.
+    with pytest.raises(ValueError, match="Effective RTC parent"):
+        subset.run_job(
+            argparse.Namespace(training_config=job_path, timeout_seconds=36099)
+        )
+    for maximum in (120, 7200, 36099, 36101):
+        job["max_wall_s"] = maximum
+        job_path.write_text(json.dumps(job))
+        with pytest.raises(ValueError):
+            subset.load_job(job_path)
+    job["max_wall_s"] = 36100
+    job_path.write_text(json.dumps(job))
+    config["program"] = "train_pi_robo.py"
+    config["timeout_s"] = 7100
+    worker_path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="only for original offline RTC"):
+        subset.load_job(job_path)
+
+
+@pytest.mark.parametrize(
     "settings_key", ["REALTIME_EXPO_CATCHER_SETTINGS", "SADHANA_R1LITE_EXPO_SETTINGS"]
 )
-def test_task_settings_and_original_prng_reach_child(tmp_path, monkeypatch, settings_key):
+def test_task_settings_and_original_prng_reach_child(
+    tmp_path, monkeypatch, settings_key
+):
     monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
     settings = tmp_path / "catcher.json"
     settings.write_text('{"env_seed": 42}\n')

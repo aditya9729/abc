@@ -18,6 +18,8 @@ from abc_bench.subset import require_subset_lease
 PROGRAMS = {"train_offline_rtc.py", "train_pi_robo.py", "eval_droid_policy.py"}
 CATCHER_GPU_PROFILE = "kinetix_catcher_gpu_learner_cpu_env_v1"
 CATCHER_CLEANUP_SECONDS = 100
+OFFLINE_RTC_MAX_SECONDS = 36000
+OFFLINE_RTC_CLEANUP_SECONDS = 100
 ENVIRONMENT_KEYS = {
     "ABC_REALTIME_CONFIG",
     "ABC_REALTIME_EXPO_CLIENT_CONFIG",
@@ -48,12 +50,17 @@ def load_config(path: Path) -> dict[str, Any]:
         if not p.is_absolute() or not p.exists():
             raise ValueError(f"{name} must be an existing absolute path")
     timeout = config.get("timeout_s")
+    maximum = (
+        OFFLINE_RTC_MAX_SECONDS
+        if config["schema_version"] == 1 and config["program"] == "train_offline_rtc.py"
+        else 7100
+    )
     if (
         type(timeout) not in (int, float)
         or not math.isfinite(timeout)
-        or not 0 < timeout <= 7100
+        or not 0 < timeout <= maximum
     ):
-        raise ValueError("timeout_s must be finite and within (0,7100]")
+        raise ValueError(f"timeout_s must be finite and within (0,{maximum}]")
     _arguments(config.get("arguments"))
     env = config.get("environment", {})
     if (

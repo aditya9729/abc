@@ -89,3 +89,21 @@ job remains failed because client process cleanup required SIGTERM. Native close
 and complete video evidence do not establish graceful process exit. Keep these
 claims separate. Resolve shutdown before another campaign. The client package
 extra pins the observed native `ml-collections==1.1.0`; server dependencies stay separate.
+
+## Original RTC task training — 14 October 2026
+
+R1 Lite uses Sadhana's separately installed task package and the original RTC
+entrypoint. Measured batch64 training takes about7.2seconds/update on GPU0.
+Only schema1 `train_offline_rtc.py` may use up to36000worker seconds and
+36100parent seconds. Both the job and effective CLI timeout must preserve
+100seconds for cleanup. Online/evaluation and Catcher limits remain unchanged.
+The original4000-step recipe is not split through approximate resume.
+
+Schema1 author receipts honor explicit nonempty task/embodiment fields.
+Canonical receipts are in `outputs/bench/runs/<id>.json`; worker receipts stay
+in `outputs/bench/<id>/receipt.json`. Their recorded hashes must match.
+
+The R1 qualification completed10updates with verified finite checkpoint,
+optimizer counters and learner RNG. This does not admit task success.
+Read Sadhana's `packages/r1lite-rl/docs/rl/R1LITE_REALTIME_EXPO.md` in the
+`RL/sadhana-r1lite-rl-hillclimb` worktree for task adaptations and current runs.
