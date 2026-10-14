@@ -281,7 +281,7 @@ def _stop(process: subprocess.Popen | None, *, graceful: bool = False) -> str:
         process.terminate()
     except ProcessLookupError:
         process.wait(timeout=10)
-        return "already_stopped"
+        return "sigint" if graceful else "already_stopped"
     try:
         process.wait(timeout=10)
         return "sigterm"
@@ -290,7 +290,7 @@ def _stop(process: subprocess.Popen | None, *, graceful: bool = False) -> str:
             process.kill()
         except ProcessLookupError:
             process.wait(timeout=10)
-            return "already_stopped"
+            return "sigterm"
         process.wait(timeout=10)
         return "sigkill"
 

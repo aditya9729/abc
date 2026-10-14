@@ -13,6 +13,8 @@ An exit during this grace uses the existing shutdown label `already_stopped`.
 If needed, the original SIGINT20s, SIGTERM10s, and SIGKILL10s waits follow.
 The total client cleanup bound is45s. The existing parent cleanup margin remains unchanged.
 An owned child that disappears before a signal is reaped without signalling another process.
+If a later signal finds no process, the receipt preserves the preceding signal stage.
+This keeps an attempted SIGTERM escalation visible even when the child later exits0.
 
 Any nonzero client exit now prevents completed status.
 The receipt retains the actual author and client exit codes.

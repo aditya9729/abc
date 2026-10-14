@@ -83,6 +83,63 @@ def test_child_disappears_between_poll_and_signal(monkeypatch, graceful):
         assert child.returncode == -signal.SIGTERM
 
 
+def test_term_race_keeps_prior_sigint_label(monkeypatch):
+    code = (
+        "import signal,sys,time\n"
+        "signal.signal(signal.SIGINT,lambda *_:sys.exit(0))\n"
+        "print('ready',flush=True)\ntime.sleep(60)\n"
+    )
+    with ready_child(code) as child:
+        original_wait = child.wait
+        waits = []
+
+        def boundary_wait(timeout):
+            waits.append(timeout)
+            if len(waits) <= 2:
+                raise subprocess.TimeoutExpired(child.args, timeout)
+            return original_wait(timeout=timeout)
+
+        def vanished_before_term():
+            # Real SIGINT exits0; only the wait/race boundaries are explicit doubles.
+            assert original_wait(timeout=5) == 0
+            raise ProcessLookupError("Explicit post-SIGINT disappearance")
+
+        monkeypatch.setattr(child, "wait", boundary_wait)
+        monkeypatch.setattr(child, "terminate", vanished_before_term)
+        assert author_program._stop(child, graceful=True) == "sigint"
+        assert child.returncode == 0
+        assert waits == [5, 20, 10]
+
+
+def test_kill_race_keeps_prior_sigterm_escalation(monkeypatch):
+    code = (
+        "import signal,sys,time\n"
+        "signal.signal(signal.SIGINT,signal.SIG_IGN)\n"
+        "signal.signal(signal.SIGTERM,lambda *_:sys.exit(0))\n"
+        "print('ready',flush=True)\ntime.sleep(60)\n"
+    )
+    with ready_child(code) as child:
+        original_wait = child.wait
+        waits = []
+
+        def boundary_wait(timeout):
+            waits.append(timeout)
+            if len(waits) <= 3:
+                raise subprocess.TimeoutExpired(child.args, timeout)
+            return original_wait(timeout=timeout)
+
+        def vanished_before_kill():
+            # Real TERM exits0; this must still disclose attempted TERM escalation.
+            assert original_wait(timeout=5) == 0
+            raise ProcessLookupError("Explicit post-SIGTERM disappearance")
+
+        monkeypatch.setattr(child, "wait", boundary_wait)
+        monkeypatch.setattr(child, "kill", vanished_before_kill)
+        assert author_program._stop(child, graceful=True) == "sigterm"
+        assert child.returncode == 0
+        assert waits == [5, 20, 10, 10]
+
+
 def online_config(tmp_path, client_exit):
     source = tmp_path / "source"
     ready = tmp_path / "client-ready"
