@@ -26,6 +26,15 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <div id="catcher-training-clips" class="grid"></div>
 <p><small>Playback uses 30 simulation frames per second. CPU execution does not establish a wall-clock real-time control rate.</small></p>
 </div>
+<div id="catcher-frozen" hidden>
+<h3 id="catcher-frozen-heading">Frozen Catcher · four development starts</h3>
+<p id="catcher-frozen-summary"></p>
+<p>RTC-guided BC24 and the saved R2 whole policy use the same four starting seeds, delay 4, C4/H8, and action noise 0.1. R2 is a short trained checkpoint. One trial per seed does not establish reliable improvement or paper performance.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Frozen Catcher development outcomes and full videos">
+<table class="window-table"><thead><tr><th scope="col">Seed</th><th scope="col">RTC-guided BC24</th><th scope="col">Learned R2 · short checkpoint</th></tr></thead><tbody id="catcher-frozen-rows"></tbody></table>
+</div>
+<p><small>Complete native episodes at 30 simulation frames per second. Playback does not measure wall-clock real-time control. Task/backend hooks and the declared Catcher scheduling recheck extend the author's evaluation path.</small></p>
+</div>
 </section>
 <section id="mulligan" class="card" aria-labelledby="mulligan-heading" style="margin-bottom:22px" hidden>
 <h2 id="mulligan-heading">Mulligan · native Panda simulation</h2>
@@ -500,6 +509,7 @@ function renderCatcher(result) {
   if (!result) return;
   text('catcher-learning', result.learning_status);
   renderCatcherTraining(result.native_training);
+  renderCatcherFrozen(result.frozen_comparison);
   if (!Array.isArray(result.profiles) || result.profiles.length !== 3) throw Error('Invalid Catcher profiles');
   const box = document.getElementById('catcher-viewer');
   const identity = JSON.stringify(result.profiles);
@@ -547,6 +557,54 @@ function renderCatcherTraining(result) {
     video.setAttribute('aria-label', 'Catcher training episode ' + episode);
     panel.append(label, video);
     box.append(panel);
+  }
+  box.dataset.identity = identity;
+}
+function renderCatcherFrozen(result) {
+  const section = document.getElementById('catcher-frozen');
+  section.hidden = true;
+  if (result == null) return;
+  if (result.schema !== 'catcher.frozen-comparison/v1' || result.status !== 'accepted_matched_development' || !Array.isArray(result.rows) || result.rows.length !== 4) throw Error('Invalid frozen Catcher comparison');
+  const arms = ['rtc_bc24', 'saved_r2'];
+  const rows = result.rows.map((row, index) => {
+    const seed = integer(row.seed, 'frozen Catcher seed');
+    if (seed !== 100001 + index) throw Error('Invalid frozen Catcher seed cohort');
+    const clips = arms.map(arm => {
+      const clip = row[arm];
+      if (!clip || clip.status !== 'accepted_frozen_case' || clip.complete !== true || typeof clip.solved !== 'boolean' || !/^[0-9a-f]{64}$/.test(clip.sha256) || clip.video !== clip.sha256.slice(0, 16) + '.mp4') throw Error('Invalid frozen Catcher clip');
+      const controls = integer(clip.controls, 'frozen Catcher controls', 1);
+      const frames = integer(clip.frames, 'frozen Catcher frames', 2);
+      if (controls > 256 || frames !== controls + 1) throw Error('Incomplete frozen Catcher episode video');
+      return {arm, clip, controls};
+    });
+    return {seed, clips};
+  });
+  const successes = arms.map(arm => rows.filter(row => row.clips.find(item => item.arm === arm).clip.solved).length);
+  text('catcher-frozen-summary', 'Accepted development episodes: RTC-guided BC24 ' + successes[0] + '/4 · learned R2 ' + successes[1] + '/4. This compares the starting base with the learned whole policy, including candidate selection and editing.');
+  const box = document.getElementById('catcher-frozen-rows');
+  const identity = JSON.stringify(result.rows);
+  section.hidden = false;
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    const seed = document.createElement('th');
+    seed.scope = 'row';
+    seed.textContent = row.seed;
+    tr.append(seed);
+    for (const {arm, clip, controls} of row.clips) {
+      const cell = document.createElement('td');
+      const outcome = document.createElement('p');
+      outcome.textContent = (clip.solved ? 'Success' : 'Failure') + ' · ' + controls + ' controls';
+      const video = document.createElement('video');
+      video.controls = true;
+      video.preload = 'metadata';
+      video.src = clip.video;
+      video.setAttribute('aria-label', (arm === 'rtc_bc24' ? 'RTC-guided BC24' : 'Learned R2') + ', seed ' + row.seed);
+      cell.append(outcome, video);
+      tr.append(cell);
+    }
+    box.append(tr);
   }
   box.dataset.identity = identity;
 }

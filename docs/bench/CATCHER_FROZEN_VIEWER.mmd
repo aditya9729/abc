@@ -1,0 +1,23 @@
+flowchart TD
+  subgraph AUTHOR[Author policy and evaluation loop with declared Catcher hooks]
+    B[RTC-guided BC24]
+    L[Saved R2 whole policy]
+    E[Four fixed development seeds per arm]
+    B --> E
+    L --> E
+  end
+  subgraph ROOT[Root acceptance and publication]
+    A[Full restore, zero updates, complete native videos, clean exits]
+    J[Accepted results snapshot and hash-named MP4 files]
+    E -. native results pending .-> A
+    A -. after acceptance only .-> J
+  end
+  subgraph VIEWER[Optional packaged static HTML]
+    P[Validate four paired accepted rows and media metadata]
+    V[Paired outcome table and eight video controls]
+    H[Key absent: panel hidden]
+    J -. after publication .-> P
+    P --> V
+  end
+  T[Explicit CPU DOM fixtures: rendering evidence only] --> P
+  R[Root browser checks on actual videos: pending] -. acceptance evidence .-> V
