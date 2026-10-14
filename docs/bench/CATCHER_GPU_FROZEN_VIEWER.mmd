@@ -1,0 +1,12 @@
+flowchart LR
+  R[Root: accepted full GPU checkpoint restore] -. future projection .-> M[Actual actor/critic/filter clocks + restore receipt pin]
+  B[Accepted BC24 cases: reused four seeds] -. future mapping .-> C[catcher.gpu_frozen_comparison]
+  G[Root: future accepted GPU4096 frozen cases] -. future mapping .-> C
+  M -. future mapping .-> C
+  C -. root publishes after acceptance .-> V[Optional packaged UI panel]
+  F[Explicit synthetic DOM fixtures] -->|CPU checks only| V
+  V --> P[Eight complete video players + pilot outcomes]
+  H[Existing CPU-R2 record] -->|unchanged| O[Existing frozen panel]
+  E[Installed stdlib exporter] -->|candidate template only| V
+  N[Root: normal release and real browser proof remain pending]
+  V -. handoff .-> N

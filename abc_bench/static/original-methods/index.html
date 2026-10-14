@@ -36,6 +36,17 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 </div>
 <p><small>Complete native episodes at 30 simulation frames per second. Playback does not measure wall-clock real-time control. Task/backend hooks and the declared Catcher scheduling recheck extend the author's evaluation path.</small></p>
 </div>
+<div id="catcher-gpu-frozen" hidden>
+<h3 id="catcher-gpu-frozen-heading">Frozen Catcher · GPU 4,096 checkpoint</h3>
+<p id="catcher-gpu-frozen-summary"></p>
+<p id="catcher-gpu-frozen-updates"></p>
+<p>RTC-guided BC24 is reused for four seeded development trials on one level. The learned GPU checkpoint uses the same environment seeds, delay 4, C4/H8, and action noise 0.1. This compares the starting base with the learned whole policy, including candidate selection and editing.</p>
+<p>This one-level pilot has one trial per environment seed. These trials are not held out. This comparison does not establish reliable improvement or reproduce the paper experiment. Training index 4,096 is not a count of learner updates. Server seed 42 initializes BC24; the learned policy keeps its restored checkpoint random state.</p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="GPU checkpoint Catcher development outcomes and complete videos">
+<table class="window-table comparison-table"><colgroup><col style="width:76px"><col><col></colgroup><thead><tr><th scope="col">Seed</th><th scope="col">Reused RTC-guided BC24</th><th scope="col">Learned GPU checkpoint · index 4,096</th></tr></thead><tbody id="catcher-gpu-frozen-rows"></tbody></table>
+</div>
+<p><small>Complete native episodes at 30 simulation frames per second. Playback does not measure wall-clock real-time control. These frozen episodes use CPU; GPU names the training provenance. The earlier CPU-R2 comparison above remains a separate experiment.</small></p>
+</div>
 </section>
 <section id="mulligan" class="card" aria-labelledby="mulligan-heading" style="margin-bottom:22px" hidden>
 <h2 id="mulligan-heading">Mulligan · native Panda simulation</h2>
@@ -656,6 +667,7 @@ function renderCatcher(result) {
   text('catcher-learning', result.learning_status);
   renderCatcherTraining(result.native_training);
   renderCatcherFrozen(result.frozen_comparison);
+  renderCatcherGpuFrozen(result.gpu_frozen_comparison);
   if (!Array.isArray(result.profiles) || result.profiles.length !== 3) throw Error('Invalid Catcher profiles');
   const box = document.getElementById('catcher-viewer');
   const identity = JSON.stringify(result.profiles);
@@ -747,6 +759,62 @@ function renderCatcherFrozen(result) {
       video.preload = 'metadata';
       video.src = clip.video;
       video.setAttribute('aria-label', (arm === 'rtc_bc24' ? 'RTC-guided BC24' : 'Learned R2') + ', seed ' + row.seed);
+      cell.append(outcome, video);
+      tr.append(cell);
+    }
+    box.append(tr);
+  }
+  box.dataset.identity = identity;
+}
+function renderCatcherGpuFrozen(result) {
+  const section = document.getElementById('catcher-gpu-frozen');
+  section.hidden = true;
+  if (result == null) return;
+  if (result.schema !== 'catcher.gpu-frozen-comparison/v1' || result.status !== 'accepted_matched_development' || !Array.isArray(result.rows) || result.rows.length !== 4) throw Error('Invalid GPU frozen Catcher comparison');
+  const restore = result.restore;
+  if (!restore || restore.status !== 'original_full_checkpoint_restore_verified' || restore.checkpoint_step !== 4096 || !restore.receipt || typeof restore.receipt.path !== 'string' || !restore.receipt.path || !Number.isSafeInteger(restore.receipt.bytes) || restore.receipt.bytes < 1 || typeof restore.receipt.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(restore.receipt.sha256)) throw Error('Missing accepted Catcher restore evidence');
+  const calls = integer(restore.original_update_calls, 'Catcher actor updates', 1);
+  const actor = restore.counters?.actor_train_state?.step;
+  const critic = restore.counters?.critic?.step;
+  const filter = restore.counters?.filter_critic?.step;
+  if (![calls, actor, critic, filter].every(Number.isSafeInteger) || actor !== calls || critic !== 20 * calls || filter !== critic) throw Error('Inconsistent accepted Catcher update counts');
+  const arms = ['rtc_bc24', 'saved_gpu4096'];
+  const rows = result.rows.map((row, index) => {
+    const seed = integer(row.seed, 'GPU frozen Catcher seed');
+    if (seed !== 100001 + index) throw Error('Invalid GPU frozen Catcher seed cohort');
+    const clips = arms.map(arm => {
+      const clip = row[arm];
+      if (!clip || clip.status !== 'accepted_frozen_case' || clip.complete !== true || typeof clip.solved !== 'boolean' || typeof clip.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(clip.sha256) || clip.video !== clip.sha256.slice(0, 16) + '.mp4') throw Error('Invalid GPU frozen Catcher clip');
+      const controls = integer(clip.controls, 'GPU frozen Catcher controls', 1);
+      const frames = integer(clip.frames, 'GPU frozen Catcher frames', 2);
+      if (controls > 256 || frames !== controls + 1) throw Error('Incomplete GPU frozen Catcher episode video');
+      return {arm, clip, controls};
+    });
+    return {seed, clips};
+  });
+  const successes = arms.map(arm => rows.filter(row => row.clips.find(item => item.arm === arm).clip.solved).length);
+  text('catcher-gpu-frozen-summary', 'Accepted development episodes: reused RTC-guided BC24 ' + successes[0] + '/4 · learned GPU checkpoint ' + successes[1] + '/4. Four seeded development trials on one level; no held-out or paper claim.');
+  text('catcher-gpu-frozen-updates', 'Saved training index 4,096 · actor updates ' + count(calls) + ' · critic updates ' + count(critic) + ' · filter updates ' + count(filter) + '. Counts come from the accepted checkpoint restore.');
+  const box = document.getElementById('catcher-gpu-frozen-rows');
+  const identity = JSON.stringify(result.rows);
+  section.hidden = false;
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    const seed = document.createElement('th');
+    seed.scope = 'row';
+    seed.textContent = row.seed;
+    tr.append(seed);
+    for (const {arm, clip, controls} of row.clips) {
+      const cell = document.createElement('td');
+      const outcome = document.createElement('p');
+      outcome.textContent = (clip.solved ? 'Success' : 'Failure') + ' · ' + controls + ' controls';
+      const video = document.createElement('video');
+      video.controls = true;
+      video.preload = 'metadata';
+      video.src = clip.video;
+      video.setAttribute('aria-label', (arm === 'rtc_bc24' ? 'Reused RTC-guided BC24' : 'Learned GPU checkpoint, training index 4096') + ', seed ' + row.seed);
       cell.append(outcome, video);
       tr.append(cell);
     }
