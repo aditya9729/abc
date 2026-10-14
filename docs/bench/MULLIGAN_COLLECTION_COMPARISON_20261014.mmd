@@ -1,0 +1,10 @@
+flowchart LR
+    A[Released Sobol no-CF checkpoint] --> E[Original Square-Narrow evaluator]
+    B[Released Mulligan no-CF checkpoint] --> E
+    G[Same 50 starts and seeds; N1 and N32] --> E
+    R[Root: serial GPU0 lease and watchdog] -->|process control| E
+    E -->|native point rows| C[Data reader and independent review]
+    R -->|terminal cleanup evidence| C
+    C --> O[Four accepted scores and paired outcomes]
+    M[Original collection metadata: shared failures, unequal human supervision] -->|interpretation limits| O
+    O -. future controlled collection study .-> F[Fresh data; matched cost; independent final evaluation]

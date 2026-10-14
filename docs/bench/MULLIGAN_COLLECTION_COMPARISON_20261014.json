@@ -1,0 +1,208 @@
+{
+  "status": "accepted_original_released_collection_comparison",
+  "scores": [
+    {
+      "label": "square-narrow-r01-sobol-no-cf-released-seed1-n1-paired50",
+      "n": 1,
+      "run_id": "author-subset-20261014T025722-799ba8",
+      "successes": 42,
+      "episodes": 50,
+      "elapsed_s": 90.0319533359725,
+      "failed_starts": [
+        0,
+        4,
+        8,
+        12,
+        14,
+        18,
+        42,
+        46
+      ]
+    },
+    {
+      "label": "square-narrow-r01-sobol-no-cf-released-seed1-n32-paired50",
+      "n": 32,
+      "run_id": "author-subset-20261014T025921-4822ef",
+      "successes": 43,
+      "episodes": 50,
+      "elapsed_s": 103.90170071390457,
+      "failed_starts": [
+        0,
+        4,
+        8,
+        12,
+        34,
+        35,
+        40
+      ]
+    },
+    {
+      "label": "square-narrow-r01-mulligan-no-cf-released-seed1-n1-paired50",
+      "n": 1,
+      "run_id": "author-subset-20261014T030144-f8d065",
+      "successes": 46,
+      "episodes": 50,
+      "elapsed_s": 84.34539670916274,
+      "failed_starts": [
+        0,
+        6,
+        26,
+        42
+      ]
+    },
+    {
+      "label": "square-narrow-r01-mulligan-no-cf-released-seed1-n32-paired50",
+      "n": 32,
+      "run_id": "author-subset-20261014T030342-1cdb9c",
+      "successes": 42,
+      "episodes": 50,
+      "elapsed_s": 101.65955859795213,
+      "failed_starts": [
+        0,
+        1,
+        6,
+        7,
+        20,
+        39,
+        42,
+        46
+      ]
+    }
+  ],
+  "within_arm_n1_left_n32_right": {
+    "sobol-no-cf": {
+      "both_succeed": 39,
+      "left_only": 3,
+      "right_only": 4,
+      "both_fail": 4,
+      "left_only_points": [
+        34,
+        35,
+        40
+      ],
+      "right_only_points": [
+        14,
+        18,
+        42,
+        46
+      ],
+      "right_minus_left_percentage_points": 2.0
+    },
+    "mulligan-no-cf": {
+      "both_succeed": 41,
+      "left_only": 5,
+      "right_only": 1,
+      "both_fail": 3,
+      "left_only_points": [
+        1,
+        7,
+        20,
+        39,
+        46
+      ],
+      "right_only_points": [
+        26
+      ],
+      "right_minus_left_percentage_points": -8.0
+    }
+  },
+  "cross_arm_sobol_left_mulligan_right": {
+    "1": {
+      "both_succeed": 40,
+      "left_only": 2,
+      "right_only": 6,
+      "both_fail": 2,
+      "left_only_points": [
+        6,
+        26
+      ],
+      "right_only_points": [
+        4,
+        8,
+        12,
+        14,
+        18,
+        46
+      ],
+      "right_minus_left_percentage_points": 8.0
+    },
+    "32": {
+      "both_succeed": 36,
+      "left_only": 7,
+      "right_only": 6,
+      "both_fail": 1,
+      "left_only_points": [
+        1,
+        6,
+        7,
+        20,
+        39,
+        42,
+        46
+      ],
+      "right_only_points": [
+        4,
+        8,
+        12,
+        34,
+        35,
+        40
+      ],
+      "right_minus_left_percentage_points": -2.0
+    }
+  },
+  "scope": "Released policies, one training seed, 50 shared development starts; no new local training or collection. Both arms promote failures; human supervision differs.",
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/RESULTS.json",
+      "bytes": 25738,
+      "sha256": "d9f6ce4d2512fc2fdd83771a61bdb428fbc8092fd0094e8e5a62a897aaac33b1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/HANDLES.json",
+      "bytes": 1362,
+      "sha256": "d5b860055cfdd519037a0d546c38ac0980c804360f51c99501cfcbf38ff8f572"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/FINAL_REVIEW.json",
+      "bytes": 9042,
+      "sha256": "10fca4dac4188cd2de0cbf550dcca9101b39081b02e4e93f38673bda65a31456"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/SEAL_V2.json",
+      "bytes": 951,
+      "sha256": "6db5d9ad978c2c49744b5690854aa76ecd42766eccde639e2a4a460bc652ac84"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/ROOT_ASSET_AUTHENTICATION.json",
+      "bytes": 297,
+      "sha256": "d4abd46e3efce7d4c6a4d6dca3fae65450532a03ce64615f2263d3308e8b7481"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/sobol-n1-cleanup.json",
+      "bytes": 201,
+      "sha256": "a8a52c556fa69b9c21b866450a568af960e5064e2c850a53471c97316dd7da19"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/sobol-n32-cleanup.json",
+      "bytes": 203,
+      "sha256": "af27e898bedf35f3f7d1270fdb08c80ca796a4821b501f4695642e2955456fa6"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/mulligan-n1-cleanup.json",
+      "bytes": 202,
+      "sha256": "cd2efdd584af722a47575367c189d8f6b559bb4f2c7b9b339845e8d5c8a51548"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/mulligan-n32-cleanup.json",
+      "bytes": 203,
+      "sha256": "c6595da73c1cc156dae761d5c10ef9b126507940acdf6b6cdadb411ac3952f4d"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-collection-results-20261014/REPORT_REVIEW.json",
+      "bytes": 3526,
+      "sha256": "ca84b7ce727bebe602de4f840ce08fddf386bac96f2d2e58c7cbbca15358c3cb",
+      "scope": "Reviews the report and the nine preceding pins before this review receipt was appended."
+    }
+  ]
+}

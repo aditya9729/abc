@@ -28,13 +28,13 @@ flowchart TD
         B -. original recipe inputs .-> ML
         D -. fixed initialization and optimizer budget .-> B
         J -->|existing EXPO process control| L
-        J -->|verified original-command adapter; local training active| ML
+        J -->|verified original-command adapter; local training completed| ML
         L -. selected checkpoint .-> C
         ML -. selected checkpoint .-> C
     end
     subgraph V[Independent evaluation and reporting]
         T[Sealed final starts and task success judge]
-        X[Existing released-policy scores and six full videos; data and compute curves planned]
+        X[Existing released and local policy scores and full videos; data and compute curves planned]
         L -. frozen policy .-> T
         ML -. frozen policy .-> T
         T -. final measurements only .-> X

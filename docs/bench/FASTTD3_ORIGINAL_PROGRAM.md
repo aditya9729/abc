@@ -42,7 +42,9 @@ missed live process capture; a separate repeat supplies the accepted identity.
 Evidence: `builds/fasttd3-original-native-acceptance-20261014/actual-egl-r2-acceptance.json`
 and `builds/fasttd3-short-temp-repair-20261014/next-acceptance/actual-{one-r2,twelve}-acceptance.json`.
 The [compact index](FASTTD3_NATIVE_QUALIFICATION_20261014.json) pins these receipts.
-Full 100,000-call training remains a separate pending experiment.
+Full 100,000-call training is a separate experiment. Root launched it on GPU0
+after these qualifications and the serial Mulligan evaluations. Its result
+remains pending. The original eight-hour worker watchdog remains active.
 
 ## Canonical command and configuration
 

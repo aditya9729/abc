@@ -278,7 +278,10 @@ episode-quota comparison, not an equal-human-effort causal experiment.
 
 The complete metadata and prepared four-job contract are in
 `/home/user/aditya/RL/builds/mulligan-collection-comparison-20261013/`.
-The four evaluations are prepared, not executed. Each uses the same 50 starts.
+The [four evaluations](MULLIGAN_COLLECTION_COMPARISON_20261014.md) are now complete.
+On the same 50 starts, Sobol scores 42/50 at N1 and 43/50 at N32; Mulligan scores
+46/50 and 42/50. The ranking changes with deployment candidate selection.
+This one-seed pilot does not establish a reliable overall collection advantage.
 These checks use released checkpoints, separately from the completed local IDQL training.
 Released checkpoint metadata says step 150001, while the summaries say 150000
 training steps. Preserve both fields; do not infer an extra measured update.
