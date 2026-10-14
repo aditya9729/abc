@@ -223,6 +223,14 @@ physical scenes and reset states. Sadhana owns collection allocation and
 post-training. A reconstructed or re-rendered video alone is not an RL
 transition; simulation must execute actions and produce aligned outcomes.
 
+The [R1 Lite transfer assessment](R1LITE_AUTHOR_RECIPE_TRANSFER_20261014.md)
+now binds the published Leela 0.5.0 wheel and demonstration index. Its native
+`step()` reward is always zero, so an explicit judge-to-reward adapter is
+required. The 173 producer-marked robust trajectories all target one object;
+30 report eight robustness trials and 143 report sixteen. Their metadata does
+not establish new independent replay or real-robot admission. This published
+simulation handoff remains distinct from the pending cans handoff.
+
 ## First experiment: original Mulligan on Square-Narrow
 
 Mulligan is the most direct first test of the deployment-data question. Its

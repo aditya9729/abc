@@ -1,0 +1,21 @@
+{
+  "status": "published_contract_transfer_assessment",
+  "native_or_learning_result": false,
+  "public_interface": "leela_sim 0.5.0",
+  "inspection": {
+    "path": "/home/user/aditya/RL/builds/r1lite-author-transfer-review-20261014/INSPECTION.json",
+    "bytes": 2643,
+    "sha256": "686f169eba461c83d776544f1c3ab67dd1483f31b46955b5d47c3d7c47ac8d67"
+  },
+  "reader": {
+    "path": "/home/user/aditya/RL/builds/r1lite-author-transfer-review-20261014/inspect_published.py",
+    "bytes": 3162,
+    "sha256": "5d0302741559279ae4a12be2c13331a0162d8909a2bf02db36ff5d702f408c68"
+  },
+  "independent_review": {
+    "path": "/home/user/aditya/RL/builds/r1lite-author-transfer-review-20261014/INDEPENDENT_REVIEW.json",
+    "bytes": 7693,
+    "sha256": "f0b6a9a866680f05a7db894a44dbfc107f2832b7dc995680b452e1ff2d5459a6"
+  },
+  "scope": "Published manifest, wheel and index inspection; native replay and target learner integration remain pending."
+}

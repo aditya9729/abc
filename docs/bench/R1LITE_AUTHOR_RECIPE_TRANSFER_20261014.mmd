@@ -1,0 +1,9 @@
+flowchart LR
+    A[Original task: learner and measured recipe] -. retain learner .-> L[Proposed R1 Lite learning run]
+    D[Published demonstrations and source lineage] -. explicit data views .-> L
+    P[Published Leela 0.5.0 wheel and bundles] --> C[Inspected public action, reset and judge contract]
+    C -. verified task adapter .-> L
+    L -. physical target commands .-> E[Proposed one-object simulation task]
+    E -. applied actions, observations and judge outcomes .-> L
+    L -. frozen checkpoint .-> T[Proposed independent simulation evaluation]
+    T -. success, cost and timing .-> R[Root review and report]
