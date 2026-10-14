@@ -18,6 +18,9 @@ actor updates and a frozen 3/4 result versus BC24's 1/4 on four environment seed
 This is one level and a reused development cohort, not a deployment-data scaling result.
 The training client ended on SIGINT; a separate full-checkpoint recovery passed.
 All four subsequent frozen evaluations exited cleanly and have complete videos.
+The [full locked-grid Mulligan evaluation](MULLIGAN_FULL_GRID_20261014.md) is now
+running on the accepted local DIVL seed. It extends evaluation from 50 to all
+8,000 starts without training updates. Its full score remains pending.
 
 ## The first scaling decision
 
