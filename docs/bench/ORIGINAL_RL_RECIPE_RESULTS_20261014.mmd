@@ -1,0 +1,32 @@
+flowchart LR
+  subgraph Authors[External authors own learners, data and original tasks]
+    F[FastTD3 original program<br/>H1Hand Hurdle]
+    M[Mulligan original programs<br/>Square-Narrow IDQL and DIVL]
+    E[Real-Time EXPO original learner<br/>and asynchronous action sampler]
+  end
+  subgraph Harness[Root owns experiment orchestration]
+    C[Pinned configurations and inputs]
+    S[GPU0 supervision and finite run bounds]
+    A[Declared Catcher task and backend adapter]
+    R[Native logs, checkpoints, outcomes and recordings]
+    V[Source and result review<br/>Root acceptance or explicit artifact recovery]
+    U[Published reports and results viewer]
+  end
+  C -->|configuration| S
+  S -->|control: original entrypoints| F
+  S -->|control: original entrypoints| M
+  S -->|control: original driver| E
+  A <-->|observations, actions and rewards| E
+  F -->|data| R
+  M -->|data| R
+  E -->|data| R
+  R -->|evidence| V
+  V -->|accepted measurements| U
+  subgraph Future[Proposed R1 Lite transfer: no native training result]
+    L[Leela owns physical scene and reset interface]
+    D[Published data and annotation decisions]
+    T[Sadhana owns task reward and action adapter<br/>then a matched learning experiment]
+  end
+  L -.->|validated scene and outcomes required| T
+  D -.->|approved method-specific data views required| T
+  U -.->|measured lessons and declared method choice| T
