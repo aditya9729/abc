@@ -1,0 +1,12 @@
+flowchart LR
+  root[Root: canonical lease and owned group] --> supervisor[Process supervisor]
+  supervisor --> author[Unchanged original author program]
+  supervisor --> client[Unchanged environment client]
+  author -->|exit and optional saved artifact| grace[Wait for client natural exit: at most5s]
+  client --> grace
+  grace -->|still live| signals[SIGINT20s then TERM10s then KILL10s]
+  grace -->|client0 and author0| completed[Completed process receipt; checkpoint unaccepted]
+  signals --> classify[Record actual exits and cleanup]
+  classify -->|client nonzero or escalation| failed[Failed receipt; retain author artifact]
+  completed -. root-owned step .-> inspect[Independent artifact and resource acceptance]
+  failed -. explicit separate recovery decision .-> inspect

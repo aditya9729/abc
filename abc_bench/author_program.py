@@ -261,18 +261,36 @@ def _stop(process: subprocess.Popen | None, *, graceful: bool = False) -> str:
     if process is None or process.poll() is not None:
         return "already_stopped"
     if graceful:
-        process.send_signal(signal.SIGINT)
+        # The author may close its socket before the client finishes native cleanup.
+        try:
+            process.wait(timeout=5)
+            return "already_stopped"
+        except subprocess.TimeoutExpired:
+            pass
+        try:
+            process.send_signal(signal.SIGINT)
+        except ProcessLookupError:
+            process.wait(timeout=20)
+            return "already_stopped"
         try:
             process.wait(timeout=20)
             return "sigint"
         except subprocess.TimeoutExpired:
             pass
-    process.terminate()
+    try:
+        process.terminate()
+    except ProcessLookupError:
+        process.wait(timeout=10)
+        return "already_stopped"
     try:
         process.wait(timeout=10)
         return "sigterm"
     except subprocess.TimeoutExpired:
-        process.kill()
+        try:
+            process.kill()
+        except ProcessLookupError:
+            process.wait(timeout=10)
+            return "already_stopped"
         process.wait(timeout=10)
         return "sigkill"
 
@@ -437,6 +455,12 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
                     status="failed",
                     cleanup_errors=cleanup_errors,
                     error="Owned process cleanup required escalation or failed",
+                )
+            elif client is not None and result.get("client_exit_code") != 0:
+                result["status"] = "failed"
+                result.setdefault(
+                    "error",
+                    f"Original environment client exited {result['client_exit_code']} during cleanup",
                 )
             result["elapsed_s"] = time.monotonic() - started
             result["owned_children_stopped"] = all(
