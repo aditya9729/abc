@@ -85,6 +85,10 @@ the [later native driver check](REALTIME_CATCHER_ONLINE_20261014.md) now complet
 3,029 controls and 34 released-learner update calls with a verified checkpoint.
 Eight of 44 complete training episodes succeed. This establishes integration,
 not a frozen performance gain or the full paper experiment.
+The [matched frozen comparison](REALTIME_CATCHER_FROZEN_20261014.md) now records
+BC24 success on 1/4 starts and short R2 success on 0/4. All eight full videos are published.
+These four development starts show no measured gain. They do not establish a reliable difference.
+The frozen runtime reports four dependency metadata conflicts, as recorded in that report.
 Per-step rewards are absent from the archive;
 source-derived sparse rewards require an explicit contract. Reward and stored
 success flags are not interchangeable.

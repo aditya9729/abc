@@ -1,0 +1,164 @@
+{
+  "status": "accepted_matched_development",
+  "outcomes": [
+    {
+      "seed": 100001,
+      "arm": "rtc_bc24",
+      "solved": true,
+      "episode_return": 1.0,
+      "controls": 75,
+      "episode_wall_s": 33.231305208057165,
+      "simulation_s": 2.5
+    },
+    {
+      "seed": 100001,
+      "arm": "saved_r2",
+      "solved": false,
+      "episode_return": 0.0,
+      "controls": 68,
+      "episode_wall_s": 36.783973436104134,
+      "simulation_s": 2.2666666666666666
+    },
+    {
+      "seed": 100002,
+      "arm": "rtc_bc24",
+      "solved": false,
+      "episode_return": 0.0,
+      "controls": 59,
+      "episode_wall_s": 25.21136887697503,
+      "simulation_s": 1.9666666666666666
+    },
+    {
+      "seed": 100002,
+      "arm": "saved_r2",
+      "solved": false,
+      "episode_return": 0.0,
+      "controls": 71,
+      "episode_wall_s": 27.99708506790921,
+      "simulation_s": 2.3666666666666667
+    },
+    {
+      "seed": 100003,
+      "arm": "rtc_bc24",
+      "solved": false,
+      "episode_return": -1.0,
+      "controls": 62,
+      "episode_wall_s": 31.989251335849985,
+      "simulation_s": 2.066666666666667
+    },
+    {
+      "seed": 100003,
+      "arm": "saved_r2",
+      "solved": false,
+      "episode_return": -1.0,
+      "controls": 69,
+      "episode_wall_s": 34.15403259382583,
+      "simulation_s": 2.3
+    },
+    {
+      "seed": 100004,
+      "arm": "rtc_bc24",
+      "solved": false,
+      "episode_return": -1.0,
+      "controls": 65,
+      "episode_wall_s": 28.236173287965357,
+      "simulation_s": 2.1666666666666665
+    },
+    {
+      "seed": 100004,
+      "arm": "saved_r2",
+      "solved": false,
+      "episode_return": -1.0,
+      "controls": 64,
+      "episode_wall_s": 36.55785694392398,
+      "simulation_s": 2.1333333333333333
+    }
+  ],
+  "cases_per_policy": 4,
+  "successes": {
+    "rtc_bc24": 1,
+    "saved_r2": 0
+  },
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/inspection/COHORT_SEAL.json",
+      "bytes": 5507,
+      "sha256": "33baeb73b7555b709671c531f4cb5d2c9f8fdf913cea62000d7b024a0f7c38ed"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/inspection/COHORT_SUMMARY.json",
+      "bytes": 17029,
+      "sha256": "79e834865eb3d4133f73603a51549de240b81f7895a501874077f87a318ca5e5"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/ROOT_COMPLETED_RUNTIME_AUTHENTICATION.json",
+      "bytes": 295,
+      "sha256": "c346bf61acef19c6a8abdc03279840204bfa5c732c2d04439ac751e952dcf8c1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/ROOT_COHORT_SEAL_AUTHENTICATION.json",
+      "bytes": 261,
+      "sha256": "5e1e31f0986dfc30de96736f9886ba57eec1afcafd642c964c39c3e922e52f6f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/publication/SEAL.json",
+      "bytes": 2435,
+      "sha256": "493f5c6f9c6ffea62c4b28229ac68dcb1ea1f8e2f338cb34a46b7119d73d68be"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/publication/COHORT.json",
+      "bytes": 20579,
+      "sha256": "cf1b96798a6412bb69043e33df886e2694f6d4e894c1dea6ca356c088faab440"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/publication/PUBLICATION.json",
+      "bytes": 867,
+      "sha256": "57cfb23e6ce2a0fff7f78003575ae6add689c85a121017d651a15689fde3528a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/publication/LAYOUT_PUBLICATION.json",
+      "bytes": 1601,
+      "sha256": "9044b9580ba81649a7855d907effe10dedec45384bfbbfa8bf51f5ce19ffebae"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/publication/browser-proof-layout-v2/RESULT.json",
+      "bytes": 2916,
+      "sha256": "957d7c6b36aa510d2a892e64bcf5e6852eee86b5a0cd7f6a5a0ee12d975729d8"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/backend-pad-repair/DEPENDENCY_CHECK.log",
+      "bytes": 506,
+      "sha256": "e093e481b101313be2cacbab4f2c177dec3df181f47b256379c58e8eedfac3e9"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/PROCESS_EXIT_RACE_REVIEW.json",
+      "bytes": 1026,
+      "sha256": "f327703204f813fa401b9685974eb7e87895a1c3b41915ec2e14acfeb07c17b2"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/catcher-frozen-viewer-root-release-20261014/DOM_TESTS.log",
+      "bytes": 1182,
+      "sha256": "b8a663496bba1d801616a2c63e968418d1bd9b2c10ce089a4cac9f20cde00fc3"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/publication/FINAL_REVIEW.json",
+      "bytes": 9156,
+      "sha256": "d9070354efb934dba878fea0465b3de6695a9ac04be19bfd468432b6bf59d0d8",
+      "scope": "Independent review of the preceding twelve evidence pins, report, diagram and one-line layout change before this review link was appended."
+    }
+  ],
+  "unavailable_attempts": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/inspection/original-failed-baseline-unavailable.json",
+      "bytes": 519,
+      "sha256": "a512e8f44e1ba0039da7ce00ea0385274f57bf68778da729b236131712f22ef1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-frozen-root-20261014/inspection/saved_r2-seed100004.json",
+      "bytes": 512,
+      "sha256": "c4137fdd203a387a464d8a8d131e49fe8db585231e0bbddec1387e00bd2912e5"
+    }
+  ],
+  "limits": "Four development starts per arm. Short training checkpoint; no paper performance, scaling law or wall-clock real-time claim.",
+  "full_test_suite": "historical failures unresolved"
+}
