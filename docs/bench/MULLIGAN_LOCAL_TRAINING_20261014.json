@@ -1,0 +1,100 @@
+{
+  "status": "accepted_original_local_idql",
+  "training_run": "author-subset-20261013T222807-f6985d",
+  "source_commit": "bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8",
+  "updates": 150000,
+  "monitoring_scores": {
+    "1": {
+      "episodes": 400,
+      "successes": 372,
+      "success_rate_percent": 93.0,
+      "mean_length": 202.46,
+      "author_avg_reward_printed": 0.93,
+      "reward_precision": "Episode rewards rounded to2decimals; full exact reward trajectories not saved"
+    },
+    "32": {
+      "episodes": 400,
+      "successes": 382,
+      "success_rate_percent": 95.5,
+      "mean_length": 189.1875,
+      "author_avg_reward_printed": 0.955,
+      "reward_precision": "Episode rewards rounded to2decimals; full exact reward trajectories not saved"
+    }
+  },
+  "viewer_scores": [
+    {
+      "n": 1,
+      "successes": 46,
+      "episodes": 50,
+      "elapsed_s": 74.86258762702346,
+      "failed_starts": [
+        6,
+        12,
+        13,
+        38
+      ]
+    },
+    {
+      "n": 32,
+      "successes": 49,
+      "episodes": 50,
+      "elapsed_s": 66.15338299213909,
+      "failed_starts": [
+        0
+      ]
+    }
+  ],
+  "scope": "One local IDQL seed, 50 matched starts, original frozen evaluator. Different actor stage from released DIVL. N1/N32 changes candidate count and ranking together; no isolated critic or collection-effect claim.",
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-parent-review/ACTUAL_COMPLETED_PARENT_CHECK.json",
+      "bytes": 126127,
+      "sha256": "7e69ecfdd3007db71a94f07be5b9403969a2e93b05e78406e1cd90b32ce0224b"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-parent-review/ROOT_TERMINAL_CLEANUP.json",
+      "bytes": 248,
+      "sha256": "e0300e8abd9f27438abfacc19d07480dd11cee8b04edb89ae5a5752769d06d06"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-training-next-review/REVIEW.json",
+      "bytes": 7888,
+      "sha256": "e60c0eb008f47d5713d795a205bf0f6a00e4d28cc1efe5adee5d11c92f125ee2"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-training-next/PREPARATION.json",
+      "bytes": 2311,
+      "sha256": "a1d1ceef9f6c96e4966e48584f17d912f601f54844259dcb6a25ce3476fe4f93"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-publication/LOCAL_FROZEN_SCORES.json",
+      "bytes": 4869,
+      "sha256": "05641f0e44ee15a4add6b531495effd8f275288f97801cba3569f07133b1863a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-publication/LOCAL_NATIVE_VIDEO.json",
+      "bytes": 7271,
+      "sha256": "09a231a20ec2a6d13c1d739de2b55369f70f673258605824c483e71d97146f4a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-publication/BUILD_AND_INSTALLED_CHECK.json",
+      "bytes": 748,
+      "sha256": "8c7a2402119f6905f5a6f3fab3b3a8fe85a97071d87bc05fc47b1b8426debf5c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-publication/PUBLICATION.json",
+      "bytes": 1106,
+      "sha256": "0e6d29f66d129a07827781bac11c508919d46c1280339dd6751fbcf36a80baeb"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-publication/VIEWER_BROWSER_RESULT.json",
+      "bytes": 551,
+      "sha256": "08548ad998066dd1779538a2295484d7bf50648950f91ab8db7b3b2e26f0060b"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/local-publication/REVIEW.json",
+      "bytes": 14159,
+      "sha256": "3c897f47f75d9230d9ff54920a990bc53cc942f80a740be6117aa3985fee9cee"
+    }
+  ]
+}

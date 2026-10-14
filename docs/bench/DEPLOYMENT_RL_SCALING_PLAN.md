@@ -4,11 +4,11 @@ The objective is to measure whether additional useful experience improves a
 deployed policy. The harness must control collection, learning, and evaluation.
 More updates or more simulator instances do not establish that improvement.
 This document separates the scaling plan from measured implementation progress.
-It contains no accepted result from local training yet.
+It includes accepted local IDQL training on the original Mulligan task.
 
 Execution update: the [original Mulligan experiment](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.md)
 now has a working command launcher, matched released-policy scores and six full
-native videos. Original training is running. The wider collection feedback and
+native videos. Original IDQL training has completed. The wider collection feedback and
 R1 Lite connections below remain proposed.
 
 ## The first scaling decision
@@ -59,7 +59,13 @@ measured manipulation result; it is not established by the author-task checks.
 
 The released Mulligan policies scored 34/50 and 46/50 on matched starts.
 This is a useful visible check of the author setup, not local learning evidence.
-Local original IDQL training is active; final evaluation remains pending.
+Local original IDQL training completed 150,000 updates on 14 October. Its original
+monitoring evaluations score 372/400 with one candidate and 382/400 with 32.
+These starts differ from the 50-start viewer cohort. The local DIVL stage is
+running; its result remains pending. Neither score isolates guided data collection.
+The [local frozen evaluation](MULLIGAN_LOCAL_TRAINING_20261014.md) scores 46/50
+at N1 and 49/50 at N32 on the viewer cohort. Three complete local recordings
+are published. These local IDQL results stay separate from released DIVL scores.
 
 The Catcher BC24 policy and released Real-Time EXPO learner passed a normally
 installed CPU integration check. It used two numerical-fixture updates and
@@ -255,7 +261,7 @@ episode-quota comparison, not an equal-human-effort causal experiment.
 The complete metadata and prepared four-job contract are in
 `/home/user/aditya/RL/builds/mulligan-collection-comparison-20261013/`.
 The four evaluations are prepared, not executed. Each uses the same 50 starts.
-These checks use released checkpoints, separately from the live local retraining.
+These checks use released checkpoints, separately from the completed local IDQL training.
 Released checkpoint metadata says step 150001, while the summaries say 150000
 training steps. Preserve both fields; do not infer an extra measured update.
 
@@ -274,7 +280,7 @@ The 50-start run is a visible pilot; it does not reproduce the full grid score.
 
 The original README documents these entrypoints. The design check and the
 matched 50-start released-policy evaluation have run. Original IDQL training
-is live. The later DIVL stage must use the accepted local parent's absolute
+is accepted. The later DIVL stage must use the accepted local parent's absolute
 `checkpoints/final_model` path. Do not let `--parent local` resolve a different run:
 
 ```bash
@@ -348,7 +354,7 @@ Independent method and harness notes are under
 The Mulligan source check used revision
 `bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8`. The initial study inspected source
 and metadata only. The linked experiment report records subsequent model/data
-downloads, actual evaluations, videos, and ongoing training.
+downloads, actual evaluations, videos, and completed original IDQL training.
 
 [Architecture source](DEPLOYMENT_RL_SCALING_PLAN.mmd). Solid connections show
 existing component relationships. Dashed connections show proposed integration.

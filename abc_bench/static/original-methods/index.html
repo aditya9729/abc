@@ -35,6 +35,12 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <div id="mulligan-viewer"></div>
 <p><small>Complete native episodes at 20 simulation frames per second. The three displayed starts are points 0, 1 and 2. Point 1 shows a failure followed by a success; point 0 fails with both policies. Playback speed does not measure wall-clock control latency.</small></p>
 <p id="mulligan-training"></p>
+<div id="mulligan-local" hidden>
+<h3 id="mulligan-local-heading"></h3>
+<p id="mulligan-local-summary"></p>
+<div id="mulligan-local-clips" class="grid"></div>
+<p><small>These recordings use our saved checkpoint and the same numbered starts as the released-policy clips. Scores from the author's 400-start monitoring evaluation are reported separately from the 50-start viewer comparison.</small></p>
+</div>
 </section>
 <section class="card" aria-labelledby="rtc-heading" style="margin-bottom:22px">
 <h2 id="rtc-heading">ABC-YAM RTC · earlier checks</h2>
@@ -547,6 +553,7 @@ function renderCatcherTraining(result) {
 function renderMulligan(result) {
   document.getElementById('mulligan').hidden = !result;
   if (!result) return;
+  renderMulliganLocal(result.local_training);
   const policies = result.policies;
   if (!Array.isArray(policies) || policies.length !== 2) throw Error('Invalid Mulligan policy pair');
   const labels = policies.map(policy => {
@@ -610,6 +617,33 @@ function renderMulligan(result) {
   };
   box.append(label, document.createTextNode(' '), play, grid);
   show();
+  box.dataset.identity = identity;
+}
+function renderMulliganLocal(result) {
+  document.getElementById('mulligan-local').hidden = !result;
+  if (!result) return;
+  if (result.status !== 'accepted_local_checkpoint' || !Array.isArray(result.clips)) throw Error('Invalid local Mulligan evidence');
+  text('mulligan-local-heading', result.label);
+  text('mulligan-local-summary', result.summary);
+  const box = document.getElementById('mulligan-local-clips');
+  const identity = JSON.stringify(result.clips);
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  for (const clip of result.clips) {
+    if (!/^[0-9a-f]{16}\.mp4$/.test(clip.video) || clip.complete !== true || typeof clip.solved !== 'boolean') throw Error('Invalid local Mulligan clip');
+    const point = integer(clip.point, 'local Mulligan start');
+    const controls = integer(clip.controls, 'local Mulligan controls', 1);
+    const panel = document.createElement('div');
+    const label = document.createElement('p');
+    label.textContent = 'Start ' + point + ' · ' + (clip.solved ? 'success' : 'failure') + ' · ' + controls + ' controls';
+    const video = document.createElement('video');
+    video.controls = true;
+    video.preload = 'metadata';
+    video.src = clip.video;
+    video.setAttribute('aria-label', result.label + ', start ' + point);
+    panel.append(label, video);
+    box.append(panel);
+  }
   box.dataset.identity = identity;
 }
 async function refresh() {

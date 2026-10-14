@@ -123,7 +123,7 @@ Actual CPU and native checks confirmed that the encoder shares the job group.
 The round-0 pass preceded this correction; its observed encoders were checked
 individually after completion. No author policy, learner or physics code changed.
 
-## Original training is running
+## Original IDQL training completed on 14 October
 
 Run `author-subset-20261013T222807-f6985d` started on GPU0 at 22:28 UTC.
 It uses the author's `train_cell.sh square-narrow-r01-mulligan --seed 1`.
@@ -136,15 +136,26 @@ actor frames. Its critic sampler uses half human-success and half DAgger data.
 Its actor sampler uses human-only data. The input includes 23 state dimensions
 and seven action dimensions. It predicts eight actions and executes six.
 
-At 22:34:39 UTC, the original log reported 6,000 updates with finite losses.
-Its first rolling checkpoint was saved at 5,000 updates. Warm intervals took
-about 46–49 seconds per 1,000 updates. This projects about two hours of training;
-it is not a measured completion time. The final author evaluation adds 400
-episodes for each of the one-candidate and 32-candidate modes.
+The original job completed at 00:49 UTC on 14 October. Total wall time was
+8,470.99 seconds, including its final evaluations. Both original and canonical
+processes exited zero. No owned process remained. Training stopped at the
+original 150,000 updates without extending or shortening the recipe.
 
-No locally trained task score is accepted yet. The job has a six-hour watchdog.
-Do not change its installed runtime. Do not extend the fixed recipe based on
-final-test outcomes. A saved resume file does not establish tested recovery.
+| Original monitoring evaluation | Successes | Success rate |
+| --- | ---: | ---: |
+| Locally trained IDQL, one candidate | 372 / 400 | 93.0% |
+| Same checkpoint, 32 candidates | 382 / 400 | 95.5% |
+
+These are the author's 400 monitoring starts, with seed 20260524. They differ
+from the 50-start viewer cohort. This is one trained seed, not a paper aggregate
+or an isolated test of the value function. Candidate count and ranking change
+together. The original DIVL stage has not completed locally.
+
+The sealed CPU checker restored the checkpoint through the original public loader.
+All 184 model tensor leaves are finite. Actor, critic, and value optimizer states
+each record 150,000 updates. Final weights match the completed rolling state.
+Input and checkpoint hashes stayed unchanged. No resumed update was tested.
+See `local-parent-review/ACTUAL_COMPLETED_PARENT_CHECK.json` in the evidence directory.
 Each canonical job gets a new output root, so matching a run name alone cannot
 resume the old job.
 
@@ -154,6 +165,10 @@ Use the input pins and original load/sampler logs as separate evidence.
 After IDQL acceptance, pass its actual `final_model` path to the original DIVL
 stage. `--parent local` cannot discover a parent in another canonical output root.
 The DIVL stage must preserve the trained actor and its normalization.
+
+The [local training result](MULLIGAN_LOCAL_TRAINING_20261014.md) adds matched
+50-start scores: 46/50 at N1 and 49/50 at N32. Three complete local videos are
+published separately from the released DIVL recordings.
 
 ## Verification and remaining work
 
@@ -167,8 +182,9 @@ Evidence is under
 `/home/user/aditya/RL/builds/mulligan-author-experiments-20261013/`.
 `ASSET_HASH_CHECKS.json`, `DATA_INSPECTION.json`, `VIDEO_GRID_CHECK.json` and
 `runtime/` contain the actual checks. `preparation/COMMANDS.json` contains
-the original commands. Training, the subsequent DIVL stage and their measured
-evaluations remain incomplete. No R1 Lite performance claim follows from Panda.
+the original commands. IDQL training and its two monitoring evaluations are now
+accepted. The subsequent DIVL stage is running; its result remains pending. No R1 Lite performance
+claim follows from Panda.
 
 The installed recorder checks passed 17 tests. The launcher checks passed 32.
 The full installed benchmark suite reported 775 passed, 24 failed and two skipped.
