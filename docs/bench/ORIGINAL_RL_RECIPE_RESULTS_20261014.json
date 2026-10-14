@@ -1,0 +1,107 @@
+{
+  "schema": "original-rl-recipes-root-completion-audit/v1",
+  "checked_utc": "2026-10-14T16:47:21.735118+00:00",
+  "reviewer": "/root",
+  "objective": "Experiment with multiple original RL implementations, replicate one or two author experiments, then assess adaptation to R1 Lite.",
+  "status": "technical_requirements_satisfied",
+  "scope": "Completion applies to original-method experimentation and the R1 Lite transfer assessment. It does not close the separate autonomous laundry request or establish matching paper performance.",
+  "requirements": [
+    {
+      "requirement": "Test multiple original RL implementations",
+      "status": "met",
+      "evidence": "Original FastTD3 completed its supported H1Hand Hurdle program. Original Mulligan completed IDQL and DIVL, 150,000 updates each. Real-Time EXPO additionally ran as a declared Catcher integration."
+    },
+    {
+      "requirement": "Replicate one or two author experiments",
+      "status": "met_for_one_original_Mulligan_training_and_evaluation_experiment",
+      "evidence": "Original pinned released data and two-stage recipe, training seed 1, followed by original evaluation on all 8,000 locked starts with N32. The full-grid evaluation gap in the earlier audit is closed.",
+      "limits": "Evaluation/reset seeds are explicitly 42/42, unlike unseeded defaults. Local 92.8625% differs from the author seed-1 reference 94.7125%. This establishes execution of the experiment, not numerical equivalence or the five-seed paper aggregate."
+    },
+    {
+      "requirement": "Assess adaptation to R1 Lite",
+      "status": "met_as_assessment",
+      "evidence": "Published Leela 0.5.0 contracts inspected: 14 absolute arm/jaw targets, 15 Hz, fixed base/torso, zero step reward with a separate judge. Required reward, reset, timing and observation validation are documented.",
+      "limits": "No R1 Lite learning, whole-body controller or hardware transfer is claimed."
+    },
+    {
+      "requirement": "Publish architecture, results and team explanation",
+      "status": "met_locally",
+      "evidence": "Published results viewer passed actual desktop/mobile checks. Existing recordings were preserved. Reports and Mermaid sources define author, root, reviewer and Leela boundaries. Git release and board handoff follow this audit."
+    }
+  ],
+  "results": {
+    "mulligan_full_grid": {
+      "successes": 7429,
+      "episodes": 8000,
+      "percent": 92.8625,
+      "author_seed_1_reference_percent": 94.7125
+    },
+    "fasttd3": {
+      "last_periodic_return": 572.722412109375,
+      "at_vector_call": 95000,
+      "training_vector_calls_completed": 100000,
+      "scope": "Original current-release attempt; below released same-coordinate curve, one seed and nine printed physics warnings."
+    },
+    "realtime_expo_catcher": {
+      "starting_policy_successes": 1,
+      "learned_policy_successes": 3,
+      "episodes_each": 4,
+      "scope": "Original learner integration on reused starts from one layout. Training client SIGINT failure preserved; later checkpoint recovery and clean frozen trials accepted separately. No exact author simulation-recipe or reliable-improvement claim."
+    }
+  },
+  "remaining_unproved": [
+    "Multi-seed paper-performance equivalence.",
+    "Full-grid local IDQL versus DIVL incremental benefit.",
+    "Fresh human-feedback collection or causal deployment-data scaling.",
+    "Exact author Real-Time EXPO simulation recipe where release configuration is missing.",
+    "R1 Lite native learner integration, learning or hardware transfer.",
+    "Autonomous Dyna laundry reproduction; current replay lacks grasp physics and the author policy/controller releases were not located."
+  ],
+  "verification": {
+    "reauthenticated_pins_this_audit": 40,
+    "basis": "14 native-review inputs, 6 publication-acceptance inputs and 20 earlier completion-audit inputs. Existing native checker and actual browser evidence were inspected, not rerun.",
+    "native_owned_processes_remaining_at_acceptance": 0,
+    "browser_owned_processes_remaining_at_acceptance": 0,
+    "gpu0_released_at_native_acceptance": true,
+    "new_training_or_gpu_job": false,
+    "suite_limit": "Earlier broad suite has 775 passed, 24 failed and 2 skipped. These known failures remain unresolved; this audit does not claim the whole repository is green."
+  },
+  "evidence": {
+    "earlier_independent_audit": {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/independent-review/COMPLETION_AUDIT.json",
+      "bytes": 15860,
+      "sha256": "c614c94213cdd4b7b5697edeb9cecbb9c6dd2d990dec901d5dfbb6709b5d16fc"
+    },
+    "full_grid_evidence": {
+      "path": "/home/user/aditya/RL/abc/docs/bench/MULLIGAN_FULL_GRID_20261014.json",
+      "bytes": 4154,
+      "sha256": "ad8cbc220f0db20810ff6a44f4dedf227640db0de4dd7d7f14857383a7becfd1"
+    },
+    "native_review": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/terminal-review/REVIEW.json",
+      "bytes": 8841,
+      "sha256": "fa9325b5d31a9f6073fdb8842f0d17fbcb881a706ba6b84e6b4f25a66d13e04d"
+    },
+    "publication_acceptance": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/publication/ROOT_ACCEPTANCE.json",
+      "bytes": 1875,
+      "sha256": "c7c3a0b360760ee6836ff0ed5e19a96df857600b11b3ddfd947b5cc7ff90cec9"
+    },
+    "r1_assessment": {
+      "path": "/home/user/aditya/RL/abc/docs/bench/R1LITE_AUTHOR_RECIPE_TRANSFER_20261014.md",
+      "bytes": 5982,
+      "sha256": "5359f0727f9d2ae5128427d9e55da57e2398619b2bcdf897bf037e00fc0eb579"
+    },
+    "dyna_reassessment": {
+      "path": "/home/user/aditya/RL/abc/docs/bench/DYNA_ARCHITECTURE_REASSESSMENT_20261014.md",
+      "bytes": 7581,
+      "sha256": "a5e77ff4421e5f34f8b6f453fb1097ae9ffac0574921faeb6e20014ba6aa7ec7"
+    },
+    "architecture": {
+      "path": "/home/user/aditya/RL/abc/docs/bench/ORIGINAL_RL_RECIPE_RESULTS_20261014.mmd",
+      "bytes": 1385,
+      "sha256": "c2ade8b7c098994851550a73d277fadf03dbb967d3aab744a62ef00bc9442849"
+    }
+  },
+  "ste_note": "Uses ASD-STE100 guidance; full vocabulary and grammar compliance was not checked."
+}

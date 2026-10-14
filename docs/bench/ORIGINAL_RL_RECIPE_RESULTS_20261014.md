@@ -1,6 +1,6 @@
 # Original RL recipe experiments — 14 October 2026
 
-We have run the original FastTD3 and Mulligan programs on their supported tasks. We have also run the original Real-Time EXPO learner through a declared Catcher integration. The remaining active run evaluates the locally trained Mulligan checkpoint on all 8,000 locked starts. Its final score is pending.
+We have run the original FastTD3 and Mulligan programs on their supported tasks. We have also run the original Real-Time EXPO learner through a declared Catcher integration. The locally trained Mulligan DIVL checkpoint completed all 8,000 locked starts with **7,429 successes (92.8625%)**. Its complete-result and publication checks pass.
 
 [Open the results and complete recordings](http://127.0.0.1:8770/original-methods/). These are separate task experiments. They do not rank the three algorithms against each other.
 
@@ -9,7 +9,7 @@ We have run the original FastTD3 and Mulligan programs on their supported tasks.
 | Experiment | Executed work | Measured outcome | Main limit |
 | --- | --- | --- | --- |
 | Original FastTD3, H1Hand Hurdle | Current author recipe, seed 1, 128 worlds, 100,000 vector calls; 12.8 million training transitions | Last periodic return: **572.72 at 95,000 calls**. Released curve at the same nominal coordinate: **778.71** | One seed; historical recipe metadata is incomplete. Nine printed physics warnings. No final 100,000-call evaluation |
-| Original Mulligan, Square-Narrow R1 | Original IDQL and frozen-actor DIVL stages, **150,000 updates each**, using the released data | On the same 50 starts with 32 candidates: **IDQL 49/50; DIVL 47/50**. Full 8,000-start DIVL result: **pending** | Small cohort is reused development data. Full evaluation uses one training seed and explicit evaluation/reset seeds |
+| Original Mulligan, Square-Narrow R1 | Original IDQL and frozen-actor DIVL stages, **150,000 updates each**, using the released data | Full DIVL grid: **7,429/8,000 (92.8625%)**; author seed-1 reference: **94.7125%**. Earlier matched pilot: **IDQL 49/50; DIVL 47/50** | One training seed; explicit evaluation/reset seeds differ from author defaults. Full grid includes the reused pilot; no full-grid local IDQL comparison |
 | Real-Time EXPO, Catcher integration | Released learner and asynchronous action sampler; **3,343 actor/editor updates and 66,860 critic/filter updates** | Frozen policy: **3/4**, starting policy: **1/4**, on the same four environment seeds | Declared task/backend adaptation; one layout and four reused starts. Training client exited −2 on SIGINT; checkpoint recovery was accepted separately |
 
 Sources and exact evidence: [FastTD3](FASTTD3_ORIGINAL_RESULTS_20261014.md), [Mulligan training and pilot evaluation](MULLIGAN_LOCAL_DIVL_20261014.md), [full-grid protocol](MULLIGAN_FULL_GRID_20261014.md), and [Real-Time EXPO](REALTIME_CATCHER_GPU_20261014.md). Each report records its code revision, data, settings, process status and artifacts.
@@ -36,4 +36,6 @@ The next transfer should use one published manipulation task. Verify native succ
 
 The [architecture diagram](ORIGINAL_RL_RECIPE_RESULTS_20261014.mmd) shows the executed experiment boundaries and the proposed R1 Lite connection. The author programs own learning and task evaluation. The harness owns configuration, GPU0 allocation, finite run limits and process cleanup. Independent agents checked source identity, recipe assumptions and result presentation. Root owns execution, acceptance and publication. The UI shows accepted measurements and complete recordings.
 
-The original-method campaign remains active until the full-grid result and its publication pass verification. The separate Taku laundry reconstruction is a visual experiment; it is not evidence of an RL policy or physical laundry handling. This report uses ASD-STE100 guidance. Full compliance was not checked.
+The [root completion audit](ORIGINAL_RL_RECIPE_RESULTS_20261014.json) accepts this experiment milestone: multiple original implementations, one complete Mulligan training-and-evaluation experiment, and an R1 Lite transfer assessment. It does not establish matching paper performance or R1 training. Earlier broad-suite failures remain unresolved; this report does not claim all repository tests pass.
+
+The separate Taku laundry replay did not meet the requested autonomous scene experiment. Its [architecture reassessment](DYNA_ARCHITECTURE_REASSESSMENT_20261014.md) records the missing policy, physical contacts and controller. It is not RL or laundry-task evidence. This report uses ASD-STE100 guidance. Full compliance was not checked.

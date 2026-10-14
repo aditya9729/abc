@@ -1,13 +1,33 @@
 # Original Mulligan: full locked-grid evaluation
 
-Run `author-subset-20261014T135652-749c2a` is evaluating the accepted local DIVL
-checkpoint on all 8,000 Square-Narrow starts. It launched on GPU0 at 13:56 UTC.
-The full result is pending. No further training is running.
+Run `author-subset-20261014T135652-749c2a` completed all 8,000 Square-Narrow starts:
+**7,429 successes, 571 failures, 92.8625% success**. The original evaluator and
+canonical supervisor exited 0. GPU0 execution took 9,506.22 seconds, about
+2 hours 38 minutes. The frozen checkpoint did not change.
+
+[Open the results viewer](http://127.0.0.1:8770/original-methods/).
+The full-grid card is separate from the earlier pilot and training monitors.
 
 The [two original training stages](MULLIGAN_LOCAL_DIVL_20261014.md) each completed
 150,000 updates. The earlier frozen comparison covers 50 starts. This run closes
 the evaluation-coverage gap for the same local training seed.
 It does not establish the paper's five-seed aggregate or a fresh collection loop.
+
+| Measurement | Result |
+| --- | --- |
+| Local full grid, training seed 1, 32 candidates | 7,429 / 8,000; 92.8625% |
+| Author's reported same-recipe seed-1 DIVL rate | 94.7125% |
+| Local minus author reference | −1.85 percentage points |
+| Mean episode reward / length | 0.928625 / 195.579375 controls |
+| Covered grid cells | 80 / 80 |
+
+The [author CSV](https://github.com/ankile/mulligan/blob/bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8/paper/data/sim/sim_significance/divl_frozen_actor_results.csv)
+supplies the reference rate. This is a descriptive comparison, not a matched
+historical rollout or a numerical-equivalence claim. Our checkpoint was retrained.
+Our evaluation fixes policy/reset seeds at 42/42; the author defaults leave them unset.
+The full grid includes the earlier 50 development starts. It is not wholly untouched test data.
+We did not evaluate the local IDQL parent on this full grid, so this result alone
+does not measure the full-grid effect of adding DIVL.
 
 ## Exact experiment
 
@@ -34,26 +54,42 @@ It uses the original ten asynchronous environments and 400-control limit.
 The explicit evaluation and reset seeds remain 42/42. The upstream defaults are
 unseeded, so exact agreement with historical reference outcomes is not assumed.
 
-The worker has a four-hour watchdog. The parent allows another 60 seconds for
-cleanup. The prior 50-start runtime projects to about 3.5 hours for 8,000 starts,
-including repeated startup cost. This is an estimate, not a completion promise.
-Existing GPU admission credit covers the bound; earlier charges are preserved.
+The worker had a four-hour watchdog. The parent allowed another 60 seconds for
+cleanup. The job finished within that bound. Earlier GPU charges are preserved.
 
 ## Acceptance and handoff
 
-Accept a full result only after all 8,000 unique locked point identities exist.
-Check complete outcomes, finite rewards and lengths, and unchanged checkpoint bytes.
-Check original and canonical exits, descendant cleanup, and released GPU ownership.
-Compare the first 50 outcomes with the earlier matched pilot. Disclose differences.
-Keep this full-grid result separate from the 400-start training monitors.
+The reviewed checker verified all 8,000 ordered, unique locked point identities,
+finite outcomes, all 80 cell summaries, and the complete final resume file.
+It recomputed aggregate values and verified the original post-close completion event.
+All 236 source and installed author Python files and checkpoint files stayed unchanged.
+The first 50 complete outcome rows exactly match the earlier pilot, including rewards and lengths.
+
+Root checked all 14 recorded process identities and both owned process groups.
+None remained. The GPU budget lock was available, its ledger had no active owner,
+and GPU0 had no compute processes. No other GPU was queried or changed.
 
 Configuration, input hashes, source/runtime preflight and live process identity
 are under `/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/`.
 The original outputs are under `outputs/bench/author-subset-20261014T135652-749c2a/`.
-The live tool session is 64206. A live receipt is not final acceptance evidence.
+Session 64206 ended with exit 0. `ACCEPTANCE.json` binds the native data and resource checks.
+The [evidence index](MULLIGAN_FULL_GRID_20261014.json) links their exact hashes.
+
+After native acceptance, root installed the prepared normal wheel without dependencies.
+All 1,149 source, wheel and installed payloads match, including 933 native assets.
+Dependency versions did not change. Publication held the existing viewer lock.
+Only the full-grid record, snapshot time and current viewer-release metadata changed.
+The prior release metadata and all other results remain intact.
+
+Actual browser checks passed for the new counts, seed and overlap labels, desktop/mobile
+layout, existing selectors, and all 19 FastTD3 return rows. Three earlier recordings
+passed HTTP byte checks, seeking, playback and refresh. All 42 existing video nodes
+and positions survived refresh. Root inspected both screenshots and checked browser
+process cleanup. This evaluation adds no rollout video; earlier clips remain pilot evidence.
 
 Root owns execution and result acceptance. The independent reviewer checked the
 original grid semantics and the config changes. No learner or simulator code changed.
-The [existing architecture](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.mmd) shows this
-author-evaluator boundary; its 50-start label describes the earlier published pilot.
+The [publication architecture](MULLIGAN_FULL_GRID_VIEWER.mmd) shows the completed
+author-evaluator, acceptance, package and viewer boundaries. The older
+[training diagram](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.mmd) retains its historical pilot label.
 STE guidance was used; full ASD-STE100 compliance was not checked.

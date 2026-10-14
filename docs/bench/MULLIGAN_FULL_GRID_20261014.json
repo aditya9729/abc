@@ -1,0 +1,87 @@
+{
+  "schema": "mulligan-full-grid-evidence-index/v1",
+  "created_utc": "2026-10-14T16:46:00.669304+00:00",
+  "status": "native_and_publication_accepted",
+  "run_id": "author-subset-20261014T135652-749c2a",
+  "original_author_commit": "bc42da1fe42274e41b59e6d5c84d4fceb7ad5ef8",
+  "result": {
+    "task": "square_narrow",
+    "training_seed": 1,
+    "num_action_samples": 32,
+    "eval_seed": 42,
+    "env_seed": 42,
+    "episodes": 8000,
+    "successes": 7429,
+    "failures": 571,
+    "success_rate": 0.928625,
+    "mean_reward": 0.928625,
+    "mean_length": 195.579375,
+    "occupied_cells": 80,
+    "elapsed_seconds": 9506.224366718
+  },
+  "author_seed_1_reference_percent": 94.7125,
+  "local_minus_reference_percentage_points": -1.85,
+  "evidence": {
+    "native_acceptance": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/ACCEPTANCE.json",
+      "bytes": 1976,
+      "sha256": "8bb83fc900e9201dd661d34e78cef4108ac828edf8df56e0e961783a186a0128"
+    },
+    "native_data_check": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/inspection/ACTUAL_FULL_GRID_DATA.json",
+      "bytes": 10878,
+      "sha256": "7ca68370dae3b4d12f147bd85a476676b6277fcd242effaec67d242113f108a2"
+    },
+    "resource_check": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/ROOT_RESOURCE_CHECK.json",
+      "bytes": 853,
+      "sha256": "36a96d44050a0e8b1036f230157626a693858f58e1d693519d0dfdd33c9c8a9e"
+    },
+    "author_reference": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/REFERENCE.json",
+      "bytes": 4725,
+      "sha256": "fe0673e8ff34a822e438597cbe08f3ded38413ecada9ba729e41511cbba54175"
+    },
+    "independent_native_review": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/terminal-review/REVIEW.json",
+      "bytes": 8841,
+      "sha256": "fa9325b5d31a9f6073fdb8842f0d17fbcb881a706ba6b84e6b4f25a66d13e04d"
+    },
+    "normal_package_install": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/CANONICAL_INSTALL.json",
+      "bytes": 253333,
+      "sha256": "19988b95fb99d73c2b637cf67bc1cde18593181998819d13983b417a3ea39470"
+    },
+    "publication": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/publication/PUBLICATION.json",
+      "bytes": 2032,
+      "sha256": "2b2b92ed7e82538f86f5c2c3d343d23d0849eab0e84c398741923685849f2c05"
+    },
+    "browser_result": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/publication/browser-proof-01/BROWSER_RESULT.json",
+      "bytes": 6964,
+      "sha256": "2bba955fab5fc00ae7c397e35664b51b40a8f8bffe867ceeaad4611fd00f73b2"
+    },
+    "browser_process": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/publication/BROWSER_PROCESS.json",
+      "bytes": 967,
+      "sha256": "4a0d9f4b72f41c3843c940fd79ce54fa6bb5a63d612d26c36a11292db3db765a"
+    },
+    "publication_acceptance": {
+      "path": "/home/user/aditya/RL/builds/mulligan-local-full-grid-20261014/publication/ROOT_ACCEPTANCE.json",
+      "bytes": 1875,
+      "sha256": "c7c3a0b360760ee6836ff0ed5e19a96df857600b11b3ddfd947b5cc7ff90cec9"
+    }
+  },
+  "scope_limits": [
+    "One locally retrained training seed; no five-seed paper-performance equivalence.",
+    "Explicit evaluation/reset seeds 42/42 differ from unseeded author defaults.",
+    "All 8,000 starts include the reused 50-start development pilot.",
+    "No full-grid local IDQL comparison; the DIVL-stage effect is not measured here.",
+    "Frozen evaluation adds no new rollout recording; existing videos remain pilot evidence.",
+    "No new human-feedback collection, deployment-data scaling result, R1 Lite training or autonomous Dyna result."
+  ],
+  "historical_receipt_semantics": "Native acceptance publication_pending and initial publication browser_checks record their earlier stages. The later publication_acceptance and browser_result establish completion. Historical receipts are not rewritten.",
+  "viewer_url": "http://127.0.0.1:8770/original-methods/",
+  "architecture": "MULLIGAN_FULL_GRID_VIEWER.mmd"
+}

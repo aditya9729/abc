@@ -1,13 +1,13 @@
 flowchart LR
   subgraph Root[Root owns native runs and publication]
-    A[Original Mulligan full-grid evaluation] -->|data| R[Accepted receipt or pending observation]
-    R -->|explicit projection| J[Optional full_grid_evaluation record]
-    J -->|release and publish after acceptance| V[Static viewer]
+    A[Original Mulligan full-grid evaluation<br/>7,429 successes / 8,000 starts] -->|data| R[Accepted complete native result<br/>Unchanged checkpoint and clean process exit]
+    R -->|explicit projection| J[Accepted full_grid_evaluation record]
+    J -->|publish under existing lock| V[Static viewer]
   end
-  subgraph Candidate[Prepared UI package]
+  subgraph Package[Verified UI package]
     C[Small card renderer] -->|normal wheel| W[Separate installed resource check]
-    W -.->|canonical install after native acceptance| V
+    W -->|normal canonical install after native acceptance| V
     F[Synthetic DOM and export fixtures] -->|CPU contract checks| C
   end
-  V -->|display| O[Pending count or accepted 8,000-start outcomes]
+  V -->|display| O[Accepted 8,000-start outcomes<br/>Actual desktop and mobile browser checks]
   P[Existing 50-start videos and 400-episode monitors] -->|preserved separately| V
