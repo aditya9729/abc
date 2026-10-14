@@ -362,3 +362,138 @@ def test_qualification_parent_bound_not_full_eight_hours(tmp_path, config):
     job_path.write_text(json.dumps(job))
     with pytest.raises(ValueError, match="1860"):
         load_job(job_path)
+
+
+def render_config(config):
+    from importlib.metadata import distribution
+
+    item = distribution("fasttd3-egl-probe").locate_file("fasttd3_egl_probe.py")
+    config.update(
+        phase=worker.EGL_RENDER_PHASE,
+        arguments=[],
+        timeout_s=300,
+        probe_pin={
+            "distribution": worker.PROBE_DISTRIBUTION,
+            "version": worker.PROBE_VERSION,
+            "sha256": hashlib.sha256(item.read_bytes()).hexdigest(),
+            "bytes": item.stat().st_size,
+        },
+    )
+    return config
+
+
+def test_render_pin_uses_real_normal_installed_metadata_without_native_imports(config):
+    config = render_config(config)
+    result = worker.verify_probe(config)
+    assert result["sha256"] == config["probe_pin"]["sha256"]
+    assert Path(result["path"]).is_relative_to(Path(sys.prefix))
+    config["probe_pin"]["sha256"] = "0" * 64
+    with pytest.raises(ValueError, match="pin"):
+        worker.verify_probe(config)
+
+
+def test_render_separate_config_and_parent_admission(tmp_path, config):
+    config = render_config(config)
+    path = write_config(tmp_path, config)
+    assert worker.load_config(path)["phase"] == worker.EGL_RENDER_PHASE
+    job = {
+        "schema_version": 1,
+        "python": sys.executable,
+        "module": "abc_bench.fasttd3_program",
+        "arguments": ["--config", str(path)],
+        "label": "CPU render admission fixture",
+        "max_wall_s": 360,
+    }
+    job_path = tmp_path / "job.json"
+    job_path.write_text(json.dumps(job))
+    assert load_job(job_path)["max_wall_s"] == 360
+    for value in (359, 361, 28860):
+        job["max_wall_s"] = value
+        job_path.write_text(json.dumps(job))
+        with pytest.raises(ValueError):
+            load_job(job_path)
+    for change in (
+        {"timeout_s": 301},
+        {"arguments": ["--seed", "1"]},
+        {"probe_pin": {}},
+        {"timeout_s": True},
+    ):
+        with pytest.raises(ValueError):
+            worker.load_config(write_config(tmp_path, {**config, **change}))
+
+
+@pytest.mark.parametrize(
+    "mode", ["passed", "wrong_receipt", "nonzero", "timeout", "cancel"]
+)
+def test_render_supervises_module_and_preserves_failure(
+    tmp_path, monkeypatch, config, mode
+):
+    config = render_config(config)
+    config["timeout_s"] = 0.05 if mode == "timeout" else 3
+    original = subprocess.Popen
+    commands = []
+    timers = []
+
+    def process_fixture(command, **kwargs):
+        # This substitutes only a CPU process fixture, never native proof.
+        commands.append(command)
+        assert command[1:6] == ["-I", "-u", "-B", "-m", "fasttd3_egl_probe"]
+        assert kwargs["env"]["MUJOCO_GL"] == "egl"
+        assert kwargs["env"]["PYOPENGL_PLATFORM"] == "egl"
+        output = command[command.index("--output") + 1]
+        record = {
+            "kind": "fasttd3_egl_render_qualification",
+            "version": worker.PROBE_VERSION,
+            "status": "passed",
+            "controls": 8,
+            "learner_updates": 0,
+            "closed": True,
+            "training_ready": False,
+            "world128_ready": False,
+        }
+        if mode == "wrong_receipt":
+            record["controls"] = 7
+        body = (
+            "import json,time\nfrom pathlib import Path\np=Path("
+            + repr(output)
+            + ");p.mkdir()\n"
+        )
+        body += (
+            "(p/'EGL_RENDER_RESULT.json').write_text("
+            + repr(json.dumps(record))
+            + ")\n"
+        )
+        body += (
+            "time.sleep(30)\n"
+            if mode in {"timeout", "cancel"}
+            else "raise SystemExit(75)\n"
+            if mode == "nonzero"
+            else ""
+        )
+        process = original([sys.executable, "-I", "-B", "-c", body], **kwargs)
+        if mode == "cancel":
+            timer = threading.Timer(0.1, lambda: os.kill(os.getpid(), signal.SIGTERM))
+            timers.append(timer)
+            timer.start()
+        return process
+
+    monkeypatch.setattr(worker.subprocess, "Popen", process_fixture)
+    # Genuine helper metadata is checked separately above; this is process-only.
+    monkeypatch.setattr(
+        worker, "verify_probe", lambda _: {"scope": "Explicit CPU metadata double"}
+    )
+    monkeypatch.setattr(
+        worker, "verify_source", lambda _: {"scope": "Explicit CPU source double"}
+    )
+    if mode == "passed":
+        worker.run(config, tmp_path / "out")
+    else:
+        with pytest.raises((RuntimeError, subprocess.TimeoutExpired, InterruptedError)):
+            worker.run(config, tmp_path / "out")
+    for timer in timers:
+        timer.join()
+    receipt = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert commands and receipt["direct_child_stopped"]
+    assert receipt["status"] == ("completed" if mode == "passed" else "failed")
+    assert receipt["metrics"] == {} and not receipt["experiment_accepted"]
+    assert "egl_render_receipt" in receipt

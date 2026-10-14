@@ -21,6 +21,10 @@ HUMANOID_COMMIT = "cb1189039151c8aadaaa987b442da54383c87fab"
 TASK = "h1hand-hurdle-v0"
 MAX_WORKER_SECONDS = 28800
 QUALIFICATION_SECONDS = 1800
+EGL_RENDER_SECONDS = 300
+EGL_RENDER_PHASE = "original_humanoidbench_egl_render"
+PROBE_DISTRIBUTION = "fasttd3-egl-probe"
+PROBE_VERSION = "0.1.0"
 CLEANUP_SECONDS = 60
 WORKSPACE = Path("/home/user/aditya")
 
@@ -54,6 +58,8 @@ def load_config(path: Path) -> dict[str, Any]:
         "arguments",
         "timeout_s",
     }
+    if type(config) is dict and config.get("phase") == EGL_RENDER_PHASE:
+        fields.add("probe_pin")
     if type(config) is not dict or set(config) != fields:
         raise ValueError("Use the explicit original FastTD3 process config fields")
     if type(config["schema_version"]) is not int or config["schema_version"] != 1:
@@ -84,10 +90,31 @@ def load_config(path: Path) -> dict[str, Any]:
     if phase not in {
         "original_humanoidbench_train",
         "original_humanoidbench_qualification",
+        EGL_RENDER_PHASE,
     }:
         raise ValueError(
             "Select original full training or separately labelled qualification"
         )
+    if phase == EGL_RENDER_PHASE:
+        probe = config["probe_pin"]
+        if (
+            type(probe) is not dict
+            or set(probe) != {"distribution", "version", "sha256", "bytes"}
+            or probe.get("distribution") != PROBE_DISTRIBUTION
+            or probe.get("version") != PROBE_VERSION
+            or type(probe.get("sha256")) is not str
+            or not re.fullmatch(r"[0-9a-f]{64}", probe["sha256"])
+            or type(probe.get("bytes")) is not int
+            or not 0 < probe["bytes"] <= 1024**2
+            or config["arguments"] != []
+            or type(config["timeout_s"]) not in (int, float)
+            or not math.isfinite(config["timeout_s"])
+            or not 0 < config["timeout_s"] <= EGL_RENDER_SECONDS
+        ):
+            raise ValueError(
+                "EGL render requires a normal pinned probe, no author flags and at most300s"
+            )
+        return config
     arguments = config["arguments"]
     if (
         type(arguments) is not list
@@ -253,6 +280,39 @@ print(json.dumps(result))
     }
 
 
+def verify_probe(config: dict[str, Any]) -> dict[str, Any]:
+    """Pin the one-file normal helper and its RECORD; initialize no native code."""
+    code = """import base64,hashlib,json,sys
+from importlib.metadata import distribution
+from importlib.util import find_spec
+d=distribution('fasttd3-egl-probe')
+files=[f for f in d.files or [] if str(f).endswith('.py')]
+if len(files)!=1 or str(files[0])!='fasttd3_egl_probe.py': raise ValueError('Probe must contain one module')
+f=files[0]; p=d.locate_file(f).resolve(); data=p.read_bytes(); digest=hashlib.sha256(data).hexdigest()
+if not f.hash or f.hash.mode!='sha256' or f.hash.value!=base64.urlsafe_b64encode(bytes.fromhex(digest)).decode().rstrip('='): raise ValueError('Probe RECORD differs')
+if not find_spec('fasttd3_egl_probe') or find_spec('fasttd3_egl_probe').origin!=str(p): raise ValueError('Normal probe import differs')
+print(json.dumps({'distribution':d.metadata['Name'],'version':d.version,'path':str(p),'sha256':digest,'bytes':len(data),'prefix':sys.prefix}))
+"""
+    result = json.loads(
+        subprocess.check_output(
+            [config["python"], "-I", "-B", "-c", code],
+            text=True,
+            timeout=30,
+        )
+    )
+    if (
+        any(result.get(key) != value for key, value in config["probe_pin"].items())
+        or not Path(result["prefix"]).resolve().is_relative_to(WORKSPACE)
+        or not Path(result["path"])
+        .resolve()
+        .is_relative_to(Path(result["prefix"]).resolve())
+    ):
+        raise ValueError(
+            "Normally installed EGL probe differs from its exact config pin"
+        )
+    return result
+
+
 def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     require_subset_lease()
     visible = os.environ.get("CUDA_VISIBLE_DEVICES", "")
@@ -261,6 +321,8 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
             "Preserve the coordinator's single physical GPU0 UUID visibility"
         )
     sources, runtime = verify_source(config), verify_runtime(config)
+    if config["phase"] == EGL_RENDER_PHASE:
+        runtime["egl_probe"] = verify_probe(config)
     _owned_path(str(output))
     output.mkdir(parents=True, exist_ok=True)
     author_output = output / "author-output"
@@ -274,6 +336,21 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         str(Path(config["source_root"]) / "fast_td3/train.py"),
         *config["arguments"],
     ]
+    if config["phase"] == EGL_RENDER_PHASE:
+        from abc_bench.runner import RESULTS
+
+        command = [
+            config["python"],
+            "-I",
+            "-u",
+            "-B",
+            "-m",
+            "fasttd3_egl_probe",
+            "--output",
+            str(author_output / "egl-render"),
+            "--lease-results",
+            str(RESULTS.resolve()),
+        ]
     environment = {
         **os.environ,
         "CUDA_VISIBLE_DEVICES": visible,
@@ -299,6 +376,8 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     environment.pop("PYTHONPATH", None)
     environment.pop("PYTHONHOME", None)
     environment.pop("WANDB_DISABLED", None)
+    if config["phase"] == EGL_RENDER_PHASE:
+        environment["PYOPENGL_PLATFORM"] = "egl"
     result = {
         "schema_version": 1,
         "status": "running",
@@ -318,6 +397,10 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         "claim_scope": "Original-command process execution only; checkpoint, native returns, paper fidelity and EGL/compile qualification require separate acceptance",
         "descendant_cleanup_owner": "canonical runner",
     }
+    if config["phase"] == EGL_RENDER_PHASE:
+        result["claim_scope"] = (
+            "One-world native EGL render/device qualification only; no author learner, task score, 128-world or training readiness"
+        )
     (output / "config.json").write_text(json.dumps(config, indent=2) + "\n")
     receipt = output / "receipt.json"
 
@@ -348,6 +431,25 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
             result["author_exit_code"] = code
             if code != 0:
                 raise RuntimeError(f"Original FastTD3 command exited{code}")
+            if config["phase"] == EGL_RENDER_PHASE:
+                probe_result = json.loads(
+                    (author_output / "egl-render/EGL_RENDER_RESULT.json").read_text()
+                )
+                if (
+                    probe_result.get("kind") != "fasttd3_egl_render_qualification"
+                    or probe_result.get("version") != PROBE_VERSION
+                    or probe_result.get("status") != "passed"
+                    or type(probe_result.get("controls")) is not int
+                    or probe_result["controls"] != 8
+                    or type(probe_result.get("learner_updates")) is not int
+                    or probe_result["learner_updates"] != 0
+                    or probe_result.get("closed") is not True
+                    or probe_result.get("training_ready") is not False
+                    or probe_result.get("world128_ready") is not False
+                ):
+                    raise RuntimeError(
+                        "EGL render child did not provide a passed, closed eight-control boundary receipt"
+                    )
             result["status"] = "completed"
     except (
         OSError,
@@ -372,6 +474,16 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
                 process is None or process.poll() is not None
             )
             result["elapsed_s"] = time.monotonic() - started
+            if config["phase"] == EGL_RENDER_PHASE:
+                probe_receipt = author_output / "egl-render/EGL_RENDER_RESULT.json"
+                if probe_receipt.is_file():
+                    result["egl_render_receipt"] = {
+                        "path": str(probe_receipt),
+                        "bytes": probe_receipt.stat().st_size,
+                        "sha256": hashlib.sha256(
+                            probe_receipt.read_bytes()
+                        ).hexdigest(),
+                    }
             publish()
         finally:
             signal.signal(signal.SIGTERM, previous)

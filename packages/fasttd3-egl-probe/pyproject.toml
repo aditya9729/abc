@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fasttd3-egl-probe"
+version = "0.1.0"
+description = "Bounded native Hurdle EGL render qualification; contains no learner."
+requires-python = ">=3.10"
+dependencies = ["numpy<2", "gymnasium==0.29.1", "humanoid-bench==0.2", "mujoco==3.1.6", "imageio>=2.34,<3"]
+
+[tool.setuptools]
+py-modules = ["fasttd3_egl_probe"]
+package-dir = {"" = "src"}

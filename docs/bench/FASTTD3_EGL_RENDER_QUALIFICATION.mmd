@@ -1,0 +1,14 @@
+flowchart LR
+    root[Root: review and release] -->|future canonical launch| runner[Existing ABC runner: GPU0 lease and process group]
+    config[Pinned sources, runtime and one-file probe] -->|metadata| supervisor[FastTD3 process supervisor: separate render phase]
+    runner -->|UUID and held lease| supervisor
+    supervisor -->|normal installed module, bounded child| probe[Render probe: public EGL and CUDA identity queries]
+    probe -->|positive GPU0 identity required| world[Public original HB Gym world: reset and eight zero controls]
+    world -->|native RGB and state| evidence[Separate render receipt, PNG and INTEGRATION files]
+    world -->|current EGL display| probe
+    evidence -->|future actual acceptance| root
+    runner -->|owned group cleanup and charges| root
+    prepare[Preparation agent: source and CPU fixtures only] --> config
+    runtime[Runtime agent: original wheels and assets] --> config
+    method[Method reviewer: original recipe] --> root
+    pending[Not established: 128 worlds, learner, convergence or task score]

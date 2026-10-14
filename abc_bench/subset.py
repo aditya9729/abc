@@ -162,6 +162,8 @@ def load_job(path: Path) -> dict[str, Any]:
     if job["module"] == "abc_bench.fasttd3_program":
         from abc_bench.fasttd3_program import (
             CLEANUP_SECONDS,
+            EGL_RENDER_PHASE,
+            EGL_RENDER_SECONDS,
             MAX_WORKER_SECONDS,
             QUALIFICATION_SECONDS,
             load_config,
@@ -180,6 +182,8 @@ def load_job(path: Path) -> dict[str, Any]:
         maximum_allowed = (
             MAX_WORKER_SECONDS
             if config["phase"] == "original_humanoidbench_train"
+            else EGL_RENDER_SECONDS
+            if config["phase"] == EGL_RENDER_PHASE
             else QUALIFICATION_SECONDS
         ) + CLEANUP_SECONDS
     if (
