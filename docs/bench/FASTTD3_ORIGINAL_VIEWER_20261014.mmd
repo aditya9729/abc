@@ -1,0 +1,16 @@
+flowchart LR
+    A[Unchanged author FastTD3 run] -->|original logs and GIFs| R[Root-owned acceptance]
+    R -. accepted data only .-> J[Optional fasttd3_original JSON]
+    R -. verified timing-preserving conversion .-> M[Published MP4 files]
+    subgraph Candidate[Prepared isolated viewer]
+      V[Existing original-methods page]
+      C[Mean-return curve and table]
+      S[Fixed index recording selector]
+      P[Hidden or explicit pending state]
+      V --> C
+      V --> S
+      V --> P
+    end
+    J -. root publishes after acceptance .-> V
+    M -. native video controls .-> S
+    T[Synthetic CPU DOM tests] -->|checked presentation and failure paths| V

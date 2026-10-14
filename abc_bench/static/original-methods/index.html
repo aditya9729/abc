@@ -6,6 +6,7 @@
 <title>Original RL experiments</title>
 <style>
 body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max-width:1120px;margin:36px auto;padding:0 22px}h1{font-size:32px;line-height:1.2}h2{font-size:24px;margin-top:0}h3{font-size:18px;margin:22px 0 8px}p{color:#bdcbdc}a{color:#9fc8ff}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.card{min-width:0;padding:24px;border:1px solid #35475c;border-radius:14px;background:#192533}.score{font-size:25px;color:#e7c991}.status{min-height:64px}.metric{padding:12px 0;border-top:1px solid #35475c}.metric strong{display:block;color:#a6e3c3;font-size:23px}small{color:#b2c0d0}details{margin-top:20px}summary{cursor:pointer}summary:focus-visible,a:focus-visible,.table-wrap:focus-visible{outline:2px solid #9fc8ff;outline-offset:4px}video{width:100%;margin-top:14px;background:#090e15}.note{padding:18px;border:1px solid #35475c;border-radius:10px}.current{border-left:3px solid #a6e3c3;padding-left:14px}.run-id{overflow-wrap:anywhere;font-size:14px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;text-align:left}th,td{padding:8px 6px;vertical-align:top;overflow-wrap:anywhere;border-top:1px solid #35475c}.window-table{font-size:14px;min-width:440px}.window-table caption{text-align:left;color:#b2c0d0;padding:0 0 8px}.window-table th:first-child,.window-table td:first-child{white-space:nowrap}.comparison-table{table-layout:fixed}#error{color:#ffc6b9}@media(max-width:720px){.grid{grid-template-columns:1fr}main{margin-top:22px;padding:0 16px}.card{padding:20px}.status{min-height:0}}
+.return-curve{width:100%;height:auto;max-width:760px}#fast-original-checkpoint:focus-visible{outline:2px solid #9fc8ff;outline-offset:4px}
 </style>
 </head>
 <body>
@@ -56,6 +57,23 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <div id="mulligan-local-divl-clips" class="grid"></div>
 <p><small>Local DIVL is a later frozen-actor value-learning stage, separate from local IDQL and the released checkpoints. Complete native videos show fixed points 0, 1 and 2 at 20 simulation frames per second. The author's 400-start monitoring scores remain a separate cohort. Playback does not measure wall-clock control latency.</small></p>
 </div>
+</section>
+<section id="fast-original" class="card" aria-labelledby="fast-original-heading" style="margin-bottom:22px" hidden>
+<h2 id="fast-original-heading">FastTD3 · original H1Hand Hurdle</h2>
+<p>One seed, current author release: original 100k-vector-call recipe on 128 worlds. This is separate from the earlier ABC task adaptation and the paper's multi-seed aggregate.</p>
+<p id="fast-original-status" role="status"></p>
+<div id="fast-original-results" hidden>
+<p>Mean evaluation return, not a success rate. Each point averages the first episode from each of the 128 training worlds, with a deterministic actor and a 1000-control limit.</p>
+<div id="fast-original-curve"></div>
+<details><summary>Evaluation return and episode length</summary>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Original FastTD3 evaluation return and length by vector index">
+<table class="window-table"><caption>Original global_step indices. Return and length are means over the 128 training worlds.</caption><thead><tr><th scope="col">Vector index</th><th scope="col">Mean return</th><th scope="col">Mean length (controls)</th></tr></thead><tbody id="fast-original-rows"></tbody></table>
+</div></details>
+<h3>Preselected original recordings</h3>
+<div id="fast-original-clips"></div>
+<p><small>The author GIFs start with a reset image, sample every other native control, and request 30 fps playback. These examples use one separate render world. They are not per-control traces or held-out episode evaluations, and the last image can show an automatic reset. Playback does not establish wall-clock control timing.</small></p>
+</div>
+<p><small>The last periodic evaluation is at index 95,000. The final weights are saved at 100,000; the original recipe does not evaluate those final weights.</small></p>
 </section>
 <section class="card" aria-labelledby="rtc-heading" style="margin-bottom:22px">
 <h2 id="rtc-heading">ABC-YAM RTC · earlier checks</h2>
@@ -157,8 +175,8 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <p>The training schedules and starting policies differ. These task results do not reproduce the paper experiments.</p>
 </section>
 <section class="note">
-<h2>What the comparison means</h2>
-<p>These runs compare complete training strategies. They cannot isolate algorithm superiority.</p>
+<h2>Earlier ABC comparison</h2>
+<p>The earlier ABC runs compare complete training strategies. They cannot isolate algorithm superiority.</p>
 <table class="comparison-table"><thead><tr><th scope="col">Starting point</th><th scope="col">FastTD3</th><th scope="col">EXPO-FT</th></tr></thead><tbody><tr><th scope="row">Policy</th><td>Random state policy</td><td>Pretrained pi0.5, then task adapted</td></tr><tr><th scope="row">Observations</th><td>Robot and object state</td><td>RGB images and robot state</td></tr><tr><th scope="row">Demonstrations</th><td>None</td><td>3 complete TRAIN episodes</td></tr></tbody></table>
 <p id="comparison-reward"></p>
 <p>The same five-bottle judge measures outcomes. TRAIN windows use a changing policy; frozen validation measures the exported policy.</p>
@@ -232,6 +250,122 @@ function trainingWindows(active) {
       state: row.all_finite_warning_free ?? row.all_64_final_states_finite_and_warning_free,
     };
   }).sort((a, b) => a.index - b.index);
+}
+function fastOriginalCurve(rows) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const node = (tag, attributes, value) => {
+    const element = document.createElementNS(ns, tag);
+    for (const [key, item] of Object.entries(attributes)) element.setAttribute(key, item);
+    if (value !== undefined) element.textContent = value;
+    return element;
+  };
+  const svg = node('svg', {viewBox: '0 0 640 260', class: 'return-curve', role: 'img', 'aria-labelledby': 'fast-original-plot-title fast-original-plot-desc'});
+  svg.append(node('title', {id: 'fast-original-plot-title'}, 'Original FastTD3 mean evaluation return by vector index'),
+    node('desc', {id: 'fast-original-plot-desc'}, 'Nineteen periodic evaluations from index 5000 through 95000. Values are in the adjacent table. No evaluation is recorded at 100000.'));
+  const low = Math.min(0, ...rows.map(row => row.mean_return));
+  const high = Math.max(low + 1, ...rows.map(row => row.mean_return));
+  const x = index => 64 + index / 100000 * 554;
+  const y = value => 206 - (value - low) / (high - low) * 180;
+  for (const value of [low, (low + high) / 2, high]) {
+    svg.append(node('line', {x1: 64, x2: 618, y1: y(value), y2: y(value), stroke: '#35475c'}),
+      node('text', {x: 57, y: y(value) + 4, fill: '#bdcbdc', 'font-size': 12, 'text-anchor': 'end'}, value.toFixed(2)));
+  }
+  for (const index of [0, 50000, 100000]) svg.append(node('text', {x: x(index), y: 225, fill: '#bdcbdc', 'font-size': 12, 'text-anchor': 'middle'}, count(index)));
+  svg.append(node('text', {x: 64, y: 16, fill: '#bdcbdc', 'font-size': 12}, 'Mean evaluation return'),
+    node('text', {x: 341, y: 250, fill: '#bdcbdc', 'font-size': 12, 'text-anchor': 'middle'}, 'Vector index (original global_step)'),
+    node('polyline', {points: rows.map(row => x(row.vector_index) + ',' + y(row.mean_return)).join(' '), fill: 'none', stroke: '#a6e3c3', 'stroke-width': 2}));
+  for (const row of rows) svg.append(node('circle', {cx: x(row.vector_index), cy: y(row.mean_return), r: 3, fill: '#a6e3c3'}));
+  return svg;
+}
+function renderFastOriginal(result) {
+  const section = document.getElementById('fast-original');
+  const results = document.getElementById('fast-original-results');
+  const clips = document.getElementById('fast-original-clips');
+  const clearClips = () => {
+    for (const video of clips.querySelectorAll('video')) video.pause();
+    clips.replaceChildren();
+    delete clips.dataset.identity;
+  };
+  section.hidden = true;
+  if (result == null) { clearClips(); return; }
+  try {
+    if (result.schema !== 'fasttd3.original-hurdle/v1') throw Error('Invalid original FastTD3 schema');
+    if (result.status === 'pending') {
+      if ((result.evaluations !== undefined && (!Array.isArray(result.evaluations) || result.evaluations.length)) || (result.clips !== undefined && (!Array.isArray(result.clips) || result.clips.length))) throw Error('Pending original FastTD3 cannot contain scores or media');
+      clearClips();
+      results.hidden = true;
+      text('fast-original-status', 'Original run acceptance pending. No evaluation score or recording is published here.');
+      section.hidden = false;
+      return;
+    }
+    if (result.status !== 'accepted_complete_run' || result.task !== 'h1hand-hurdle-v0' || result.seed !== 1 || result.num_envs !== 128 || result.completed_vector_calls !== 100000 || result.author_commit !== '229ed59bbf43ea2f7a2d5d90d1076314839944d7') throw Error('Invalid original FastTD3 run scope');
+    if (!Array.isArray(result.evaluations) || result.evaluations.length !== 19) throw Error('Original FastTD3 requires all nineteen periodic evaluations');
+    for (const [index, row] of result.evaluations.entries()) {
+      if (row.vector_index !== (index + 1) * 5000 || !Number.isFinite(row.mean_return) || !Number.isFinite(row.mean_length) || row.mean_length < 1 || row.mean_length > 1000) throw Error('Invalid original FastTD3 evaluation');
+    }
+    if (!Array.isArray(result.clips) || result.clips.length !== 3) throw Error('Original FastTD3 requires three preselected recording slots');
+    for (const [index, clip] of result.clips.entries()) {
+      if (clip.vector_index !== [5000, 50000, 95000][index]) throw Error('Invalid original FastTD3 recording index');
+      if (clip.status === 'pending') {
+        if (clip.video !== undefined || clip.sha256 !== undefined || clip.source_gif_sha256 !== undefined) throw Error('Pending original recording has media');
+      } else if (clip.status !== 'accepted_original_recording' || !/^[0-9a-f]{64}$/.test(clip.sha256) || clip.video !== clip.sha256.slice(0, 16) + '.mp4' || !/^[0-9a-f]{64}$/.test(clip.source_gif_sha256) || clip.playback_timing !== 'source_gif_unchanged') throw Error('Invalid original FastTD3 recording');
+    }
+    text('fast-original-status', 'Accepted original 100,000-call run · seed 1 · 19 periodic evaluations. Return does not establish a per-world success rate.');
+    results.hidden = false;
+    section.hidden = false;
+    const identity = JSON.stringify(result);
+    if (clips.dataset.identity === identity) return;
+    clearClips();
+    document.getElementById('fast-original-curve').replaceChildren(fastOriginalCurve(result.evaluations));
+    const table = document.getElementById('fast-original-rows');
+    table.replaceChildren();
+    for (const row of result.evaluations) {
+      const tr = document.createElement('tr');
+      for (const [index, value] of [count(row.vector_index), row.mean_return.toFixed(3), row.mean_length.toFixed(3)].entries()) {
+        const cell = document.createElement(index === 0 ? 'th' : 'td');
+        if (index === 0) cell.scope = 'row';
+        cell.textContent = value;
+        tr.append(cell);
+      }
+      table.append(tr);
+    }
+    const label = document.createElement('label');
+    label.textContent = 'Recorded vector index: ';
+    const select = document.createElement('select');
+    select.id = 'fast-original-checkpoint';
+    for (const clip of result.clips) {
+      const option = document.createElement('option');
+      option.value = clip.vector_index;
+      option.textContent = count(clip.vector_index) + (clip.status === 'pending' ? ' · recording pending' : '');
+      select.append(option);
+    }
+    select.value = '5000';
+    label.append(select);
+    const panel = document.createElement('div');
+    const show = () => {
+      for (const video of panel.querySelectorAll('video')) video.pause();
+      panel.replaceChildren();
+      const clip = result.clips.find(item => item.vector_index === Number(select.value));
+      const caption = document.createElement('p');
+      caption.textContent = 'Vector index ' + count(clip.vector_index) + (clip.status === 'pending' ? ' · recording pending; no media published.' : ' · original render rollout. Playback retains the source GIF timing.');
+      panel.append(caption);
+      if (clip.status === 'pending') return;
+      const video = document.createElement('video');
+      video.controls = true;
+      video.preload = 'metadata';
+      video.src = clip.video;
+      video.setAttribute('aria-label', 'Original FastTD3 H1Hand Hurdle recording at vector index ' + clip.vector_index);
+      panel.append(video);
+    };
+    select.onchange = show;
+    clips.append(label, panel);
+    show();
+    clips.dataset.identity = identity;
+  } catch (error) {
+    clearClips();
+    section.hidden = true;
+    throw error;
+  }
 }
 function renderFast(f) {
   const interrupted = f.training_interrupted;
@@ -737,6 +871,7 @@ async function refresh() {
     if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
     renderCatcher(data.catcher);
     renderMulligan(data.mulligan);
+    renderFastOriginal(data.fasttd3_original);
     renderFast(data.fasttd3);
     renderRealtime(data.expoft?.real_time_current);
     renderExpo(data.expoft);
