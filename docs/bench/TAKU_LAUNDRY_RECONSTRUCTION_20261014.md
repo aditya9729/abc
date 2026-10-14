@@ -1,5 +1,7 @@
 # Taku laundry-room reconstruction — 14 October 2026
 
+**Scope correction after user review:** This replay does not meet the requested autonomous laundry experiment. The user observed that the robot does not grasp the towel. Contact is disabled, the model has no actuators, and the renderer assigns recorded poses without physics steps. A grasp is therefore impossible in this implementation. Geometry and playback checks remain valid, but they do not establish task behavior. The reviewed [architecture study](DYNA_ARCHITECTURE_REASSESSMENT_20261014.md) and [physical grasp plan](DYNA_PHYSICAL_GRASP_PLAN_20261014.md) define the missing interfaces and next experiment.
+
 The local viewer shows Dyna's published Taku robot and recorded motion in an estimated laundry room. It includes a basket, towels, folding table, washer, dryer and shelves. [Open the viewer](http://127.0.0.1:8771/). Both recordings contain all 869 samples at 12 frames per second and last 72.416667 seconds.
 
 This is a visual replay. The public material inspected does not supply the learned controller, original room assets, robot dynamics or cloth model needed to reproduce autonomous laundry handling. There is no policy inference, physics stepping or local task-success score.

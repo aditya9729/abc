@@ -1,0 +1,37 @@
+flowchart TB
+  subgraph Author[External owner: Dyna Robotics — published architecture, code not located]
+    H[Human video, UMI and robot demonstrations]
+    U[URR motion targets]
+    O[Vision-language orchestrator<br/>text memory, step check, recovery choice<br/>slower rate, exact rate undisclosed]
+    P[Improved Dyna-2 action model<br/>approximately 5 Hz]
+    W[RL whole-body controller<br/>100 Hz]
+    R[Taku hardware and environment]
+    S[Observed images and proprioception]
+    T[Tactile sensing is documented<br/>consumer routing undisclosed]
+    H -->|training data| U
+    U -->|action supervision| P
+    U -->|tracking targets in Isaac Lab| W
+    O -->|control: current step| P
+    P -->|control: URR trajectories| W
+    W -->|control: joint targets and wheel velocities| R
+    R -->|data: observations| S
+    R -->|data: tactile sensing; consumer unknown| T
+    S -->|data: visual progress| O
+    S -->|data: observed context and body state| P
+    R -->|data: body feedback; tensor schema unknown| W
+  end
+  subgraph Local[Owner: scene agent — local work]
+    A[Implemented: official geometry and teleop-log conversion]
+    V[Implemented: visual replay<br/>no dynamics, contacts or policy]
+    C[Proposed: articulated Taku arm and free cloth<br/>frictional contacts and bounded actuators]
+    F[Proposed: feedback diagnostic<br/>observe, grasp, lift, check, recover]
+    E[Proposed: independent physical outcome evaluator]
+    A -->|data: published kinematics and visual geometry| V
+    A -.->|planned reuse; physics estimates separate| C
+    F -.->|planned control: wrist and jaw targets| C
+    C -.->|planned data: camera and proprioception| F
+    C -.->|planned data: full contact and cloth state| E
+  end
+  Q[Owner: root<br/>review, CPU admission, result acceptance]
+  Q -.->|control: admit only reviewed implementation| C
+  E -.->|planned handoff: outcomes and full videos| Q

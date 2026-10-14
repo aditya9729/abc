@@ -1,0 +1,219 @@
+{
+  "schema": "dyna-architecture-study-review/v1",
+  "status": "research_and_plan_reviewed_no_native_implementation",
+  "reviewed_at": "2026-10-14T15:42:20.533411+00:00",
+  "source_root": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/dyna-architecture-study-01",
+  "handoff": {
+    "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/dyna-architecture-study-01/HANDOFF.json",
+    "bytes": 570,
+    "sha256": "576ec4fb7b754364645173a9da658d70b28a331ef98327b79eead4ced69ff96e"
+  },
+  "source_index": {
+    "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/dyna-architecture-study-01/SOURCES.json",
+    "bytes": 7076,
+    "sha256": "f0a310b86cfd2b9a8ef571338f00cc4683e7507f615273f1a2827a8b13b0bbab"
+  },
+  "figure": {
+    "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/dyna-architecture-study-01/sources/figure-2.4-original.svg",
+    "bytes": 5539,
+    "sha256": "8bb74fc916aa94756abe292bba0b7b0c6ad1d978e27275d0aac3d5ca0a9e7a0b"
+  },
+  "source_files_checked": 23,
+  "handoff_files_checked": 4,
+  "reports": [
+    {
+      "path": "/home/user/aditya/RL/abc/docs/bench/DYNA_ARCHITECTURE_REASSESSMENT_20261014.md",
+      "bytes": 7581,
+      "sha256": "a5e77ff4421e5f34f8b6f453fb1097ae9ffac0574921faeb6e20014ba6aa7ec7"
+    },
+    {
+      "path": "/home/user/aditya/RL/abc/docs/bench/DYNA_PHYSICAL_GRASP_PLAN_20261014.md",
+      "bytes": 4532,
+      "sha256": "cba30bd59af9ca96994bba10a870a0fe3b08bd69d9175c40c4d439a5f78adf57"
+    },
+    {
+      "path": "/home/user/aditya/RL/abc/docs/bench/DYNA_ARCHITECTURE_REASSESSMENT_20261014.mmd",
+      "bytes": 1897,
+      "sha256": "c4285d90680ff2eaab273e647fc6266c67fd11952d0056931e70f115a451a055"
+    }
+  ],
+  "root_review": [
+    "Read complete study, experiment plan and diagram; checked central architecture against primary Dyna reports and original figure rates.",
+    "Traced current renderer: zero dynamic joints and actuators, disabled contact, direct mocap assignment, mj_forward without mj_step.",
+    "Corrected R1 600 Hz to physics integration frequency; no verified servo-control frequency claimed.",
+    "Separated unknown tactile routing and undisclosed Dyna-2.1 changes from documented Dyna-2 architecture.",
+    "Physical grasp diagnostic is planned local work, not an original Dyna policy reproduction or completion of the full-room task."
+  ],
+  "native_execution": false,
+  "training": false,
+  "runtime_changes": false,
+  "remaining": [
+    "Implement and validate physical contact experiment.",
+    "Original Dyna policy/controller artifacts and calibrated physics not located in inspected public sources.",
+    "Autonomous full-room task remains incomplete."
+  ],
+  "sources": [
+    {
+      "url": "https://www.dyna.co/dyna-2.1",
+      "file": "sources/dyna-2.1.html",
+      "sha256": "e68bde82e02e02ebaf6188f4ba9a492060a898845d15331dd61aca8820e21e1d",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:35:11.913907+00:00"
+    },
+    {
+      "url": "https://www.dyna.co/dyna-2",
+      "file": "sources/dyna-2.html",
+      "sha256": "3d5f4d1a24243ec6c4bca94e59df391dec044756486e357e70abe67bd2168ee1",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:35:12.448955+00:00"
+    },
+    {
+      "url": "https://www.dyna.co/research/dyna-1",
+      "file": "sources/dyna-1.html",
+      "sha256": "cd123b12037ac8f344f0a0707b3bbd7e29e164f901e0a479b6549b795f87daa3",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:35:12.922507+00:00"
+    },
+    {
+      "url": "https://www.dyna.co/",
+      "file": "sources/dyna-home.html",
+      "sha256": "55425c51d0b589df6eaa7dcac01260e4cbbeb3672cd3e1bc8a042895e9071b39",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:40.535320+00:00"
+    },
+    {
+      "url": "https://www.dyna.co/research/dyna-2-infrastructure",
+      "file": "sources/dyna-infrastructure.html",
+      "sha256": "c7fe16cb0d1e4c2c7194cf20098821f665bf130afd36c3a632466c75dcd0cda0",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:40.768385+00:00"
+    },
+    {
+      "url": "https://www.dyna.co/research/scaling-customer-deployments",
+      "file": "sources/dyna-deployment.html",
+      "sha256": "32203457d01c3a815335eecfeb0720b2a3ea3f841241c9f6aac81f79813cbd73",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:41.147953+00:00"
+    },
+    {
+      "url": "https://api.github.com/repos/newton-physics/newton/commits/main",
+      "file": "sources/newton-commit.json",
+      "sha256": "3c4d23bc23933492077175367286910342af9dd1b5bca639e2cf9ae12c18d597",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:41.494854+00:00"
+    },
+    {
+      "url": "https://api.github.com/search/repositories?q=%22Dyna+Robotics%22&per_page=20",
+      "file": "sources/github-dyna-search.json",
+      "sha256": "218eb0e1354e075b514f4c543b86515bca288ab4906414fa031340b4a74f3da3",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:42.329939+00:00"
+    },
+    {
+      "url": "https://huggingface.co/api/models?author=dynarobotics",
+      "file": "sources/hf-dyna-models.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:42.482840+00:00"
+    },
+    {
+      "url": "https://huggingface.co/api/datasets?author=dynarobotics",
+      "file": "sources/hf-dyna-datasets.json",
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:42.633522+00:00"
+    },
+    {
+      "url": "https://mujoco.readthedocs.io/en/3.3.7/modeling.html",
+      "file": "sources/mujoco-modeling-3.3.7.html",
+      "sha256": "5a246d2d9b51229f7cb653106081419e0d72b4cefd6123d9a133d1358fc3d156",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:36:42.855616+00:00"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google-deepmind/mujoco/3.3.7/model/flex/cloth.xml",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/newton-physics/newton/b7a4e8c99abaf036b91a57ee924adff80ccf77b6/newton/examples/cloth/example_cloth_franka.py",
+      "file": "sources/newton-cloth-franka.py",
+      "sha256": "c7370b9843b7e8a09710fcba400d0e9b0463e3aa879dc035f4fdc7a6b3d10d0b",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:37:02.780467+00:00"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/newton-physics/newton/b7a4e8c99abaf036b91a57ee924adff80ccf77b6/docs/concepts/solvers/vbd.rst",
+      "error": "HTTP Error 404: Not Found"
+    },
+    {
+      "url": "https://api.github.com/repos/google-deepmind/mujoco/contents/model/flex?ref=3.3.7",
+      "file": "sources/mujoco-flex-list.json",
+      "sha256": "4bb762390f8d37829cc8882a0d3976ddbde55a683b25f1f50285dc900444d9aa",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:37:03.375839+00:00"
+    },
+    {
+      "url": "https://api.github.com/search/repositories?q=Taku+Dyna&per_page=20",
+      "file": "sources/github-taku-search.json",
+      "sha256": "4af480b8ee5b87b369a76c49bd22c9a783908272ebffbe97898f8ab0f0772a5f",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:37:03.692303+00:00"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google-deepmind/mujoco/3.3.7/model/flex/flag.xml",
+      "file": "sources/mujoco-flag-3.3.7.xml",
+      "sha256": "345dc4854b86bfe878c8d1af2c8b431b1609ddffd2c166c2a172055b0760bae8",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:37:26.040927+00:00"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google-deepmind/mujoco/3.3.7/model/flex/pancake.xml",
+      "file": "sources/mujoco-pancake-3.3.7.xml",
+      "sha256": "4bffcee93ed951b792db8c73ff87afa6f2b7b4446a286f51dc23dd09f9ce706a",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:37:26.358094+00:00"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/google-deepmind/mujoco/3.3.7/model/flex/gripper.xml",
+      "file": "sources/mujoco-gripper-3.3.7.xml",
+      "sha256": "5f6da01e10d79c75348ce4ba6cf6a976df6d61b59e11ed2433c4550523f8dee1",
+      "status": 200,
+      "retrieved_at": "2026-10-14T15:37:26.951238+00:00"
+    },
+    {
+      "file": "sources/syndication.raw",
+      "sha256": "83bd70228bf915a403db114bee6b6a4b6ca839fb6ee2c39198ec628df6baeec6",
+      "provenance": "Preserved source snapshot from prior same-session research; raw artifact retains original URL context.",
+      "url": "https://cdn.syndication.twimg.com/tweet-result?id=2109808785615458626&lang=en&token=1"
+    },
+    {
+      "file": "sources/fxtwitter.raw",
+      "sha256": "876cd238bafcab4faf333876f1af706d7e9b6e2d71ce9ccb3355d9b2e43b1f0c",
+      "provenance": "Preserved source snapshot from prior same-session research; raw artifact retains original URL context.",
+      "url": "https://api.fxtwitter.com/MarilynLiu97/status/2109808785615458626"
+    },
+    {
+      "file": "sources/article-content.txt",
+      "sha256": "170686474f4030e28214a69b0607a177dec6951565653ee54aa17502919d3e5f",
+      "provenance": "Preserved source snapshot from prior same-session research; raw artifact retains original URL context."
+    },
+    {
+      "file": "sources/dvt1_kin.json",
+      "sha256": "02505a774c55fb3f998265e32840bffd86fba690bd4c9e1af857663ca39ec83f",
+      "provenance": "Preserved source snapshot from prior same-session research; raw artifact retains original URL context.",
+      "url": "https://www.dyna.co/assets/we/dvt1_kin.json"
+    },
+    {
+      "file": "sources/tracking_data.json",
+      "sha256": "0195399e834c04f60b54b947f1ac5f77a58ee6b6f72772cf93500f6ea6cbe2c3",
+      "provenance": "Preserved source snapshot from prior same-session research; raw artifact retains original URL context.",
+      "url": "https://www.dyna.co/assets/we/tracking_data.json"
+    },
+    {
+      "file": "sources/figure-2.4-original.svg",
+      "sha256": "8bb74fc916aa94756abe292bba0b7b0c6ad1d978e27275d0aac3d5ca0a9e7a0b",
+      "url": "https://www.dyna.co/dyna-2.1#the-physical-agent",
+      "provenance": "First original inline SVG containing ~5 Hz, extracted without edits from pinned HTML."
+    }
+  ]
+}
