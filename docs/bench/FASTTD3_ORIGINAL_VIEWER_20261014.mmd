@@ -1,15 +1,18 @@
 flowchart LR
     A[Unchanged author FastTD3 run] -->|original logs and GIFs| R[Root-owned acceptance]
     R -. accepted data only .-> J[Optional fasttd3_original JSON]
+    W[Printed simulator warnings in scanned stdout] -->|root counts messages| R
     R -. verified timing-preserving conversion .-> M[Published MP4 files]
     subgraph Candidate[Prepared isolated viewer]
       V[Existing original-methods page]
       C[Mean-return curve and table]
       S[Fixed index recording selector]
       P[Hidden or explicit pending state]
+      Q[Warning count and physics-reset limitation]
       V --> C
       V --> S
       V --> P
+      V --> Q
     end
     J -. root publishes after acceptance .-> V
     M -. native video controls .-> S

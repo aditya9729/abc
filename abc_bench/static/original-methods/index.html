@@ -62,6 +62,7 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <h2 id="fast-original-heading">FastTD3 · original H1Hand Hurdle</h2>
 <p>One seed, current author release: original 100k-vector-call recipe on 128 worlds. This is separate from the earlier ABC task adaptation and the paper's multi-seed aggregate.</p>
 <p id="fast-original-status" role="status"></p>
+<p id="fast-original-warning"></p>
 <div id="fast-original-results" hidden>
 <p>Mean evaluation return, not a success rate. Each point averages the first episode from each of the 128 training worlds, with a deterministic actor and a 1000-control limit.</p>
 <div id="fast-original-curve"></div>
@@ -295,10 +296,12 @@ function renderFastOriginal(result) {
       clearClips();
       results.hidden = true;
       text('fast-original-status', 'Original run acceptance pending. No evaluation score or recording is published here.');
+      text('fast-original-warning', '');
       section.hidden = false;
       return;
     }
     if (result.status !== 'accepted_complete_run' || result.task !== 'h1hand-hurdle-v0' || result.seed !== 1 || result.num_envs !== 128 || result.completed_vector_calls !== 100000 || result.author_commit !== '229ed59bbf43ea2f7a2d5d90d1076314839944d7') throw Error('Invalid original FastTD3 run scope');
+    if (!Number.isSafeInteger(result.simulator_warning_count) || result.simulator_warning_count < 0) throw Error('Original FastTD3 requires a nonnegative integer simulator warning count');
     if (!Array.isArray(result.evaluations) || result.evaluations.length !== 19) throw Error('Original FastTD3 requires all nineteen periodic evaluations');
     for (const [index, row] of result.evaluations.entries()) {
       if (row.vector_index !== (index + 1) * 5000 || !Number.isFinite(row.mean_return) || !Number.isFinite(row.mean_length) || row.mean_length < 1 || row.mean_length > 1000) throw Error('Invalid original FastTD3 evaluation');
@@ -311,6 +314,9 @@ function renderFastOriginal(result) {
       } else if (clip.status !== 'accepted_original_recording' || !/^[0-9a-f]{64}$/.test(clip.sha256) || clip.video !== clip.sha256.slice(0, 16) + '.mp4' || !/^[0-9a-f]{64}$/.test(clip.source_gif_sha256) || clip.playback_timing !== 'source_gif_unchanged') throw Error('Invalid original FastTD3 recording');
     }
     text('fast-original-status', 'Accepted original 100,000-call run · seed 1 · 19 periodic evaluations. Return does not establish a per-world success rate.');
+    text('fast-original-warning', result.simulator_warning_count > 0
+      ? 'Original run completed with ' + result.simulator_warning_count + ' logged simulator warnings, which can cause internal physics resets; per-world effects are unmeasured. This counts printed messages in scanned stdout, not worlds or recovery events.'
+      : 'No simulator warning messages were found in the scanned stdout. This does not prove clean physics.');
     results.hidden = false;
     section.hidden = false;
     const identity = JSON.stringify(result);

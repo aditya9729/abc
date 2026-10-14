@@ -31,6 +31,7 @@ function page() {
 function fixture() {
   return {schema: 'fasttd3.original-hurdle/v1', status: 'accepted_complete_run',
     task: 'h1hand-hurdle-v0', seed: 1, num_envs: 128, completed_vector_calls: 100000,
+    simulator_warning_count: 0,
     author_commit: '229ed59bbf43ea2f7a2d5d90d1076314839944d7',
     evaluations: Array.from({length: 19}, (_, i) => ({vector_index: (i + 1) * 5000,
       mean_return: i - 3.25, mean_length: 100.125 + i})),
@@ -73,6 +74,8 @@ test('complete synthetic cohort renders mean-return curve, accessible table and 
   assert.equal(p.elements.get('fast-original').hidden, false);
   assert.equal(p.elements.get('fast-original-results').hidden, false);
   assert.match(p.elements.get('fast-original-status').textContent, /does not establish a per-world success rate/);
+  assert.match(p.elements.get('fast-original-warning').textContent, /No simulator warning messages.*scanned stdout/);
+  assert.match(p.elements.get('fast-original-warning').textContent, /does not prove clean physics/);
   const rows = p.elements.get('fast-original-rows').children;
   assert.equal(rows.length, 19);
   assert.equal(rows[0].children[0].scope, 'row');
@@ -93,6 +96,40 @@ test('complete synthetic cohort renders mean-return curve, accessible table and 
   assert.match(video['aria-label'], /H1Hand Hurdle.*5000/);
   assert.match(template, /not per-control traces or held-out episode evaluations/);
   assert.match(template, /final weights.*100,000; the original recipe does not evaluate/);
+});
+
+test('logged simulator warnings remain visible without hiding accepted return points or recordings', () => {
+  const p = page(), data = fixture();
+  data.simulator_warning_count = 8;
+  p.render(data);
+  assert.equal(p.elements.get('fast-original').hidden, false);
+  assert.equal(p.elements.get('fast-original-results').hidden, false);
+  const warning = p.elements.get('fast-original-warning').textContent;
+  assert.match(warning, /completed with 8 logged simulator warnings/);
+  assert.match(warning, /internal physics resets/);
+  assert.match(warning, /per-world effects are unmeasured/);
+  assert.match(warning, /printed messages in scanned stdout, not worlds or recovery events/);
+  assert.equal(p.elements.get('fast-original-rows').children.length, 19);
+  const box = p.elements.get('fast-original-clips');
+  const select = box.querySelectorAll('select')[0];
+  assert.deepEqual(Array.from(select.children, node => node.value), [5000, 50000, 95000]);
+  assert.equal(box.querySelectorAll('video').length, 1);
+  p.render({schema: 'fasttd3.original-hurdle/v1', status: 'pending'});
+  assert.equal(p.elements.get('fast-original-warning').textContent, '');
+});
+
+test('missing or invalid simulator warning counts reject accepted records and clear prior media', () => {
+  for (const value of [undefined, null, false, '8', -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
+    const p = page(), data = fixture();
+    p.render(fixture());
+    const video = p.elements.get('fast-original-clips').querySelectorAll('video')[0];
+    if (value === undefined) delete data.simulator_warning_count;
+    else data.simulator_warning_count = value;
+    assert.throws(() => p.render(data), /nonnegative integer simulator warning count/);
+    assert.equal(p.elements.get('fast-original').hidden, true);
+    assert.equal(p.elements.get('fast-original-clips').children.length, 0);
+    assert.equal(video.paused, true);
+  }
 });
 
 test('selection pauses the prior clip; missing recording stays pending without media', () => {

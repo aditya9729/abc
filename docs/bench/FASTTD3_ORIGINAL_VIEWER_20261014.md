@@ -30,10 +30,13 @@ For the accepted state, use these exact fields:
 | `seed` | Integer 1 |
 | `num_envs` | Integer 128 |
 | `completed_vector_calls` | Integer 100000 |
+| `simulator_warning_count` | Required nonnegative safe integer; count printed simulator warning messages in the scanned original stdout |
 | `evaluations` | Exactly 19 rows in index order, with the fields below |
 | `clips` | Exactly three slots in order: 5000, 50000, 95000 |
 
 Each evaluation row has `vector_index` equal to `5000 * (position + 1)`, finite numeric `mean_return`, and finite numeric `mean_length` in [1,1000]. Copy the actual original `eval_avg_return` and `eval_avg_length`; do not substitute training reward, success fraction, or a later checkpoint's score. The table rounds displayed values to three decimals. The full values remain in JSON. Zero and negative mean returns are valid.
+
+Count warning messages from the accepted run's scanned stdout. Do not default a missing count to zero. Missing, negative, fractional, nonnumeric or unsafe counts reject the accepted record. A positive count adds a visible warning about internal physics resets and unmeasured per-world effects. It preserves otherwise accepted return points and recordings. The count measures printed messages, not affected worlds or recovery events. A zero count means only that no warning messages were found in the scanned stdout. It does not prove clean physics. Finite checkpoints and a zero process exit do not establish warning-free simulation.
 
 A pending clip slot contains only its fixed index and status, for example:
 
@@ -69,6 +72,6 @@ Run the existing Node binary from the isolated worktree:
   tests/bench/test_catcher_frozen_viewer.cjs
 ```
 
-All 16 tests pass: seven new tests and nine existing Catcher/Mulligan tests. Inputs are explicitly synthetic DOM/media fixtures. They check the optional/pending states, return/length rendering, negative returns, fixed clip slots, source/playback metadata rejection, refresh identity, media cleanup, and existing panel preservation. These tests are not native results or actual browser layout proof. Root will build the normal full-asset wheel and check publication after actual run acceptance.
+All 18 tests pass: nine FastTD3 tests and nine existing Catcher/Mulligan tests. Inputs are explicitly synthetic DOM/media fixtures. They check the optional/pending states, return/length rendering, negative returns, visible warning counts, invalid-count rejection, fixed clip slots, source/playback metadata rejection, refresh identity, media cleanup, and existing panel preservation. The default accepted fixture supplies an explicit zero count; it is not a native measurement. These tests are not native results or actual browser layout proof. Root will build the normal full-asset wheel and check publication after actual run acceptance.
 
 Root supplies accepted records and media. I prepared and tested the optional viewer. The [diagram](FASTTD3_ORIGINAL_VIEWER_20261014.mmd) shows these roles and the proposed publication boundary. STE guidance was used; full compliance was not checked.
