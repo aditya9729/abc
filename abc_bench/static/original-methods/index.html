@@ -717,14 +717,14 @@ function renderMulliganLocal(result, container = 'mulligan-local') {
     const point = integer(clip.point, 'local Mulligan start');
     const controls = integer(clip.controls, 'local Mulligan controls', 1);
     const panel = document.createElement('div');
-    const label = document.createElement('p');
-    label.textContent = 'Start ' + point + ' · ' + (clip.solved ? 'success' : 'failure') + ' · ' + controls + ' controls';
+    const outcome = document.createElement('p');
+    outcome.textContent = 'Start ' + point + ' · ' + (clip.solved ? 'success' : 'failure') + ' · ' + controls + ' controls';
     const video = document.createElement('video');
     video.controls = true;
     video.preload = 'metadata';
     video.src = clip.video;
     video.setAttribute('aria-label', label + ', start ' + point);
-    panel.append(label, video);
+    panel.append(outcome, video);
     box.append(panel);
   }
   box.dataset.identity = identity;

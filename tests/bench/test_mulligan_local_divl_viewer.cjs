@@ -63,6 +63,14 @@ test('accepted full cohort renders separate stage scores and three fixed full vi
   assert.match(p.elements.get('mulligan-local-divl-summary').textContent, /does not isolate a critic effect/);
   assert.equal(p.elements.get('mulligan-local-divl-clips').children.length, 3);
   assert.equal(p.elements.get('mulligan-local-summary').textContent, 'Preserved');
+  for (const [container, label] of [
+    ['mulligan-local-clips', 'Existing IDQL fixture'],
+    ['mulligan-local-divl-clips', 'Locally trained DIVL · N=32'],
+  ]) {
+    p.elements.get(container).querySelectorAll('video').forEach((video, point) => {
+      assert.equal(video['aria-label'], label + ', start ' + point);
+    });
+  }
 });
 
 test('refresh preserves both stage video identities and their playback positions', () => {
