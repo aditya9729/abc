@@ -16,6 +16,8 @@ from typing import Any
 from abc_bench.subset import require_subset_lease
 
 PROGRAMS = {"train_offline_rtc.py", "train_pi_robo.py", "eval_droid_policy.py"}
+CATCHER_GPU_PROFILE = "kinetix_catcher_gpu_learner_cpu_env_v1"
+CATCHER_CLEANUP_SECONDS = 100
 ENVIRONMENT_KEYS = {
     "ABC_REALTIME_CONFIG",
     "ABC_REALTIME_EXPO_CLIENT_CONFIG",
@@ -33,9 +35,12 @@ ENVIRONMENT_KEYS = {
 
 def load_config(path: Path) -> dict[str, Any]:
     config = json.loads(path.read_text())
-    if config.get("schema_version") != 1 or config.get("program") not in PROGRAMS:
+    if (
+        config.get("schema_version") not in (1, 2)
+        or config.get("program") not in PROGRAMS
+    ):
         raise ValueError(
-            "Select schema1 and an original EXPO training/evaluation program"
+            "Select schema1 or the declared schema2 Catcher process profile"
         )
     for name in ("python", "source_root", "source_manifest"):
         p = Path(config[name])
@@ -68,7 +73,133 @@ def load_config(path: Path) -> dict[str, Any]:
         if not python.is_absolute() or not python.is_file():
             raise ValueError("Client python must be an existing absolute interpreter")
         _arguments(client.get("arguments"))
+    if config["schema_version"] == 2:
+        validate_catcher_profile(config)
     return config
+
+
+def _option(arguments: list[str], name: str) -> str:
+    values = []
+    for i, argument in enumerate(arguments):
+        if argument == name:
+            if i + 1 == len(arguments) or arguments[i + 1].startswith("--"):
+                raise ValueError(f"Missing value for {name}")
+            values.append(arguments[i + 1])
+        elif argument.startswith(name + "="):
+            values.append(argument[len(name) + 1 :])
+    if len(values) != 1 or not values[0]:
+        raise ValueError(f"Require exactly one {name}")
+    return values[0]
+
+
+def catcher_config_paths(python: str) -> dict[str, str]:
+    """Resolve only normal distribution metadata; do not import the task or JAX."""
+    code = """
+import base64, hashlib, importlib.metadata as metadata, json, sys
+from pathlib import Path
+d = metadata.distribution('realtime-expo-catcher-task')
+files = {str(f): f for f in d.files or ()}
+result = {}
+for name in ('config', 'model_config'):
+    item = files['realtime_expo_catcher_task/' + name + '.py']
+    path = Path(d.locate_file(item)).resolve()
+    if not path.is_file() or not path.is_relative_to(Path(sys.prefix).resolve()):
+        raise ValueError('Catcher configuration must be normally installed in the selected prefix')
+    digest = base64.urlsafe_b64encode(hashlib.sha256(path.read_bytes()).digest()).decode().rstrip('=')
+    if item.hash is None or item.hash.mode != 'sha256' or item.hash.value != digest:
+        raise ValueError('Catcher configuration differs from its normal distribution RECORD')
+    result[name] = str(path)
+print(json.dumps(result))
+"""
+    try:
+        result = subprocess.run(
+            [python, "-I", "-B", "-c", code],
+            env={
+                **os.environ,
+                "CUDA_VISIBLE_DEVICES": "",
+                "JAX_PLATFORMS": "cpu",
+                "MUJOCO_GL": "disable",
+            },
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as error:
+        raise ValueError(
+            "Cannot authenticate the selected prefix's Catcher configuration metadata"
+        ) from error
+    return json.loads(result.stdout)
+
+
+def validate_catcher_profile(config: dict[str, Any]) -> None:
+    """Bind the new role profile to installed Catcher task/model entrypoints."""
+    if (
+        config.get("task_profile") != CATCHER_GPU_PROFILE
+        or config.get("program") != "train_pi_robo.py"
+        or set(config)
+        - {
+            "schema_version",
+            "task_profile",
+            "program",
+            "python",
+            "source_root",
+            "source_manifest",
+            "timeout_s",
+            "arguments",
+            "environment",
+            "client",
+        }
+        or not isinstance(config.get("client"), dict)
+        or set(config["client"]) != {"python", "arguments"}
+        or config["client"]["python"] != config["python"]
+        or set(config.get("environment", {})) - ENVIRONMENT_KEYS
+        or any(
+            argument.startswith(("--config.", "--config_task."))
+            for argument in config["arguments"]
+        )
+    ):
+        raise ValueError(
+            "Schema2 requires the fixed Catcher GPU learner/CPU client profile"
+        )
+    paths = catcher_config_paths(config["python"])
+    for flag, key in (("--config", "model_config"), ("--config_task", "config")):
+        if str(Path(_option(config["arguments"], flag)).resolve()) != paths[key]:
+            raise ValueError(
+                "Schema2 must use the selected prefix's installed Catcher configurations"
+            )
+    if (
+        _option(config["client"]["arguments"], "--config-task-path")
+        != "realtime_expo_catcher_task.config"
+    ):
+        raise ValueError("Schema2 client must use the installed Catcher task module")
+
+
+def role_environments(
+    config: dict[str, Any], env: dict[str, str]
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Preserve schema1; isolate native Catcher physics from the leased GPU learner."""
+    if config["schema_version"] == 1:
+        return env, env
+    if (
+        os.environ.get("JAX_PLATFORMS") != "cuda"
+        or env.get("JAX_PLATFORMS") != "cuda"
+        or not env.get("CUDA_VISIBLE_DEVICES")
+        or env["CUDA_VISIBLE_DEVICES"] != os.environ.get("CUDA_VISIBLE_DEVICES")
+    ):
+        raise ValueError(
+            "Schema2 requires inherited JAX_PLATFORMS=cuda and the leased GPU UUID"
+        )
+    # The worker's require_subset_lease already authenticates this exact UUID.
+    server_env = {**env, "JAX_PLATFORM_NAME": "cuda"}
+    client_env = {
+        **env,
+        "CUDA_VISIBLE_DEVICES": "",
+        "JAX_PLATFORMS": "cpu",
+        "JAX_PLATFORM_NAME": "cpu",
+        "JAX_ENABLE_COMPILATION_CACHE": "false",
+    }
+    return server_env, client_env
 
 
 def _arguments(value: Any) -> None:
@@ -134,6 +265,9 @@ def _stop(process: subprocess.Popen | None, *, graceful: bool = False) -> str:
 def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     """Own process lifetime only; author programs own all model and data operations."""
     require_subset_lease()
+    if config["schema_version"] == 2:
+        validate_catcher_profile(config)
+        role_environments(config, dict(os.environ))
     source = Path(config["source_root"])
     verify_sources(
         source,
@@ -158,6 +292,7 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     # No PYTHONPATH injection, runpy wrapper, or substituted update function.
     env.pop("PYTHONPATH", None)
     env.pop("WANDB_DISABLED", None)
+    server_env, client_env = role_environments(config, env)
     command = [
         config["python"],
         "-u",
@@ -175,6 +310,26 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         "claim_scope": "Original program execution with declared ABC IO integration; no task-success or paper-reproduction claim",
         "metrics": {},
     }
+    if config["schema_version"] == 2:
+        result.update(
+            task_profile=CATCHER_GPU_PROFILE,
+            task="Catcher-v3",
+            embodiment="kinetix_symbolic",
+            role_environments={
+                role: {
+                    key: value[key]
+                    for key in (
+                        "CUDA_VISIBLE_DEVICES",
+                        "JAX_PLATFORMS",
+                        "JAX_PLATFORM_NAME",
+                        "JAX_ENABLE_COMPILATION_CACHE",
+                    )
+                    if key in value
+                }
+                for role, value in (("author", server_env), ("client", client_env))
+            },
+            claim_scope="Original Real-Time EXPO learner with declared Catcher task integration; no frozen score or paper-reproduction claim",
+        )
     receipt = output / "receipt.json"
 
     def publish() -> None:
@@ -197,7 +352,7 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
             server = subprocess.Popen(
                 command,
                 cwd=source,
-                env=env,
+                env=server_env,
                 stdout=server_log,
                 stderr=subprocess.STDOUT,
             )
@@ -216,7 +371,7 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
                 client = subprocess.Popen(
                     client_command,
                     cwd=source,
-                    env=env,
+                    env=client_env,
                     stdout=client_log,
                     stderr=subprocess.STDOUT,
                 )

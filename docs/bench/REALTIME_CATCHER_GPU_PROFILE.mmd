@@ -1,0 +1,12 @@
+flowchart LR
+  R[Root: release and bounded launch] -. control .-> C[Existing canonical runner and GPU0 lease]
+  C -. owned process group .-> S[Candidate author_program schema2]
+  P[Normal task distribution RECORD] -->|configuration routing check| S
+  S -->|exact leased GPU UUID / CUDA JAX| L[Original train_pi_robo / RealTimeEXPOFTLearner]
+  S -->|CUDA hidden / CPU JAX| E[Original Kinetix physics through Catcher client]
+  D[Authenticated complete expert corpus and BC24] --> L
+  E <-->|original transport / observations and actions| L
+  S --> O[Role and process receipts]
+  L -. future native run .-> A[Checkpoint / replay retention / timing]
+  T[This agent: CPU process checks] -. evidence .-> S
+  R -. future native acceptance .-> A

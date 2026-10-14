@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import fcntl
 import hashlib
 import json
@@ -113,6 +114,36 @@ def validate_expo_campaign_watchdog(config: dict, maximum: float) -> None:
         )
 
 
+def _author_config(job: dict[str, Any]) -> dict[str, Any] | None:
+    """Inspect the new schema only; preserve historical schema1 job admission."""
+    from abc_bench.author_program import load_config
+
+    arguments = job["arguments"]
+    parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
+    parser.add_argument("--config")
+    try:
+        selected, _ = parser.parse_known_args(arguments)
+    except argparse.ArgumentError:
+        return None
+    if selected.config is None:
+        return None
+    path = Path(selected.config)
+    try:
+        value = json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+    if not isinstance(value, dict) or value.get("schema_version") != 2:
+        return None
+    if not (
+        len(arguments) == 2
+        and arguments[0] == "--config"
+        or len(arguments) == 1
+        and arguments[0].startswith("--config=")
+    ):
+        raise ValueError("Schema2 Catcher jobs require one explicit --config")
+    return load_config(path)
+
+
 def load_job(path: Path) -> dict[str, Any]:
     """Require a finite job and a normal installed, explicitly selected worker."""
     job = json.loads(path.read_text())
@@ -140,6 +171,20 @@ def load_job(path: Path) -> dict[str, Any]:
     maximum_allowed = (
         12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
     )
+    if job["module"] == "abc_bench.author_program":
+        from abc_bench.author_program import CATCHER_CLEANUP_SECONDS
+
+        config = _author_config(job)
+        if config is not None and (
+            type(maximum) not in (int, float)
+            or not math.isfinite(maximum)
+            or config["timeout_s"] + CATCHER_CLEANUP_SECONDS > maximum
+            or job.get("task", "Catcher-v3") != "Catcher-v3"
+            or job.get("embodiment", "kinetix_symbolic") != "kinetix_symbolic"
+        ):
+            raise ValueError(
+                "Catcher GPU jobs require the fixed task identity and worker timeout plus100s cleanup"
+            )
     if job["module"] == "abc_bench.mulligan_program":
         from abc_bench.mulligan_program import (
             CLEANUP_SECONDS,
@@ -270,6 +315,20 @@ def run_job(args: Any) -> dict[str, Any]:
     if args.training_config is None:
         raise ValueError("author-subset requires --training-config")
     job = load_job(args.training_config)
+    catcher_profile = False
+    if job["module"] == "abc_bench.author_program":
+        from abc_bench.author_program import CATCHER_CLEANUP_SECONDS
+
+        author_config = _author_config(job)
+        catcher_profile = author_config is not None
+        if (
+            catcher_profile
+            and min(job["max_wall_s"], args.timeout_seconds)
+            < author_config["timeout_s"] + CATCHER_CLEANUP_SECONDS
+        ):
+            raise ValueError(
+                "Effective Catcher parent timeout must contain worker plus100s cleanup"
+            )
     RESULTS.mkdir(parents=True, exist_ok=True)
     with (RESULTS / ".gpu-budget.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -326,14 +385,18 @@ def run_job(args: Any) -> dict[str, Any]:
             "algorithm": job["label"],
             "phase": "small_subset",
             "status": "running",
-            "task": "h1hand-stand-v0"
+            "task": "Catcher-v3"
+            if catcher_profile
+            else "h1hand-stand-v0"
             if job["module"] == "sadhana_fasttd3_hb.stage"
             else "h1hand-hurdle-v0"
             if job["module"] == "abc_bench.fasttd3_program"
             else "SquareNarrow"
             if job["module"] == "abc_bench.mulligan_program"
             else "put_plastic_bottles_in_bin",
-            "embodiment": "unitree_h1_with_hands"
+            "embodiment": "kinetix_symbolic"
+            if catcher_profile
+            else "unitree_h1_with_hands"
             if job["module"]
             in {"sadhana_fasttd3_hb.stage", "abc_bench.fasttd3_program"}
             else "franka_panda"
@@ -341,7 +404,9 @@ def run_job(args: Any) -> dict[str, Any]:
             else "native_yam",
             "claim_scope": job.get(
                 "claim_scope",
-                "Bounded original FastTD3 Stand integration/capacity; no convergence, ABC transfer or paper reproduction claim"
+                "Original Real-Time EXPO learner with declared Catcher integration; no frozen score or paper-reproduction claim"
+                if catcher_profile
+                else "Bounded original FastTD3 Stand integration/capacity; no convergence, ABC transfer or paper reproduction claim"
                 if job["module"] == "sadhana_fasttd3_hb.stage"
                 else "Original FastTD3 Hurdle process execution; native returns, checkpoints and recipe fidelity require separate acceptance"
                 if job["module"] == "abc_bench.fasttd3_program"
