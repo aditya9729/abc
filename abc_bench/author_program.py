@@ -74,6 +74,8 @@ def load_config(path: Path) -> dict[str, Any]:
             raise ValueError("Client python must be an existing absolute interpreter")
         _arguments(client.get("arguments"))
     if config["schema_version"] == 2:
+        if not path.is_absolute():
+            raise ValueError("Schema2 requires an absolute worker configuration path")
         validate_catcher_profile(config)
     return config
 
@@ -164,12 +166,25 @@ def validate_catcher_profile(config: dict[str, Any]) -> None:
         )
     paths = catcher_config_paths(config["python"])
     for flag, key in (("--config", "model_config"), ("--config_task", "config")):
-        if str(Path(_option(config["arguments"], flag)).resolve()) != paths[key]:
+        path = Path(_option(config["arguments"], flag))
+        if not path.is_absolute():
+            raise ValueError(
+                "Schema2 requires absolute server task/model configuration paths"
+            )
+        if str(path.resolve()) != paths[key]:
             raise ValueError(
                 "Schema2 must use the selected prefix's installed Catcher configurations"
             )
+    # Tyro accepts underscore and hyphen option spellings. Normalize option names
+    # only; module values contain underscores and must remain byte-exact.
+    client_arguments = []
+    for argument in config["client"]["arguments"]:
+        if argument.startswith("--"):
+            option, separator, value = argument.partition("=")
+            argument = option.replace("_", "-") + separator + value
+        client_arguments.append(argument)
     if (
-        _option(config["client"]["arguments"], "--config-task-path")
+        _option(client_arguments, "--config-task-path")
         != "realtime_expo_catcher_task.config"
     ):
         raise ValueError("Schema2 client must use the installed Catcher task module")

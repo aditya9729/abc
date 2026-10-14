@@ -87,6 +87,84 @@ def test_profile_cannot_label_a_droid_dispatch_catcher(
         author_program.load_config(write_config(tmp_path, catcher_config))
 
 
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        ["--config_task_path", "realtime_expo_catcher_task.config"],
+        ["--config_task_path=realtime_expo_catcher_task.config"],
+        ["--config-task-path=realtime_expo_catcher_task.config"],
+    ],
+)
+def test_single_tyro_task_alias_preserves_the_module_value(
+    tmp_path, catcher_config, arguments
+):
+    catcher_config["client"]["arguments"] = arguments
+    result = author_program.load_config(write_config(tmp_path, catcher_config))
+    assert result["client"]["arguments"] == arguments
+
+
+@pytest.mark.parametrize(
+    "arguments",
+    [
+        [
+            "--config-task-path",
+            "realtime_expo_catcher_task.config",
+            "--config_task_path",
+            "configs.task.pick",
+        ],
+        [
+            "--config_task_path=configs.task.pick",
+            "--config-task-path",
+            "realtime_expo_catcher_task.config",
+        ],
+        [
+            "--config_task_path",
+            "realtime_expo_catcher_task.config",
+            "--config-task-path=configs.task.pick",
+        ],
+        [
+            "--config-task-path",
+            "realtime_expo_catcher_task.config",
+            "--config_task_path=realtime_expo_catcher_task.config",
+        ],
+    ],
+)
+def test_tyro_alias_duplicates_cannot_override_routing(
+    tmp_path, catcher_config, arguments
+):
+    catcher_config["client"]["arguments"] = arguments
+    with pytest.raises(ValueError, match="exactly one --config-task-path"):
+        author_program.load_config(write_config(tmp_path, catcher_config))
+
+
+def test_single_underscore_alias_cannot_select_droid(tmp_path, catcher_config):
+    catcher_config["client"]["arguments"] = ["--config_task_path=configs.task.pick"]
+    with pytest.raises(ValueError, match="installed Catcher task module"):
+        author_program.load_config(write_config(tmp_path, catcher_config))
+
+
+@pytest.mark.parametrize("flag", ["model", "task"])
+def test_server_configuration_paths_must_be_absolute(
+    tmp_path, monkeypatch, catcher_config, flag
+):
+    monkeypatch.chdir(tmp_path)
+    if flag == "model":
+        catcher_config["arguments"][0] = "--config=model_config.py"
+    else:
+        catcher_config["arguments"][-1] = "config.py"
+    with pytest.raises(ValueError, match="absolute server"):
+        author_program.load_config(write_config(tmp_path, catcher_config))
+
+
+def test_worker_configuration_path_must_be_absolute(
+    tmp_path, monkeypatch, catcher_config
+):
+    write_config(tmp_path, catcher_config)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(ValueError, match="absolute worker"):
+        author_program.load_config(Path("config.json"))
+
+
 @pytest.mark.parametrize("platform", [None, "cpu", "cuda,cpu", "gpu"])
 def test_inherited_non_cuda_refuses_before_output(
     tmp_path, monkeypatch, catcher_config, platform
@@ -241,6 +319,38 @@ def test_schema2_cannot_hide_from_canonical_profile_detection(
     path.write_text(json.dumps(job))
     with pytest.raises(ValueError, match="one explicit --config"):
         subset.load_job(path)
+
+
+def test_relative_config_uses_actual_worker_cwd_before_schema2_rejection(
+    tmp_path, monkeypatch, catcher_config
+):
+    path, job = make_job(tmp_path, catcher_config)
+    job["arguments"] = ["--config", "config.json"]
+    path.write_text(json.dumps(job))
+    caller = tmp_path / "caller"
+    caller.mkdir()
+    (caller / "config.json").write_text('{"schema_version": 1}\n')
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.chdir(caller)
+    with pytest.raises(ValueError, match="absolute --config"):
+        subset.load_job(path)
+
+
+def test_schema1_relative_worker_config_keeps_historical_admission(
+    tmp_path, monkeypatch, catcher_config
+):
+    path, job = make_job(tmp_path, catcher_config)
+    legacy = {**catcher_config, "schema_version": 1}
+    (tmp_path / "config.json").write_text(json.dumps(legacy))
+    caller = tmp_path / "caller"
+    caller.mkdir()
+    (caller / "config.json").write_text(json.dumps(catcher_config))
+    job["arguments"] = ["--config", "config.json"]
+    job["max_wall_s"] = 5
+    path.write_text(json.dumps(job))
+    monkeypatch.setattr(runner, "ROOT", tmp_path)
+    monkeypatch.chdir(caller)
+    assert subset.load_job(path) == job
 
 
 def test_canonical_receipt_uses_validated_catcher_identity(

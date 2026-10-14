@@ -16,6 +16,11 @@ no task, learner, JAX, or simulator. Nested config overrides are rejected becaus
 they could change this task routing. Unknown role fields and CUDA environment
 overrides are also rejected.
 
+Schema2 requires absolute worker, model, and task configuration paths. Validation
+and execution must select the same files across their different working directories.
+Client task-selector option names normalize Tyro's underscore/hyphen aliases.
+Exactly one selector is required. Its module value remains unchanged.
+
 Start through the canonical runner with inherited `JAX_PLATFORMS=cuda`.
 The worker retains the exact GPU UUID that its existing lease check authenticated.
 Its server fixes legacy `JAX_PLATFORM_NAME=cuda`, including when the shell has a

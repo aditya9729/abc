@@ -128,12 +128,20 @@ def _author_config(job: dict[str, Any]) -> dict[str, Any] | None:
     if selected.config is None:
         return None
     path = Path(selected.config)
+    requested_path = path
+    if not path.is_absolute():
+        from abc_bench.runner import ROOT
+
+        # execute_command starts the worker at ROOT, regardless of the shell cwd.
+        path = ROOT / path
     try:
         value = json.loads(path.read_text())
     except (OSError, ValueError):
         return None
     if not isinstance(value, dict) or value.get("schema_version") != 2:
         return None
+    if not requested_path.is_absolute():
+        raise ValueError("Schema2 Catcher jobs require an absolute --config path")
     if not (
         len(arguments) == 2
         and arguments[0] == "--config"
