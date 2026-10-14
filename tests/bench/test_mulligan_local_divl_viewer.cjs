@@ -185,6 +185,7 @@ test('wrong full-grid scope, partial acceptance and malformed evidence cannot di
     d => { d.num_action_samples = 1; }, d => { d.eval_seed = null; },
     d => { d.env_seed = 1; }, d => { d.episodes = 50; },
     d => { d.completed_episodes = 7999; }, d => { d.completed_episodes = 8001; },
+    d => { d.completed_episodes = -1; },
     d => { d.completed_episodes = '8000'; }, d => { d.successes = null; },
     d => { d.successes = 8001; }, d => { d.successes = -1; },
     d => { d.successes = 0.5; }, d => { delete d.receipt; },
@@ -208,9 +209,10 @@ test('wrong full-grid scope, partial acceptance and malformed evidence cannot di
   }
 });
 
-test('full-grid template labels one seed, separate cohorts and no new video claim', () => {
+test('full-grid template labels one seed, overlapping starts, separate scores and no new video claim', () => {
   const section = template.match(/<div id="mulligan-local-divl-full-grid"[\s\S]*?<\/section>/)[0];
-  assert.match(section, /50-start pilot and 400-episode training monitors/);
+  assert.match(section, /8,000-start cohort includes the earlier 50 pilot starts/);
+  assert.match(section, /score stays separate from the 50-start pilot score and 400-episode training monitors/);
   assert.match(section, /one training seed/);
   assert.match(section, /does not establish a five-seed aggregate or paper match/);
   assert.match(section, /No new video is claimed/);

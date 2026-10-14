@@ -1,8 +1,10 @@
 # Local DIVL full-grid viewer contract
 
 The optional `mulligan.local_divl.full_grid_evaluation` record adds a separate
-card. It does not change the existing 50-start scores or videos. The original
-400-episode training monitors remain a separate cohort. An absent record hides
+card. It does not change the existing 50-start scores or videos. This 8,000-start
+cohort includes the earlier 50 pilot starts. Its score stays separate from the
+pilot score. The 400-episode training monitors remain a separate cohort.
+An absent record hides
 the card. A pending record shows only a reported completion count. It does not
 show a success count, failure count or partial success rate.
 
