@@ -234,6 +234,7 @@ def native_double(tmp_path, monkeypatch):
 
     monkeypatch.setitem(sys.modules, "gymnasium", types.SimpleNamespace(make=make))
     monkeypatch.setitem(sys.modules, "humanoid_bench", types.SimpleNamespace())
+
     def state(_env, _obs, _out, control):
         calls.append(("state", control))
         return {
