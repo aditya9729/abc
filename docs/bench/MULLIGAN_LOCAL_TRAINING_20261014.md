@@ -61,8 +61,8 @@ not per-action inference latency measurements.
 
 The viewer's released R0/R1 scores remain 34/50 and 46/50. Those checkpoints use
 the later DIVL stage, while our current local checkpoint is IDQL. Equal start
-identities do not make these identical training stages. Local DIVL is now running;
-its result remains pending.
+identities do not make these identical training stages. The later
+[local DIVL result](MULLIGAN_LOCAL_DIVL_20261014.md) is now accepted: 46/50 and 47/50.
 
 ## Complete recordings and acceptance
 
@@ -109,12 +109,11 @@ We can now train on recorded deployment data with the author's learner and inspe
 the resulting policy. We have not collected a fresh round of human corrections.
 We have not isolated targeted collection from additional data or optimizer work.
 
-The original frozen-actor DIVL stage started at 01:01 UTC on 14 October as
-`author-subset-20261014T010158-7967ea`. Its log confirms the accepted parent actor,
-parent normalization, and critic/value-only updates. It retains the author's
-150,000-update budget and final evaluations. Tool session 8594 owns the canonical
-GPU0 job with a six-hour worker watchdog. Completion and frozen-actor acceptance
-remain pending. No second GPU job is running.
+The original frozen-actor DIVL stage completed as
+`author-subset-20261014T010158-7967ea`. Its accepted checkpoint confirms the fixed
+parent actor and normalization after 150,000 critic/value updates. The
+[later report](MULLIGAN_LOCAL_DIVL_20261014.md) records monitoring, matched scores,
+and complete videos. Its N32 score is lower on this small cohort.
 
 The next comparisons must match their learner, training budget, and evaluation starts.
 Record supervision cost as well as episode count. Keep final evaluation starts
@@ -124,5 +123,5 @@ separates SGS reset selection, Mulligan collection, and Real-Time EXPO updates.
 Root owns execution and acceptance. The method reviewer checks recipe fidelity.
 The launcher and recorder agents own process and video boundaries. Author code
 owns learning and control. The [architecture](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.mmd)
-marks future DIVL and R1 Lite connections. This text uses STE guidance;
+shows both completed local stages and the future R1 Lite connection. This text uses STE guidance;
 full ASD-STE100 compliance was not checked.

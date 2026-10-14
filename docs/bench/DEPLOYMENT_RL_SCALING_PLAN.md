@@ -4,11 +4,11 @@ The objective is to measure whether additional useful experience improves a
 deployed policy. The harness must control collection, learning, and evaluation.
 More updates or more simulator instances do not establish that improvement.
 This document separates the scaling plan from measured implementation progress.
-It includes accepted local IDQL training on the original Mulligan task.
+It includes accepted local IDQL and DIVL training on the original Mulligan task.
 
 Execution update: the [original Mulligan experiment](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.md)
 now has a working command launcher, matched released-policy scores and six full
-native videos. Original IDQL training has completed. The wider collection feedback and
+native videos. Both original local training stages have completed. The wider collection feedback and
 R1 Lite connections below remain proposed.
 
 ## The first scaling decision
@@ -61,11 +61,15 @@ The released Mulligan policies scored 34/50 and 46/50 on matched starts.
 This is a useful visible check of the author setup, not local learning evidence.
 Local original IDQL training completed 150,000 updates on 14 October. Its original
 monitoring evaluations score 372/400 with one candidate and 382/400 with 32.
-These starts differ from the 50-start viewer cohort. The local DIVL stage is
-running; its result remains pending. Neither score isolates guided data collection.
+These starts differ from the 50-start viewer cohort. The local DIVL stage completed
+150,000 critic/value updates with the actor and normalizer fixed. Its monitoring
+scores are 365/400 and 376/400. Neither cohort isolates guided data collection.
 The [local frozen evaluation](MULLIGAN_LOCAL_TRAINING_20261014.md) scores 46/50
 at N1 and 49/50 at N32 on the viewer cohort. Three complete local recordings
 are published. These local IDQL results stay separate from released DIVL scores.
+The [local DIVL evaluation](MULLIGAN_LOCAL_DIVL_20261014.md) scores 46/50 and 47/50
+on those same viewer starts. All N1 rows exactly match IDQL. At N32, DIVL fixes
+one start and loses three. This cohort shows no gain from the added stage.
 
 The Catcher BC24 policy and released Real-Time EXPO learner passed a normally
 installed CPU integration check. It used two numerical-fixture updates and
@@ -152,7 +156,7 @@ The inspected repositories provide different parts of the system:
 | Existing component | What it provides | Remaining connection |
 | --- | --- | --- |
 | Legacy `nrh/scaling.py` and `SCALING_AND_GENERATION.md`, Sadhana branch `e59322e` | Nested data-diversity cohorts, fixed training budgets, lineage checks, comparisons | An outcome-driven choice of the next collection start |
-| `abc_bench/runner.py`, `author_program.py`, and `mulligan_program.py` | GPU0 supervision, bounded author commands, accepted local IDQL training and evaluation | Accept local DIVL and connect collection feedback |
+| `abc_bench/runner.py`, `author_program.py`, and `mulligan_program.py` | GPU0 supervision, bounded author commands, accepted local IDQL/DIVL training and evaluation | Connect collection feedback |
 | `abc_bench/captured_reset.py` | Captured ABC validation resets | A separate validated TRAIN reset bank; validation captures must not become curriculum data |
 | Current Sadhana `mixture.py`, `rollout_artifacts.py`, and `rollout_execution.py`, inspected at `85fe831` | Real-data floor sampling, persistent rollout evidence, execution events | Method-specific collection feedback and an original RL learner connection |
 | Existing result viewer | Released Mulligan scores and six videos; local IDQL scores and three full videos | Learning curves against data, compute, and supervision cost; per-start failure maps |
@@ -283,8 +287,8 @@ operator segments is also not a new human intervention policy. Label both.
 The 50-start run is a visible pilot; it does not reproduce the full grid score.
 
 The original README documents these entrypoints. The design check and the
-matched 50-start released-policy evaluation have run. Original IDQL training
-is accepted. The later DIVL stage must use the accepted local parent's absolute
+matched 50-start released-policy evaluation have run. Original IDQL and DIVL training
+are accepted. The DIVL stage uses the accepted local parent's absolute
 `checkpoints/final_model` path. Do not let `--parent local` resolve a different run:
 
 ```bash

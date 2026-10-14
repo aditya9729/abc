@@ -5,13 +5,13 @@ flowchart TD
         G[Original Sobol start manifest]
         L[Original IDQL training: 150000 updates, accepted]
         M[Author monitoring: N1 372/400; N32 382/400]
-        V[Original frozen-actor DIVL stage: running, result pending]
+        V[Original frozen-actor DIVL: 150000 updates, accepted]
         E[Original Panda Square-Narrow evaluator]
         D -->|original actor and critic sample rules| L
         L -->|original final evaluations| M
         L -->|accepted frozen local IDQL checkpoint| E
         L -->|accepted local final model| V
-        V -. future trained policy evaluation .-> E
+        V -->|accepted local DIVL checkpoint| E
         P -->|frozen policies| E
         G -->|same 50 starts| E
     end
@@ -26,7 +26,7 @@ flowchart TD
         W -->|original command| E
         E -->|unchanged native results| R
         E -->|synchronous rendering observation| O
-        O -->|six released and three local complete episodes| R
+        O -->|six released and six local complete episodes| R
         R -->|separate released and local scores and clips| UI
     end
     M -->|accepted monitoring evidence| R
