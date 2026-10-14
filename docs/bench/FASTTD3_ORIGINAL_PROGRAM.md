@@ -81,7 +81,9 @@ Payload equality and CPU fixtures do not settle native dependency compatibility.
 Runtime provenance also records installed JAX and JAXlib versions.
 The authors do not pin these versions. Cached JAX0.4.28 rejected the original
 `JAX_DEFAULT_MATMUL_PRECISION=highest` setting before CLI help.
-Root owns a declared compatible runtime repair and actual original CLI checks.
+The prepared runtime now uses JAX/JAXlib 0.4.35. The original CLI exits zero.
+The original one-world wrapper passes CPU OSMesa reset, eight zero controls, rendering,
+and close. These checks do not qualify the original EGL training path.
 The supervisor changes no author environment setting or import.
 
 ## Output, evaluation and cleanup
@@ -116,11 +118,23 @@ normal payload completeness, and separate full/qualification admission bounds.
 They establish no native task score. The first installed test attempt exposed
 the normal virtual-environment symlink case; its failure log is preserved.
 
-This isolated Git worktree contains only the supervisor, narrow coordinator
-admission, tests and documentation. Its neutral test wheel has27 tracked ABC
-assets. It is not a complete ABC native asset release. Root builds the final
-combined package from main and preserves its full asset inventory.
-No live source, prefix, GPU job, ledger or viewer changed during preparation.
+Root integrated the supervisor and runtime provenance changes into main.
+The full normal wheel has 1149 authenticated source/wheel/installed payloads,
+including 914 assets. It is installed in an idle regression prefix.
+All 58 selected installed supervisor, admission and viewer tests pass.
+Actual source/runtime metadata checks authenticate 12 Fast and 2780 HumanoidBench
+payloads. Prepared 1-call, 12-call and full-job configurations pass admission.
+Ruff and the patch whitespace check pass. The earlier full-suite failures remain
+unresolved; this is not a green full-suite claim.
+
+Root release evidence is under
+`/home/user/aditya/RL/builds/fasttd3-original-root-release-20261014/`.
+`NORMAL_WHEEL_AUTHENTICATION.json` identifies the wheel and installed prefix.
+`ACTUAL_INSTALLED_METADATA.json` records source/runtime checks and three job pins.
+The live canonical prefix remains unchanged while Mulligan holds GPU0.
+No Fast GPU/EGL qualification, full 128-world run or score exists yet.
+The prepared jobs are not queued. Admission tests establish configuration validity only.
+Root must accept native rendering, allocation and update behavior before training.
 
 Root reviews, releases and executes the command. The runtime agent qualifies
 dependencies and assets. The recipe reviewer checks original task defaults.

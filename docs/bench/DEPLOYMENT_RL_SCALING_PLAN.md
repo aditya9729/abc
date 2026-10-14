@@ -55,7 +55,7 @@ ready. Changing the embodiment, controller, policy, reset distribution, and
 learner together would prevent attribution. Whole-body adaptation follows a
 measured manipulation result; it is not established by the author-task checks.
 
-## Evidence as of 13 October 2026
+## Evidence as of 14 October 2026
 
 The released Mulligan policies scored 34/50 and 46/50 on matched starts.
 This is a useful visible check of the author setup, not local learning evidence.
@@ -99,8 +99,8 @@ Evidence paths, under `/home/user/aditya/RL/builds/`:
 the tested files and a timestamped Mulligan training snapshot. Root verified
 all 13 data-seal members, including the downloaded archive.
 
-The SGS author site still states that code is coming soon. We will preserve the
-original-implementation requirement and prepare its reset/outcome boundary.
+The SGS author site still states that code is coming soon, checked on 14 October.
+We will preserve the original-implementation requirement and prepare its reset/outcome boundary.
 No unofficial SGS learner or sampler has been admitted as an author result.
 
 ## What the papers contribute
@@ -148,10 +148,10 @@ The inspected repositories provide different parts of the system:
 | Existing component | What it provides | Remaining connection |
 | --- | --- | --- |
 | Legacy `nrh/scaling.py` and `SCALING_AND_GENERATION.md`, Sadhana branch `e59322e` | Nested data-diversity cohorts, fixed training budgets, lineage checks, comparisons | An outcome-driven choice of the next collection start |
-| `abc_bench/runner.py`, `author_program.py`, and `mulligan_program.py` | GPU0 job supervision and bounded original EXPO/Mulligan command launches | Accept completed local training and connect collection feedback |
+| `abc_bench/runner.py`, `author_program.py`, and `mulligan_program.py` | GPU0 supervision, bounded author commands, accepted local IDQL training and evaluation | Accept local DIVL and connect collection feedback |
 | `abc_bench/captured_reset.py` | Captured ABC validation resets | A separate validated TRAIN reset bank; validation captures must not become curriculum data |
 | Current Sadhana `mixture.py`, `rollout_artifacts.py`, and `rollout_execution.py`, inspected at `85fe831` | Real-data floor sampling, persistent rollout evidence, execution events | Method-specific collection feedback and an original RL learner connection |
-| Existing result viewer | Matched Mulligan released-policy scores and six full native videos | Local learning curves against data, compute, and supervision cost; per-start failure maps |
+| Existing result viewer | Released Mulligan scores and six videos; local IDQL scores and three full videos | Learning curves against data, compute, and supervision cost; per-start failure maps |
 
 The current real-data floor applies over an epoch. It is not an exact
 per-update actor/critic balance. The legacy comparison also requires equal
