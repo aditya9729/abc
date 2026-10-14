@@ -1,0 +1,18 @@
+flowchart TD
+    BC["Original BC24"] --> Actor["Actor agent: flow-policy backend"]
+    Demo["Authenticated Catcher demonstrations"] --> Loader["Data agent: state-data loader"]
+    Loader --> Replay["Original replay and batch processing"]
+    Physics["Original Catcher physics"] --> Task["Task agent: observations, actions, rewards"]
+    Task -->|transition data| Replay
+    Replay --> Learner["Released EXPO update equations\nExplicit state encoder and input branches"]
+    Actor --> Learner
+    Learner --> Driver["Original training loop and AsyncChunkSampler"]
+    Driver -->|action commands| Task
+    Learner --> Checkpoint["Saved model, optimizer and RNG state"]
+    Checkpoint --> Review["Actor agent checker\nRoot executes original full restore"]
+    Task --> Trace["Complete videos and native trace"]
+    Trace --> Accept["Root: independent acceptance"]
+    Review --> Accept
+    Accept --> Viewer["Viewer: short native integration\nNo frozen learned-policy score"]
+    Checkpoint -.-> Future["Pending: larger recipe study\nand matched frozen evaluation"]
+    Future -.-> Scaling["Pending: deployment-data scaling\nthen R1 Lite adaptation"]

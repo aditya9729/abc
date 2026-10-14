@@ -19,6 +19,13 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <div id="catcher-viewer" class="grid"></div>
 <p><small>Each video contains the author's 256-frame evaluation stream, including automatic resets after termination. The outcome describes the first episode only. Native 128 × 128 rendering; 15 fps playback is half the simulation rate. These videos do not measure wall-clock real-time control.</small></p>
 <p id="catcher-learning"></p>
+<div id="catcher-training" hidden>
+<h3>Real-Time EXPO · native training check</h3>
+<p id="catcher-training-summary"></p>
+<p>These are complete training episodes from the Catcher adapter. The policy and starting states change during training. These clips do not compare frozen policies.</p>
+<div id="catcher-training-clips" class="grid"></div>
+<p><small>Playback uses 30 simulation frames per second. CPU execution does not establish a wall-clock real-time control rate.</small></p>
+</div>
 </section>
 <section id="mulligan" class="card" aria-labelledby="mulligan-heading" style="margin-bottom:22px" hidden>
 <h2 id="mulligan-heading">Mulligan · native Panda simulation</h2>
@@ -486,6 +493,7 @@ function renderCatcher(result) {
   document.getElementById('catcher').hidden = !result;
   if (!result) return;
   text('catcher-learning', result.learning_status);
+  renderCatcherTraining(result.native_training);
   if (!Array.isArray(result.profiles) || result.profiles.length !== 3) throw Error('Invalid Catcher profiles');
   const box = document.getElementById('catcher-viewer');
   const identity = JSON.stringify(result.profiles);
@@ -506,6 +514,32 @@ function renderCatcher(result) {
     video.src = profile.video;
     video.setAttribute('aria-label', profile.label);
     panel.append(heading, outcome, video);
+    box.append(panel);
+  }
+  box.dataset.identity = identity;
+}
+function renderCatcherTraining(result) {
+  document.getElementById('catcher-training').hidden = !result;
+  if (!result) return;
+  if (result.status !== 'integration_passed' || !Array.isArray(result.clips) || !result.clips.length) throw Error('Invalid Catcher training evidence');
+  text('catcher-training-summary', result.summary);
+  const box = document.getElementById('catcher-training-clips');
+  const identity = JSON.stringify(result.clips);
+  if (box.dataset.identity === identity) return;
+  box.replaceChildren();
+  for (const clip of result.clips) {
+    if (!/^[0-9a-f]{16}\.mp4$/.test(clip.video) || clip.complete !== true || typeof clip.solved !== 'boolean') throw Error('Invalid Catcher training clip');
+    const episode = integer(clip.episode, 'Catcher training episode', 1);
+    const controls = integer(clip.controls, 'Catcher training controls', 1);
+    const panel = document.createElement('div');
+    const label = document.createElement('p');
+    label.textContent = 'Training episode ' + episode + ' · ' + (clip.solved ? 'success' : 'failure') + ' · ' + controls + ' controls';
+    const video = document.createElement('video');
+    video.controls = true;
+    video.preload = 'metadata';
+    video.src = clip.video;
+    video.setAttribute('aria-label', 'Catcher training episode ' + episode);
+    panel.append(label, video);
     box.append(panel);
   }
   box.dataset.identity = identity;

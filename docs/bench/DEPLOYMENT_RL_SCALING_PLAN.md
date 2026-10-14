@@ -75,7 +75,10 @@ updates at batch 64/UTD 20. Neither result establishes native online learning.
 The authentic Catcher expert archive is now available: 1,015,808 records,
 including 1,011,008 records from complete episodes. Its loader passes the
 authentic-data check. Scripted native task and transport fixture checks pass;
-the combined native driver admission remains pending.
+the [later native driver check](REALTIME_CATCHER_ONLINE_20261014.md) now completes
+3,029 controls and 34 released-learner update calls with a verified checkpoint.
+Eight of 44 complete training episodes succeed. This establishes integration,
+not a frozen performance gain or the full paper experiment.
 Per-step rewards are absent from the archive;
 source-derived sparse rewards require an explicit contract. Reward and stored
 success flags are not interchangeable.

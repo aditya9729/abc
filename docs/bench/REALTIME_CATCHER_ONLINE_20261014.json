@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "scope": "Accepted native online integration only; no frozen learned-policy score or exact paper reproduction",
+  "source_commit": "21fe3d3b7d913c80836496817965932f49e0aedf",
+  "run_dir": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver/actual-cpu-3072-r2",
+  "native_controls": 3029,
+  "completed_training_episodes": 44,
+  "training_successes": 8,
+  "original_update_calls": 34,
+  "critic_filter_updates": 680,
+  "frozen_score": null,
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/ROOT_NATIVE_ONLINE_ACCEPTANCE.json",
+      "bytes": 3392,
+      "sha256": "83423fe302b8af63cf6a546b9a03dbe009d941cf9c56c048e744a7793f1dcb24"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver/actual-cpu-3072-r2/PROCESS_RESULT.json",
+      "bytes": 1981,
+      "sha256": "3a80be57484d2ff69d8d9ad80820a7dfa9140440d0cfd03de72a2c39552179a8"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver/actual-cpu-3072-r2/PREPARATION.json",
+      "bytes": 4233,
+      "sha256": "a3fe626d9bc70a02a0dd70220a817d0bc39e6d5b10f284f69f5ac89a8d6788f4"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver/R2_BOUNDARY_OBSERVATION.json",
+      "bytes": 27779,
+      "sha256": "2323aca1492e55f22a7e8bda7e74d00903b103ae448cfc4f30a3635ec2d38674"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver-review/ACTUAL_R2_CHECKPOINT.json",
+      "bytes": 16949,
+      "sha256": "ab1bef91122bb88c179577fc684598a627b52187ae926060f3c4cd61bbbf23c5"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver-review/ADMISSION_REVIEW.json",
+      "bytes": 5503,
+      "sha256": "d931699653d29f699f4972d357affe5b8bc0257614567c5adc00e650ffc89a0d"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver-review/check_checkpoint.py",
+      "bytes": 13984,
+      "sha256": "0ec4af79ab903f2610fff54c405e98d68b4f7137543fd8ae021ea125905ef7c3"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-driver/inspect_completed.py",
+      "bytes": 11618,
+      "sha256": "abe45e286f450982689617ab99e6edc6e6feea0a8ffa73341496291d41afe128"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/EXECUTION_SOURCE_MANIFEST_R2.json",
+      "bytes": 10720,
+      "sha256": "bddc82e2c9f70c0bde48a5e99151d38850147cecb23fa3764fc7405568d72857"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/EXECUTION_INSTALLED_AUDIT_R2.json",
+      "bytes": 2432,
+      "sha256": "8d2c561c5508f8933d2befa160aa049cf7a198c105850d8f5f418d245628cd5f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/logging-repair/STATE_BATCH_LOGGING.patch",
+      "bytes": 1177,
+      "sha256": "d357f483f170f517f340b7b5175e5c9c49613e979490c0a0985adccb00f9a7e6"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/logging-repair/INSTALLED_LOGGING_TESTS.log",
+      "bytes": 530,
+      "sha256": "16406cfe255ae8c4f8da01c55068c55dd9c5346a584d9abd3c905c0cd5e07b69"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/NATIVE_PUBLICATION_TESTS.log",
+      "bytes": 98,
+      "sha256": "7548474fb14d06939e7c5c04118884c7575e481e66341dcb60a44054161cc931"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-publication/PUBLICATION.json",
+      "bytes": 1157,
+      "sha256": "14b30d03510f2bbb6a1e9fcd29b19899ac6d6133e42a1be7d8d583e431c316f1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-publication/VIEWER_BROWSER_RESULT.json",
+      "bytes": 811,
+      "sha256": "4d5a15931c18f3e9e0879cd3a12c3fc323814b8220e1f4d11a5506efb58081c7"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-publication/publish.py",
+      "bytes": 3998,
+      "sha256": "35f9e5051e8812a363e4949cad30cdce32be96bd66763b0300e66d11a8ae6f4d"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-publication/check_viewer.py",
+      "bytes": 4894,
+      "sha256": "e1bf2c6b58b84e8a36d2482494fa0c7058ed8334480bb93a30cede685d2dcc3e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-publication-wheel/abc_minimal-0.1.0-py3-none-any.whl",
+      "bytes": 48907920,
+      "sha256": "eb25ac44cd604aa3ca251ad8081e8fd5dbad7180e0ed4f5882df16f35290440c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-integration-20261013/native-publication/FINAL_INDEPENDENT_REVIEW.json",
+      "bytes": 4494,
+      "sha256": "8a2bbb307004ede5bd21c5ef24192a58d5bda48d680ea43207d0f06ecaa54127"
+    }
+  ],
+  "review_amendment": "Final19th pin links independent review of preceding18pins and the report/viewer; no scientific claim changed."
+}
