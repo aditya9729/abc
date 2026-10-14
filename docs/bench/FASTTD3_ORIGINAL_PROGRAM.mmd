@@ -1,0 +1,10 @@
+flowchart LR
+  R[Root: canonical GPU0 lease and finite job] --> S[Process supervisor]
+  A[Recipe reviewer: pristine author task defaults] --> S
+  P[Runtime agent: normal Fast and HumanoidBench payloads] --> S
+  S --> C[Unchanged author train.py in fresh output directory]
+  C --> W[Original native worlds and FastTD3 learner]
+  W --> O[Original checkpoints and offline W&B output]
+  S --> E[Process-only receipt and stdout]
+  O -. root actual acceptance pending .-> V[Measured native returns and videos]
+  E -. canonical owned cleanup .-> R

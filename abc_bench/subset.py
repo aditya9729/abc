@@ -19,6 +19,7 @@ from abc_bench.resources import inspect_reserved_gpu
 ALLOWED_MODULES = {
     "abc_bench.author_program",
     "abc_bench.mulligan_program",
+    "abc_bench.fasttd3_program",
     "abc_author_subset.host",
     "abc_bench.subset_worker",
     "abc_bench.upstream_eval",
@@ -158,6 +159,29 @@ def load_job(path: Path) -> dict[str, Any]:
                 "Mulligan GPU jobs need the declared worker timeout plus60s cleanup"
             )
         maximum_allowed = MAX_WORKER_SECONDS + CLEANUP_SECONDS
+    if job["module"] == "abc_bench.fasttd3_program":
+        from abc_bench.fasttd3_program import (
+            CLEANUP_SECONDS,
+            MAX_WORKER_SECONDS,
+            QUALIFICATION_SECONDS,
+            load_config,
+        )
+
+        if len(arguments) != 2 or arguments[0] != "--config":
+            raise ValueError("Original FastTD3 jobs require one explicit --config")
+        config = load_config(Path(arguments[1]))
+        if (
+            type(maximum) not in (int, float)
+            or config["timeout_s"] + CLEANUP_SECONDS > maximum
+        ):
+            raise ValueError(
+                "Original FastTD3 jobs need the worker timeout plus60s cleanup"
+            )
+        maximum_allowed = (
+            MAX_WORKER_SECONDS
+            if config["phase"] == "original_humanoidbench_train"
+            else QUALIFICATION_SECONDS
+        ) + CLEANUP_SECONDS
     if (
         job["module"] == "expo_abc_adapter.stage"
         and type(maximum) in (int, float)
@@ -300,11 +324,14 @@ def run_job(args: Any) -> dict[str, Any]:
             "status": "running",
             "task": "h1hand-stand-v0"
             if job["module"] == "sadhana_fasttd3_hb.stage"
+            else "h1hand-hurdle-v0"
+            if job["module"] == "abc_bench.fasttd3_program"
             else "SquareNarrow"
             if job["module"] == "abc_bench.mulligan_program"
             else "put_plastic_bottles_in_bin",
             "embodiment": "unitree_h1_with_hands"
-            if job["module"] == "sadhana_fasttd3_hb.stage"
+            if job["module"]
+            in {"sadhana_fasttd3_hb.stage", "abc_bench.fasttd3_program"}
             else "franka_panda"
             if job["module"] == "abc_bench.mulligan_program"
             else "native_yam",
@@ -312,6 +339,8 @@ def run_job(args: Any) -> dict[str, Any]:
                 "claim_scope",
                 "Bounded original FastTD3 Stand integration/capacity; no convergence, ABC transfer or paper reproduction claim"
                 if job["module"] == "sadhana_fasttd3_hb.stage"
+                else "Original FastTD3 Hurdle process execution; native returns, checkpoints and recipe fidelity require separate acceptance"
+                if job["module"] == "abc_bench.fasttd3_program"
                 else "Original Mulligan process execution; native results and checkpoints require separate acceptance"
                 if job["module"] == "abc_bench.mulligan_program"
                 else "small ABC-VLA transfer diagnostic; not full paper reproduction",
