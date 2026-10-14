@@ -50,6 +50,12 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <div id="mulligan-local-clips" class="grid"></div>
 <p><small>These recordings use our saved checkpoint and the same numbered starts as the released-policy clips. Scores from the author's 400-start monitoring evaluation are reported separately from the 50-start viewer comparison.</small></p>
 </div>
+<div id="mulligan-local-divl" hidden>
+<h3 id="mulligan-local-divl-heading"></h3>
+<p id="mulligan-local-divl-summary"></p>
+<div id="mulligan-local-divl-clips" class="grid"></div>
+<p><small>Local DIVL is a later frozen-actor value-learning stage, separate from local IDQL and the released checkpoints. Complete native videos show fixed points 0, 1 and 2 at 20 simulation frames per second. The author's 400-start monitoring scores remain a separate cohort. Playback does not measure wall-clock control latency.</small></p>
+</div>
 </section>
 <section class="card" aria-labelledby="rtc-heading" style="margin-bottom:22px">
 <h2 id="rtc-heading">ABC-YAM RTC · earlier checks</h2>
@@ -612,6 +618,7 @@ function renderMulligan(result) {
   document.getElementById('mulligan').hidden = !result;
   if (!result) return;
   renderMulliganLocal(result.local_training);
+  renderMulliganLocal(result.local_divl, 'mulligan-local-divl');
   const policies = result.policies;
   if (!Array.isArray(policies) || policies.length !== 2) throw Error('Invalid Mulligan policy pair');
   const labels = policies.map(policy => {
@@ -677,13 +684,31 @@ function renderMulligan(result) {
   show();
   box.dataset.identity = identity;
 }
-function renderMulliganLocal(result) {
-  document.getElementById('mulligan-local').hidden = !result;
+function renderMulliganLocal(result, container = 'mulligan-local') {
+  const section = document.getElementById(container);
+  section.hidden = true;
   if (!result) return;
   if (result.status !== 'accepted_local_checkpoint' || !Array.isArray(result.clips)) throw Error('Invalid local Mulligan evidence');
-  text('mulligan-local-heading', result.label);
-  text('mulligan-local-summary', result.summary);
-  const box = document.getElementById('mulligan-local-clips');
+  let label = result.label, summary = result.summary;
+  if (container === 'mulligan-local-divl') {
+    if (result.stage !== 'divl_head' || result.num_action_samples !== 32 || !Array.isArray(result.scores) || result.scores.length !== 2 || result.clips.length !== 3) throw Error('Incomplete local DIVL evidence');
+    const successes = result.scores.map((score, index) => {
+      if (score.n !== [1, 32][index] || score.episodes !== 50) throw Error('Local DIVL requires complete N1/N32 fifty-start scores');
+      const count = integer(score.successes, 'local DIVL successes');
+      if (count > 50) throw Error('Invalid local DIVL success count');
+      return count;
+    });
+    for (const [index, clip] of result.clips.entries()) {
+      const controls = integer(clip.controls, 'local DIVL controls', 1);
+      if (clip.point !== index || clip.complete !== true || typeof clip.solved !== 'boolean' || controls > 400 || clip.frames !== controls + 1 || !/^[0-9a-f]{64}$/.test(clip.sha256) || clip.video !== clip.sha256.slice(0, 16) + '.mp4') throw Error('Local DIVL requires full videos for fixed points 0, 1 and 2');
+    }
+    label = 'Locally trained DIVL · N=32';
+    summary = 'Accepted on the same 50 viewer starts: N1 ' + successes[0] + '/50 · N32 ' + successes[1] + '/50. Candidate count and ranking change together; this comparison does not isolate a critic effect.';
+  }
+  section.hidden = false;
+  text(container + '-heading', label);
+  text(container + '-summary', summary);
+  const box = document.getElementById(container + '-clips');
   const identity = JSON.stringify(result.clips);
   if (box.dataset.identity === identity) return;
   box.replaceChildren();
@@ -698,7 +723,7 @@ function renderMulliganLocal(result) {
     video.controls = true;
     video.preload = 'metadata';
     video.src = clip.video;
-    video.setAttribute('aria-label', result.label + ', start ' + point);
+    video.setAttribute('aria-label', label + ', start ' + point);
     panel.append(label, video);
     box.append(panel);
   }

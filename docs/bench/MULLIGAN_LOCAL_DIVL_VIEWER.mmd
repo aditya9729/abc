@@ -1,0 +1,9 @@
+flowchart TD
+  A[Original accepted local DIVL checkpoint] -. root native evaluation .-> E[Matched full50 N1 and N32 scores plus fixed videos0,1,2]
+  E -. after root acceptance only .-> J[Optional local_divl JSON key]
+  J --> R[Existing local Mulligan renderer with explicit container]
+  R --> V[Separate local DIVL scores and three video controls]
+  I[Existing local IDQL data] --> R
+  T[Explicit CPU DOM fixtures] --> R
+  P[Root owns actual publication and browser acceptance] --> J
+  W[Viewer agent owns presentation only] --> R
