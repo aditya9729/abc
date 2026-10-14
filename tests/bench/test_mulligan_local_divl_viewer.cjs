@@ -105,3 +105,114 @@ test('pending/partial scores, wrong stage, and incomplete or foreign videos stay
     assert.equal(p.elements.has('mulligan-local-divl-summary'), false);
   }
 });
+
+function fullGrid(status = 'pending') {
+  // Synthetic display contract only. These are not observed native outcomes.
+  return {schema: 'mulligan.local-divl-full-grid/v1', status, task: 'square_narrow',
+    run_id: 'author-subset-20261014T000000-000000', training_seed: 1,
+    num_action_samples: 32, eval_seed: 42, env_seed: 42, episodes: 8000,
+    completed_episodes: status === 'pending' ? 70 : 8000,
+    successes: status === 'pending' ? null : 4000,
+    ...(status === 'pending' ? {} : {receipt: {path: '/explicit/synthetic/receipt.json', bytes: 1, sha256: 'a'.repeat(64)}})};
+}
+
+test('absent full-grid record leaves the earlier fifty-start scores and videos', () => {
+  const p = page();
+  p.render(fixture());
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid').hidden, true);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, true);
+  assert.match(p.elements.get('mulligan-local-divl-summary').textContent, /N1 25\/50 · N32 20\/50/);
+});
+
+test('pending full grid shows completed count without a success score or denominator', () => {
+  const p = page(), value = fixture();
+  value.local_divl.full_grid_evaluation = fullGrid();
+  p.render(value);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid').hidden, false);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, true);
+  assert.match(p.elements.get('mulligan-local-divl-full-grid-status').textContent, /pending acceptance.*70\/8,000.*No full-cohort score/);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid-rows').children.length, 0);
+  value.local_divl.full_grid_evaluation.completed_episodes = 8000;
+  p.render(value);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, true);
+  assert.match(p.elements.get('mulligan-local-divl-full-grid-status').textContent, /pending acceptance.*8,000\/8,000/);
+});
+
+test('only a complete accepted grid displays synthetic successes and failures', () => {
+  const p = page(), value = fixture();
+  value.local_divl.full_grid_evaluation = fullGrid('accepted_complete');
+  p.render(value);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, false);
+  const row = p.elements.get('mulligan-local-divl-full-grid-rows').children[0];
+  assert.deepEqual(row.children.map(cell => cell.textContent), ['8,000', '4,000', '4,000']);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid').querySelectorAll('video').length, 0);
+  for (const successes of [0, 8000]) {
+    value.local_divl.full_grid_evaluation.successes = successes;
+    p.render(value);
+    assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, false);
+  }
+});
+
+test('full-grid refresh, completion and removal retain earlier players and positions', () => {
+  const p = page(), value = fixture();
+  p.render(value);
+  const ids = ['mulligan-viewer', 'mulligan-local-clips', 'mulligan-local-divl-clips'];
+  const originals = ids.map(id => p.elements.get(id).querySelectorAll('video'));
+  originals.forEach(videos => { videos[0].currentTime = 2; });
+  value.local_divl.full_grid_evaluation = fullGrid();
+  p.render(value);
+  value.local_divl.full_grid_evaluation = fullGrid('accepted_complete');
+  p.render(value);
+  p.render(structuredClone(value));
+  value.local_divl.full_grid_evaluation = fullGrid();
+  p.render(value);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, true);
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid-rows').children.length, 0);
+  delete value.local_divl.full_grid_evaluation;
+  p.render(value);
+  ids.forEach((id, i) => {
+    const videos = p.elements.get(id).querySelectorAll('video');
+    assert.equal(videos[0], originals[i][0]);
+    assert.equal(videos[0].currentTime, 2);
+  });
+  assert.equal(p.elements.get('mulligan-local-divl-full-grid').hidden, true);
+});
+
+test('wrong full-grid scope, partial acceptance and malformed evidence cannot display a score', () => {
+  const changes = [
+    d => { d.schema = 'other'; }, d => { d.status = 'running'; },
+    d => { d.task = 'other'; }, d => { d.training_seed = 2; },
+    d => { d.num_action_samples = 1; }, d => { d.eval_seed = null; },
+    d => { d.env_seed = 1; }, d => { d.episodes = 50; },
+    d => { d.completed_episodes = 7999; }, d => { d.completed_episodes = 8001; },
+    d => { d.completed_episodes = '8000'; }, d => { d.successes = null; },
+    d => { d.successes = 8001; }, d => { d.successes = -1; },
+    d => { d.successes = 0.5; }, d => { delete d.receipt; },
+    d => { d.receipt.sha256 = 'missing'; }, d => { d.receipt.bytes = 0; },
+    d => { d.receipt.path = ''; }, d => { d.run_id = '<foreign>'; },
+  ];
+  for (const change of changes) {
+    const p = page(), value = fixture();
+    value.local_divl.full_grid_evaluation = fullGrid('accepted_complete');
+    change(value.local_divl.full_grid_evaluation);
+    assert.throws(() => p.render(value));
+    assert.equal(p.elements.get('mulligan-local-divl-full-grid').hidden, true);
+    assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, true);
+  }
+  for (const change of [d => { d.successes = 1; }, d => { d.receipt = fullGrid('accepted_complete').receipt; }]) {
+    const p = page(), value = fixture();
+    value.local_divl.full_grid_evaluation = fullGrid();
+    change(value.local_divl.full_grid_evaluation);
+    assert.throws(() => p.render(value));
+    assert.equal(p.elements.get('mulligan-local-divl-full-grid-results').hidden, true);
+  }
+});
+
+test('full-grid template labels one seed, separate cohorts and no new video claim', () => {
+  const section = template.match(/<div id="mulligan-local-divl-full-grid"[\s\S]*?<\/section>/)[0];
+  assert.match(section, /50-start pilot and 400-episode training monitors/);
+  assert.match(section, /one training seed/);
+  assert.match(section, /does not establish a five-seed aggregate or paper match/);
+  assert.match(section, /No new video is claimed/);
+  assert.match(section, /Training seed 1 · 32 action candidates · evaluation seed 42 · environment seed 42/);
+});

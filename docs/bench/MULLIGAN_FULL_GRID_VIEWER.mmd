@@ -1,0 +1,12 @@
+flowchart LR
+  subgraph Root[Root owns native runs and publication]
+    A[Original Mulligan full-grid evaluation] -->|data| R[Accepted receipt or pending observation]
+    R -->|explicit projection| J[Optional full_grid_evaluation record]
+    J -->|release and publish after acceptance| V[Static viewer]
+  end
+  subgraph Candidate[Isolated UI candidate]
+    C[Small card renderer] -->|presentation source| V
+    F[Synthetic DOM and export fixtures] -->|CPU contract checks| C
+  end
+  V -->|display| O[Pending count or accepted 8,000-start outcomes]
+  P[Existing 50-start videos and 400-episode monitors] -->|preserved separately| V

@@ -69,6 +69,16 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <div id="mulligan-local-divl-clips" class="grid"></div>
 <p><small>Local DIVL is a later frozen-actor value-learning stage, separate from local IDQL and the released checkpoints. Complete native videos show fixed points 0, 1 and 2 at 20 simulation frames per second. The author's 400-start monitoring scores remain a separate cohort. Playback does not measure wall-clock control latency.</small></p>
 </div>
+<div id="mulligan-local-divl-full-grid" hidden>
+<h3>Local DIVL · full locked-grid evaluation</h3>
+<p id="mulligan-local-divl-full-grid-status" role="status"></p>
+<p>Training seed 1 · 32 action candidates · evaluation seed 42 · environment seed 42.</p>
+<p id="mulligan-local-divl-full-grid-run" class="run-id"></p>
+<div id="mulligan-local-divl-full-grid-results" hidden>
+<table class="comparison-table"><caption>One complete 8,000-start locked cohort</caption><thead><tr><th scope="col">Episodes</th><th scope="col">Successes</th><th scope="col">Failures</th></tr></thead><tbody id="mulligan-local-divl-full-grid-rows"></tbody></table>
+</div>
+<p><small>This full cohort is separate from the 50-start pilot and 400-episode training monitors. It uses one training seed, with explicit evaluation/reset seeds instead of the author's unseeded defaults. It does not establish a five-seed aggregate or paper match. No new video is claimed for this grid evaluation; the videos above remain the earlier pilot recordings.</small></p>
+</div>
 </section>
 <section id="fast-original" class="card" aria-labelledby="fast-original-heading" style="margin-bottom:22px" hidden>
 <h2 id="fast-original-heading">FastTD3 · original H1Hand Hurdle</h2>
@@ -836,6 +846,7 @@ function renderMulligan(result) {
   if (!result) return;
   renderMulliganLocal(result.local_training);
   renderMulliganLocal(result.local_divl, 'mulligan-local-divl');
+  renderMulliganFullGrid(result.local_divl?.full_grid_evaluation);
   const policies = result.policies;
   if (!Array.isArray(policies) || policies.length !== 2) throw Error('Invalid Mulligan policy pair');
   const labels = policies.map(policy => {
@@ -945,6 +956,40 @@ function renderMulliganLocal(result, container = 'mulligan-local') {
     box.append(panel);
   }
   box.dataset.identity = identity;
+}
+function renderMulliganFullGrid(result) {
+  const section = document.getElementById('mulligan-local-divl-full-grid');
+  const scores = document.getElementById('mulligan-local-divl-full-grid-results');
+  section.hidden = true;
+  scores.hidden = true;
+  if (result == null) return;
+  if (result.schema !== 'mulligan.local-divl-full-grid/v1' || !['pending', 'accepted_complete'].includes(result.status) || result.task !== 'square_narrow' || result.training_seed !== 1 || result.num_action_samples !== 32 || result.eval_seed !== 42 || result.env_seed !== 42 || result.episodes !== 8000 || typeof result.run_id !== 'string' || !/^author-subset-\d{8}T\d{6}-[0-9a-f]{6}$/.test(result.run_id)) throw Error('Invalid local DIVL full-grid scope');
+  const completed = integer(result.completed_episodes, 'Full-grid completed episodes');
+  if (completed > 8000) throw Error('Invalid full-grid episode count');
+  let successes = null;
+  if (result.status === 'pending') {
+    if (result.successes !== null || result.receipt != null) throw Error('Pending full-grid evaluation cannot contain a score or acceptance receipt');
+  } else {
+    successes = integer(result.successes, 'Full-grid successes');
+    if (completed !== 8000 || successes > 8000 || !result.receipt || typeof result.receipt.path !== 'string' || !result.receipt.path || !Number.isSafeInteger(result.receipt.bytes) || result.receipt.bytes < 1 || typeof result.receipt.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(result.receipt.sha256)) throw Error('Full-grid evaluation requires complete accepted evidence');
+  }
+  text('mulligan-local-divl-full-grid-run', result.run_id);
+  text('mulligan-local-divl-full-grid-status', successes === null
+    ? 'Full locked-grid evaluation is pending acceptance. Reported completed episodes: ' + count(completed) + '/8,000. No full-cohort score is available.'
+    : 'Accepted completed evaluation on all 8,000 locked starts.');
+  const rows = document.getElementById('mulligan-local-divl-full-grid-rows');
+  rows.replaceChildren();
+  if (successes !== null) {
+    const tr = document.createElement('tr');
+    for (const value of [8000, successes, 8000 - successes]) {
+      const cell = document.createElement('td');
+      cell.textContent = count(value);
+      tr.append(cell);
+    }
+    rows.append(tr);
+    scores.hidden = false;
+  }
+  section.hidden = false;
 }
 async function refresh() {
   try {
