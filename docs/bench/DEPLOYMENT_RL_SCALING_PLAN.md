@@ -93,6 +93,16 @@ The [matched frozen comparison](REALTIME_CATCHER_FROZEN_20261014.md) now records
 BC24 success on 1/4 starts and short R2 success on 0/4. All eight full videos are published.
 These four development starts show no measured gain. They do not establish a reliable difference.
 The frozen runtime reports four dependency metadata conflicts, as recorded in that report.
+The 34 actor calls also remain inside the backend's 1,000-update learning-rate
+warmup. This limits any inference about training effectiveness. The next study
+must declare update density and offline/online replay exposure before extending
+the run. Adding all expert episodes to uniformly sampled replay also changes
+that exposure. BC24 is ordinary author flow-BC used with RTC inference; it is
+not an executed Catcher RTC-SFT artifact. The simulation paper starts from an
+ordinary flow policy, so robot RTC-SFT requirements must not be imposed on that
+experiment without justification. The read-only next-study proposal is at
+`builds/realtime-expo-catcher-next-study-20261014/PLAN.md`; it is not a selected
+or executed replacement for the missing exact simulation release configuration.
 Per-step rewards are absent from the archive;
 source-derived sparse rewards require an explicit contract. Reward and stored
 success flags are not interchangeable.

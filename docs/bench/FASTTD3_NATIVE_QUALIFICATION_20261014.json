@@ -1,0 +1,47 @@
+{
+  "status": "original_native_boundaries_accepted",
+  "full_training": "pending",
+  "task": "h1hand-hurdle-v0",
+  "gpu": 0,
+  "measured_task_success": null,
+  "observed_optimizer_counters": null,
+  "original_source_unchanged": true,
+  "qualification_budget_change": "one/twelve calls only; remaining effective fields match original task/seed defaults",
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-native-acceptance-20261014/actual-egl-r2-acceptance.json",
+      "bytes": 3369,
+      "sha256": "ce1be898be4e49f473fa2cf7940e82921a12473277576d18b04d323589fce234"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-native-acceptance-20261014/actual-one-failure-cleanup.json",
+      "bytes": 489,
+      "sha256": "2858071fe49ca9f631b3cba210db85adef15f5ef6c3950b4f79bae1a6e60d8e1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-short-temp-repair-20261014/next-acceptance/actual-one-r2-acceptance.json",
+      "bytes": 13140,
+      "sha256": "2e66965e12a64dc43ee43715f1dcdc8c9a9561b0297824fb9ccba9ae968588dc"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-short-temp-repair-20261014/next-acceptance/actual-twelve-acceptance.json",
+      "bytes": 13616,
+      "sha256": "0a9436c204bdb29bc0e62551f30609da2f0008ba29ca32efe588364fab22b97a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-short-temp-repair-20261014/SEAL.json",
+      "bytes": 4998,
+      "sha256": "c03fbc5306d60cea855e7e0a2abdd930d92ee09e1a7c03d83088fe29864c5507"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-short-temp-root-release-20261014/CANONICAL_INSTALL_AUTHENTICATION.json",
+      "bytes": 305,
+      "sha256": "21d999c2517b3af06af3aba776a763b806c8203043e86bce3efeb56c9294d77c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-short-temp-root-release-20261014/INSTALLED_TESTS.log",
+      "bytes": 99,
+      "sha256": "c196215de1b7c4eaf395d87bdac9ee8bdcc4668f9fdcfdc8c65717000dca882d"
+    }
+  ]
+}

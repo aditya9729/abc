@@ -11,12 +11,45 @@ The default task uses100000 vector calls,128 worlds, batch32768, replay51200
 rows per world, two critic updates, delayed actor updates, AMP and compilation.
 No historical paper-run configuration or aggregate is reproduced by this claim.
 
+## Native qualification — 14 October 2026
+
+The original Hurdle runtime now passes GPU0 EGL rendering, one vector collection,
+and the first learning update with the original 128-world configuration.
+These checks establish execution. They report no convergence or task-success score.
+
+| Check | Actual result | Canonical time |
+| --- | --- | ---: |
+| GPU0 EGL | Eight controls, nine finite states, two decoded RGB frames, zero warnings, clean close | See native receipt |
+| One original vector call | Final index 1; finite saved tensors; observation count 128 | 122.18 s |
+| Twelve original vector calls | Final index 12; finite saved tensors; observation count 132,608 | 172.93 s |
+
+Both training checkpoints retain all 61 expected configuration fields. The actor
+noise buffer has 128 rows; its input and output dimensions are 151 and 61.
+The twelve-call result follows the original first-update branch at index 11.
+Source control flow implies two critic calls and one actor call. The original
+checkpoint does not save optimizer counters, and scalar loss logging starts
+later. Those calls are source-derived, not measured optimizer counters.
+
+The first allocation attempt failed before world construction because the
+supervisor's long TMPDIR exceeded the AF_UNIX socket limit. The
+[short-path repair](FASTTD3_SHORT_TEMP_REPAIR.md) changes only launcher storage.
+A real CPU forkserver regression reproduces the old failure and verifies the
+repair. All 63 selected root installed checks pass. Original author sources and
+task settings remain unchanged. Both successful native groups have exited and
+released the canonical lease. The first EGL attempt also finished cleanly but
+missed live process capture; a separate repeat supplies the accepted identity.
+
+Evidence: `builds/fasttd3-original-native-acceptance-20261014/actual-egl-r2-acceptance.json`
+and `builds/fasttd3-short-temp-repair-20261014/next-acceptance/actual-{one-r2,twelve}-acceptance.json`.
+The [compact index](FASTTD3_NATIVE_QUALIFICATION_20261014.json) pins these receipts.
+Full 100,000-call training remains a separate pending experiment.
+
 ## Canonical command and configuration
 
 Root releases the candidate normally before launch. Use the existing coordinator:
 
 ```sh
-python -m abc_bench.runner --algorithm author-subset \
+ABC_BENCH_REPO=/home/user/aditya/RL/abc python -m abc_bench.runner --algorithm author-subset \
 --training-config /ABSOLUTE/REVIEWED/full.job.json --timeout-seconds 28860
 ```
 
