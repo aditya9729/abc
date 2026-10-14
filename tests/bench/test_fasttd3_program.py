@@ -129,6 +129,12 @@ def test_direct_original_argv_fresh_cwd_uuid_egl_tracking_and_no_score(
     ]
     assert observed["cwd"] == str(tmp_path / "out/author-output")
     assert observed["PATH"] == os.environ["PATH"] and observed["pythonpath"] is None
+    assert observed["TMPDIR"] == result["temporary_directory"]
+    assert Path(observed["TMPDIR"]).parent == worker.WORKSPACE / "t"
+    assert json.loads((Path(observed["TMPDIR"]) / "owner.json").read_text()) == {
+        "output": str(tmp_path / "out"),
+        "supervisor_pid": os.getpid(),
+    }
     assert observed["CUDA_VISIBLE_DEVICES"] == "GPU-EXPLICIT-CPU-PROCESS-FIXTURE"
     assert observed["MUJOCO_GL"] == "egl" and observed["MUJOCO_EGL_DEVICE_ID"] == "0"
     assert os.environ["MUJOCO_GL"] == "disable" and observed["WANDB_MODE"] == "offline"
@@ -157,6 +163,7 @@ def test_nonzero_exit_remains_failed(tmp_path, monkeypatch, config):
     receipt = json.loads((tmp_path / "out/receipt.json").read_text())
     assert receipt["status"] == "failed" and receipt["author_exit_code"] == 75
     assert receipt["direct_child_stopped"] and not receipt["experiment_accepted"]
+    assert Path(receipt["temporary_directory"]).is_dir()
 
 
 def test_timeout_reaps_direct_child(tmp_path, monkeypatch, config):
@@ -362,6 +369,82 @@ def test_qualification_parent_bound_not_full_eight_hours(tmp_path, config):
     job_path.write_text(json.dumps(job))
     with pytest.raises(ValueError, match="1860"):
         load_job(job_path)
+
+
+def test_actual_cpu_forkserver_succeeds_with_long_run_output(
+    tmp_path, monkeypatch, config
+):
+    """Real stdlib IPC regression; this script contains no author/native learner."""
+    script = """import json,multiprocessing,os
+from pathlib import Path
+def child(connection):
+    connection.send({'pid':os.getpid(),'method':multiprocessing.get_start_method(),'tmpdir':os.environ['TMPDIR']})
+    connection.close()
+if __name__=='__main__':
+    context=multiprocessing.get_context('forkserver')
+    receive,send=context.Pipe(duplex=False)
+    process=context.Process(target=child,args=(send,))
+    process.start();send.close()
+    assert receive.poll(10),'CPU forkserver fixture child did not respond'
+    result=receive.recv();receive.close();process.join(10)
+    assert not process.is_alive() and process.exitcode==0
+    result.update(child_exit=process.exitcode,parent_pid=os.getpid(),scope='Actual CPU forkserver fixture; no simulator or learner')
+    Path('forkserver-proof.json').write_text(json.dumps(result))
+"""
+    replace_fixture(config, script)
+    monkeypatch.setattr(worker, "AUTHOR_COMMIT", config["source_commit"])
+    config["timeout_s"] = 20
+    output = tmp_path / ("deliberately-long-owned-run-output-" + "x" * 100)
+    legacy_tmp = output / "legacy-tmp"
+    legacy_tmp.mkdir(parents=True)
+    assert len(os.fsencode(legacy_tmp)) > 108
+    legacy = subprocess.run(
+        [
+            config["python"],
+            "-u",
+            "-B",
+            str(Path(config["source_root"]) / "fast_td3/train.py"),
+        ],
+        cwd=output,
+        env={
+            **os.environ,
+            "CUDA_VISIBLE_DEVICES": "",
+            "MUJOCO_GL": "disable",
+            "TMPDIR": str(legacy_tmp),
+        },
+        text=True,
+        capture_output=True,
+        timeout=20,
+    )
+    assert legacy.returncode != 0 and "AF_UNIX path too long" in legacy.stderr
+    result = worker.run(config, output)
+    proof = json.loads((output / "author-output/forkserver-proof.json").read_text())
+    assert proof["method"] == "forkserver" and proof["child_exit"] == 0
+    assert (
+        proof["pid"] != proof["parent_pid"]
+        and proof["tmpdir"] == result["temporary_directory"]
+    )
+    assert len(os.fsencode(proof["tmpdir"])) < 60
+    temporary = Path(proof["tmpdir"])
+    assert temporary.parent == worker.WORKSPACE / "t" and temporary.is_dir()
+    assert json.loads((temporary / "owner.json").read_text())["output"] == str(output)
+    assert result["status"] == "completed" and result["experiment_accepted"] is False
+    assert (
+        result["temporary_directory_cleanup_owner"]
+        == "root after canonical owned-group cleanup"
+    )
+
+
+def test_short_temp_is_unique_and_retained_per_owned_output(tmp_path, config):
+    first = worker.run(config, tmp_path / "first")
+    second = worker.run(config, tmp_path / "second")
+    assert first["temporary_directory"] != second["temporary_directory"]
+    for name, result in (("first", first), ("second", second)):
+        temporary = Path(result["temporary_directory"])
+        assert temporary.is_dir()
+        assert json.loads((temporary / "owner.json").read_text())["output"] == str(
+            tmp_path / name
+        )
 
 
 def render_config(config):

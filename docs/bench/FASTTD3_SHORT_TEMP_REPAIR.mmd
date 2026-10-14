@@ -1,0 +1,8 @@
+flowchart LR
+    runner[Existing canonical runner: lease and process group] --> supervisor[FastTD3 process supervisor]
+    supervisor -->|unchanged original command and CWD| author[Original train.py]
+    supervisor -->|unique TMPDIR| short[Owned short ft-* directory]
+    short -->|short socket address| forkserver[Original Python forkserver]
+    author --> forkserver
+    supervisor -->|receipt and owner marker| root[Root]
+    root -->|cleanup only after owned group is empty| short

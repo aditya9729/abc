@@ -10,6 +10,7 @@ import os
 import re
 import signal
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -327,8 +328,14 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     output.mkdir(parents=True, exist_ok=True)
     author_output = output / "author-output"
     author_output.mkdir(exist_ok=False)
-    (output / "tmp").mkdir(exist_ok=False)
     (output / "wandb").mkdir(exist_ok=False)
+    # Forkserver AF_UNIX addresses include TMPDIR, so keep it short.
+    temp_root = _owned_path(str(WORKSPACE / "t"))
+    temp_root.mkdir(mode=0o700, exist_ok=True)
+    temporary = Path(tempfile.mkdtemp(prefix="ft-", dir=temp_root))
+    (temporary / "owner.json").write_text(
+        json.dumps({"output": str(output), "supervisor_pid": os.getpid()}) + "\n"
+    )
     command = [
         config["python"],
         "-u",
@@ -361,7 +368,7 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         "WANDB_DATA_DIR": str(output / "wandb/data"),
         "WANDB_CACHE_DIR": str(WORKSPACE / ".cache/wandb"),
         "WANDB_CONFIG_DIR": str(WORKSPACE / ".config/wandb"),
-        "TMPDIR": str(output / "tmp"),
+        "TMPDIR": str(temporary),
         "XDG_CACHE_HOME": str(WORKSPACE / ".cache"),
         "TORCH_HOME": str(WORKSPACE / ".cache/torch"),
         "TRITON_CACHE_DIR": str(WORKSPACE / ".cache/triton"),
@@ -396,6 +403,8 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         "experiment_accepted": False,
         "claim_scope": "Original-command process execution only; checkpoint, native returns, paper fidelity and EGL/compile qualification require separate acceptance",
         "descendant_cleanup_owner": "canonical runner",
+        "temporary_directory": str(temporary),
+        "temporary_directory_cleanup_owner": "root after canonical owned-group cleanup",
     }
     if config["phase"] == EGL_RENDER_PHASE:
         result["claim_scope"] = (
