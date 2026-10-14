@@ -99,6 +99,10 @@ frozen inference results on one level, with no RL updates. They use a different
 driver, batch, runtime and RNG path from the four-start EXPO-client cohort;
 do not pool them or transfer the 54% baseline to that client without a matched
 check. The same-delay result supports RTC guidance in this specific sample.
+The later [recorded-input comparison](CATCHER_INFERENCE_PARITY_20261014.md)
+matches the original and adapted full action chunks within 1.79e-7, with exact
+RTC postfix slicing. It checks one CPU inference boundary. It does not align
+the complete evaluation drivers or explain their different cohort scores.
 The earlier EXPO-client runtime reports four dependency metadata conflicts, as
 recorded in its frozen-comparison report. The separate original RTC evaluation
 runtime passes its dependency check.

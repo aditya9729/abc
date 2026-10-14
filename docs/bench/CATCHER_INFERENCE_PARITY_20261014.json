@@ -1,0 +1,120 @@
+{
+  "schema": "catcher-inference-parity-evidence/v1",
+  "status": "accepted_one_recorded_cpu_inference_boundary",
+  "recorded_case": "rtc_bc24-seed100001",
+  "comparisons_max_abs": {
+    "original_vs_backend_boot_h8": 1.1920928955078125e-07,
+    "original_vs_backend_guided_h8": 1.7881393432617188e-07,
+    "backend_vs_rtc_boot_h8": 0.0,
+    "backend_tail_4_8_vs_rtc_guided": 0.0,
+    "original_tail_4_8_vs_rtc_guided": 1.1920928955078125e-07,
+    "boot_executed_padded": 0.0,
+    "guided_executed_padded": 0.0
+  },
+  "noise_arrays_exact": true,
+  "parameters_optimizer_ema_step_unchanged": true,
+  "learner_step": 0,
+  "tolerances": {
+    "atol": 2e-05,
+    "rtol": 2e-05
+  },
+  "independent_review": {
+    "verdict": "no_concrete_mismatch_found",
+    "scope": "One recorded BC24 B1 CPU boot/guided inference boundary, using original FlowPolicy and unmodified RTCLearner; not learned Real-Time EXPO policy validation",
+    "reviewer": "/root/fast_fresh_launch_preparation",
+    "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/independent-review/RESULT_REVIEW.json"
+  },
+  "scope": "One recorded observation/prefix, CPU inference only; no new rollout, training update, learning gain or complete-driver equivalence",
+  "artifacts": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/SEAL.json",
+      "bytes": 2550,
+      "sha256": "4f115a6ee6234ff9e1201cf9735027213f7047390cf07c8631819f4f6167a135"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/MANIFEST.json",
+      "bytes": 6348,
+      "sha256": "786abc4939a41d0c139e799a9cd3713847717f8e00cb074f4fbfb7557b8858aa"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/diagnostic.py",
+      "bytes": 17912,
+      "sha256": "ea0f95ff6ebc840bcb1cdb0dfaebf28291cc9645fc15c6d11efd1e8579ea9629"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/RECORDED_INPUTS.json",
+      "bytes": 62196,
+      "sha256": "2158a5e436d8593fcb773e4d8b6d749dc2b9ae8ba927040f394406e1cccfa0c7"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/CPU_INPUT_TESTS.log",
+      "bytes": 748,
+      "sha256": "f3aba53d35cd323cfe192aef8c024bc33ce265e50722c1dee4230a7d14c9730d"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/COMMANDS.json",
+      "bytes": 2583,
+      "sha256": "383a45dac0e55929619e62014305f20a69d3240ab10fef8d90dae60797136460"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/ROOT_RUN_PHASE.py",
+      "bytes": 2318,
+      "sha256": "8afb7aa5326217c49c80bacd86d53b441c7939476b0827d77b0a6dce9c0e539e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/ROOT_SOURCE_REVIEW.json",
+      "bytes": 528,
+      "sha256": "a09aa5fc99d906717d6dc3a156e227fec2fe2d9f62dc09453048d6d83496ad8b"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/ROOT_ACCEPTANCE.json",
+      "bytes": 2209,
+      "sha256": "e9884effc19ad3a7438cfafee4dca27cb8d4efe09fca43f6ccb1194b795056a1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/ROOT_ORIGINAL_PROCESS.json",
+      "bytes": 1198,
+      "sha256": "7a9ee0f7ed83975658e26d4e853965af579c2e7d9c6e553e4f2205e4560a78f3"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/ROOT_BACKEND_PROCESS.json",
+      "bytes": 1194,
+      "sha256": "45b61f1950282c6c85c8c13bea89e73d27d867c768334956b80ba0402a691ca8"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/ROOT_ORIGINAL.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/ROOT_BACKEND.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/actual/original/REFERENCE.json",
+      "bytes": 1806,
+      "sha256": "cb34176e913121661d27b7d4d5eb3782af09edf8b30e471f2fc5a398385a86b1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/actual/original/REFERENCE.npz",
+      "bytes": 1794,
+      "sha256": "30e2e0469f459e119019a535a0ddbd9a954e78149feadb27f5cc9a2219d7a8ff"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/actual/backend/RESULT.json",
+      "bytes": 105294,
+      "sha256": "53ed56e4cf46b51406ae967a159f20b280e00afb0098d13d65e18391d256e3e8"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/actual/backend/COMPARISON.npz",
+      "bytes": 1700,
+      "sha256": "ffbc6b4d1cf153df3994c604d1077172128287d24e1060900446c8cc6743e18c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-inference-equivalence-20261014/independent-review/RESULT_REVIEW.json",
+      "bytes": 7764,
+      "sha256": "638abaf17b82da2f7c99aaee714f03d6abc393021f8086d4eaf7e58389963ac4"
+    }
+  ]
+}

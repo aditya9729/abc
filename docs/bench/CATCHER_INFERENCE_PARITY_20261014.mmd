@@ -1,0 +1,14 @@
+flowchart LR
+    T[Accepted native BC24 trace] -->|recorded observation and pending actions| I[Input association check]
+    C[Original BC24 checkpoint] --> O[Original RTC FlowPolicy / CPU]
+    C --> B[Catcher backend / CPU]
+    I --> O
+    I --> B
+    O -->|exact Gaussian draws| B
+    O -->|full eight-action chunks| V[Root: numerical comparison]
+    B -->|full eight-action chunks| V
+    B --> R[Original EXPO RTCLearner]
+    R -->|boot and delayed postfix| V
+    V --> E[Accepted one-input result / no learning claim]
+    P[Preparation agent] -. prepares .-> I
+    Q[Independent reviewer] -. checks evidence and limits .-> E
