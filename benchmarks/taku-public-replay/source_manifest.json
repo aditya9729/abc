@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "author": "Dyna Robotics",
+  "release": "Dyna-2.1 official website, retrieved 2026-10-14",
+  "license": "No separate redistribution license located; original ownership retained",
+  "sources": [
+    {
+      "name": "dvt1_kin.json",
+      "url": "https://www.dyna.co/assets/we/dvt1_kin.json",
+      "bytes": 8886,
+      "sha256": "02505a774c55fb3f998265e32840bffd86fba690bd4c9e1af857663ca39ec83f"
+    },
+    {
+      "name": "dvt1_body.glb.txt",
+      "url": "https://www.dyna.co/assets/we/damping/dvt1_body.glb.txt",
+      "bytes": 2990816,
+      "sha256": "c359a385a09f67892df4343a701fc82c5501ec13310c2dec1455edb64e4b60fc"
+    },
+    {
+      "name": "tracking_data.json",
+      "url": "https://www.dyna.co/assets/we/tracking_data.json",
+      "bytes": 155872,
+      "sha256": "0195399e834c04f60b54b947f1ac5f77a58ee6b6f72772cf93500f6ea6cbe2c3"
+    },
+    {
+      "name": "workflow-video-poster.jpg",
+      "url": "https://www.dyna.co/assets/we/workflow-video-poster.jpg",
+      "bytes": 155744,
+      "sha256": "cfd6c3fda5dd920c3ec5f57b70eae1b63544d81c017715f943dc7d215dff32dc"
+    }
+  ]
+}

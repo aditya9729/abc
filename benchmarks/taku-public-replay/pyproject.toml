@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "taku-public-replay"
+version = "0.2.2"
+description = "Auditable native replay of Dyna's public Taku model and measured motion log"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "DracoPy==1.7.0",
+  "mujoco==3.3.7",
+  "numpy==2.2.6",
+  "Pillow==11.3.0",
+]
+
+[project.scripts]
+taku-public-replay = "taku_public_replay.cli:main"
+
+[dependency-groups]
+dev = ["pytest==8.4.2", "ruff==0.13.3"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

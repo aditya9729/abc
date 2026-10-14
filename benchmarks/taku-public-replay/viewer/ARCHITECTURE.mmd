@@ -1,0 +1,10 @@
+flowchart LR
+  D[Dyna public geometry, log and reference poster] -->|data| P[Scene producer: measured replay and estimated room]
+  P -->|render artifacts| R[Root: native acceptance]
+  R -->|copy accepted media and manifest| L[Read-only localhost server:8771<br/>Five files and video byte ranges]
+  H[Plain HTML page] -->|presentation source| L
+  L -->|data| V[Separate scene and robot-log players]
+  T[Synthetic DOM fixtures] -->|CPU contract checks| H
+  L -->|root CPU browser check| B[Passed actual playback, seek and layout checks]
+  S[Synthetic HTTP checks] -->|range and route checks| L
+  X[No learned controller or cloth dynamics] -.->|limit| V

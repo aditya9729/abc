@@ -1,0 +1,27 @@
+flowchart LR
+  subgraph Dyna[External owner: Dyna Robotics]
+    Assets[Published Taku visual meshes and joint tree]
+    Log[Public teleoperation log<br/>869 samples at 12 Hz]
+    Reference[Laundry-room poster and partial dryer metadata]
+    Missing[Original dynamics, controller and cloth assets<br/>not located in inspected public release]
+  end
+  subgraph Scene[Owner: scene agent<br/>Isolated taku-public-replay package]
+    FK[Decode channels and compute link poses]
+    Room[Estimated basket, towels, table,<br/>washer, dryer and shelves]
+    Render[MuJoCo visual replay on CPU<br/>No physics stepping or policy inference]
+    Video[Complete recordings and frame logs]
+  end
+  subgraph Review[Owner: coordinator and independent reviewer]
+    Check[Source, pose, frame, process and visual checks]
+    Publish[Read-only local viewer on port 8771<br/>Byte-range video playback; scene first]
+  end
+  Assets -->|data| FK
+  Log -->|data| FK
+  Reference -->|data: source values and visual estimates| Room
+  FK -->|data: unchanged robot poses| Render
+  Room -->|data: props and scripted door| Render
+  Check -.->|control: bounded CPU admission| Render
+  Render -->|data| Video
+  Video -->|data: verify before publication| Check
+  Check -->|control: publish checked media| Publish
+  Missing -.->|blocks exact autonomous reproduction| Check

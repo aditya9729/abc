@@ -1,0 +1,25 @@
+flowchart LR
+  subgraph Dyna[External owner: Dyna Robotics]
+    A[Published Taku visual model and kinematics]
+    B[Teleoperation log: 869 samples at 12 Hz]
+    C[Reference poster and dryer metadata]
+  end
+  subgraph Project[Owner: reconstruction agent]
+    D[Decode original geometry and measured poses]
+    E[Generate estimated room and laundry props]
+    F[MuJoCo visual replay with OSMesa]
+    G[Full video, five frames and source receipts]
+  end
+  subgraph Coordinator[Owner: root]
+    H[Review source and admit bounded CPU work]
+    I[Check output and publish local viewer]
+  end
+  A -->|data: original assets| D
+  B -->|data: all measured samples| D
+  C -->|data: reference evidence| E
+  D -->|data: unchanged robot motion| F
+  E -->|data: static props and scripted door| F
+  H -.->|control: CPU admission| F
+  F -->|data: rendered evidence| G
+  G -->|data: acceptance inputs| I
+  J[Not implemented: learned controller,<br/>cloth dynamics, exact original room] -.->|claim boundary| F

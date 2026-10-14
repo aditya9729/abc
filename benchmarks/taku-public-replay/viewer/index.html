@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Taku laundry-room reconstruction</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f6f8;color:#18232f;font:16px/1.55 system-ui,sans-serif}main{max-width:1140px;margin:auto;padding:32px 24px 60px}h1{font-size:clamp(1.7rem,4vw,2.6rem);line-height:1.2;margin:8px 0 16px}h2{font-size:1.3rem;margin:0 0 10px}p{margin:10px 0}a{color:#1457a4}button{font:inherit;padding:8px 14px;background:white;border:1px solid #9caabb;border-radius:6px;cursor:pointer}.eyebrow{font-size:.8rem;letter-spacing:.08em;color:#526478}.note{color:#526478;font-size:.9rem}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin:26px 0}.card,.reference,.fidelity{padding:22px;background:white;border:1px solid #dce3ea;border-radius:12px}.status{padding:10px 12px;background:#edf2f7;border-radius:6px}.player video{width:100%;max-height:580px;background:#101821;border-radius:6px;display:block;object-fit:contain}.player a{display:inline-block;margin-top:8px}figure{margin:0}figure img{display:block;width:100%;height:auto;border-radius:6px}figcaption{margin-top:12px}.table-wrap{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:.94rem}th,td{text-align:left;vertical-align:top;padding:12px;border-bottom:1px solid #dce3ea}th{font-weight:650}td:first-child{min-width:160px}.fidelity{margin-top:24px}#error{color:#9f281f;white-space:pre-wrap}[hidden]{display:none!important}@media(max-width:700px){main{padding:22px 14px 40px}.cards{grid-template-columns:1fr}.card,.reference,.fidelity{padding:16px}th,td{padding:9px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+<p class="eyebrow">DYNA / TAKU · LOCAL VISUAL RECONSTRUCTION</p>
+<h1>Taku laundry-room reconstruction</h1>
+<p>The published Taku motion log, shown in a reconstructed room and on a reference grid.</p>
+<p class="note">This page shows visual evidence. It reports no task score, autonomous result, cloth simulation or wall-clock control performance.</p>
+<button type="button" id="refresh">Refresh media status</button>
+<p id="error" role="alert"></p>
+</header>
+
+<div class="cards">
+<article class="card" aria-labelledby="scene-heading">
+<h2 id="scene-heading">Reconstructed laundry scene</h2>
+<p>The same robot motion appears with a basket, towels, folding table, washer and dryer.</p>
+<p id="reconstructed_laundry_scene-status" class="status" role="status">Pending: reconstructed-scene video is not available.</p>
+<div id="reconstructed_laundry_scene-player" class="player" hidden></div>
+<p class="note">Recorded motion; estimated props; static towels; no learned controller.</p>
+</article>
+<article class="card" aria-labelledby="replay-heading">
+<h2 id="replay-heading">Public robot-log replay</h2>
+<p>The published Taku visual model follows all 869 measured samples at 12 Hz on a reference grid.</p>
+<p id="robot_log_replay-status" class="status" role="status">Pending: replay video is not available.</p>
+<div id="robot_log_replay-player" class="player" hidden></div>
+<p class="note">Episode 62458843 is a separate public teleoperation log. Its relation to the author's one-hour demonstration is unknown.</p>
+</article>
+</div>
+
+<section class="reference" aria-labelledby="reference-heading">
+<h2 id="reference-heading">Author's laundry-room reference</h2>
+<figure>
+<img src="source-reference.jpg" width="1920" height="1080" alt="Author reference: Taku stands behind laundry baskets beside a folding table, shelves, washer and dryer.">
+<figcaption>
+<a href="https://www.dyna.co/assets/we/workflow-video-poster.jpg" target="_blank" rel="noreferrer">Original Dyna poster</a> · <a href="https://www.dyna.co/dyna-2.1" target="_blank" rel="noreferrer">Dyna-2.1 release</a>
+<p class="note">The poster's “AUTONOMOUS, 2X SPEED” overlay describes the author's video. It does not describe either local replay above. This image is not synchronized with the public 72-second log.</p>
+</figcaption>
+</figure>
+</section>
+
+<section class="fidelity" aria-labelledby="fidelity-heading">
+<details>
+<summary id="fidelity-heading">What matches, and what is estimated</summary>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Fidelity of the public replay and estimated laundry scene">
+<table>
+<thead><tr><th scope="col">Component</th><th scope="col">Published evidence retained</th><th scope="col">Local limit</th></tr></thead>
+<tbody>
+<tr><th scope="row">Robot and motion</th><td>Published visual geometry, joint tree and all 869 measured samples at 12 Hz.</td><td>Kinematic replay. It is not a physical robot model or policy rollout.</td></tr>
+<tr><th scope="row">Dryer</th><td>Recorded position, yaw, width, door height and door timing.</td><td>Remaining shape and placement details are estimated. Door motion is scripted.</td></tr>
+<tr><th scope="row">Room and props</th><td>Author poster supplies a visual reference.</td><td>Room, basket, towels, folding table and washer geometry are local estimates.</td></tr>
+<tr><th scope="row">Cloth and contacts</th><td>No released cloth parameters or matching task state were located.</td><td>Static towels; no cloth dynamics or contact simulation.</td></tr>
+<tr><th scope="row">Learned controller</th><td>Dyna describes a 100 Hz controller in its release.</td><td>No released Taku policy runs here. The recording rate is 12 Hz.</td></tr>
+<tr><th scope="row">Full experiment</th><td>Separate public motion log and author-reference poster.</td><td>No autonomous laundry reproduction, task-success measurement or exact full-scene claim.</td></tr>
+</tbody>
+</table>
+</div>
+</details>
+</section>
+<footer><p class="note">Dyna owns the published assets and log. The scene producer builds the visual approximation. Root accepts and publishes media. Native video controls support seeking and fullscreen.</p></footer>
+</main>
+<script>
+const mediaKeys = ['robot_log_replay', 'reconstructed_laundry_scene'];
+const pendingText = ['Pending: replay video is not available.', 'Pending: reconstructed-scene video is not available.'];
+
+function validateMedia(entry) {
+  if (!entry || !['pending', 'accepted_complete'].includes(entry.status)) throw Error('Invalid media status');
+  if (entry.status === 'pending') {
+    if (entry.video != null || entry.receipt != null) throw Error('Pending media cannot contain an accepted video');
+    return;
+  }
+  if (typeof entry.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(entry.sha256) || entry.video !== entry.sha256.slice(0, 16) + '.mp4' || entry.frames !== 869 || entry.fps !== 12 || !Number.isSafeInteger(entry.width) || entry.width < 1 || !Number.isSafeInteger(entry.height) || entry.height < 1 || !entry.receipt || typeof entry.receipt.path !== 'string' || !entry.receipt.path || !Number.isSafeInteger(entry.receipt.bytes) || entry.receipt.bytes < 1 || typeof entry.receipt.sha256 !== 'string' || !/^[0-9a-f]{64}$/.test(entry.receipt.sha256)) throw Error('Incomplete accepted media evidence');
+}
+
+function renderMedia(data) {
+  if (data.schema !== 'taku.local-scene-viewer/v1') throw Error('Invalid media manifest');
+  mediaKeys.forEach(key => validateMedia(data[key]));
+  mediaKeys.forEach((key, index) => {
+    const entry = data[key], player = document.getElementById(key + '-player');
+    const status = document.getElementById(key + '-status');
+    if (entry.status === 'pending') {
+      for (const video of player.querySelectorAll('video')) video.pause();
+      player.replaceChildren();
+      delete player.dataset.identity;
+      player.hidden = true;
+      status.textContent = pendingText[index];
+      return;
+    }
+    status.textContent = 'Complete recording · ' + (entry.frames / entry.fps).toFixed(2) + ' seconds · 12 fps.';
+    player.hidden = false;
+    const identity = JSON.stringify(entry);
+    if (player.dataset.identity === identity) return;
+    for (const old of player.querySelectorAll('video')) old.pause();
+    player.replaceChildren();
+    const video = document.createElement('video');
+    video.controls = true;
+    video.playsInline = true;
+    video.preload = 'metadata';
+    video.src = entry.video;
+    video.setAttribute('aria-label', index === 0 ? 'Complete public Taku measured-log replay' : 'Complete estimated laundry-scene visual replay');
+    const link = document.createElement('a');
+    link.href = entry.video;
+    link.textContent = 'Open this recording';
+    player.append(video, link);
+    player.dataset.identity = identity;
+  });
+}
+
+async function refreshMedia() {
+  try {
+    const response = await fetch('media.json', {cache: 'no-store'});
+    if (!response.ok) throw Error('Media status is unavailable. Refresh after the recordings are published.');
+    renderMedia(await response.json());
+    document.getElementById('error').textContent = '';
+  } catch (error) {
+    document.getElementById('error').textContent = error.message;
+  }
+}
+document.getElementById('refresh').onclick = refreshMedia;
+refreshMedia();
+</script>
+</body>
+</html>

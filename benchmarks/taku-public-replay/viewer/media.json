@@ -1,0 +1,5 @@
+{
+  "schema": "taku.local-scene-viewer/v1",
+  "robot_log_replay": {"status": "pending"},
+  "reconstructed_laundry_scene": {"status": "pending"}
+}

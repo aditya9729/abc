@@ -1,0 +1,222 @@
+{
+  "schema": "taku.laundry-reconstruction-report/v1",
+  "created_at_utc": "2026-10-14T14:52:45.713763+00:00",
+  "status": "accepted_visual_replay_and_local_viewer",
+  "viewer_url": "http://127.0.0.1:8771/",
+  "source_project": "benchmarks/taku-public-replay",
+  "producer_version": "0.2.2",
+  "source_urls": [
+    "https://x.com/MarilynLiu97/status/2109808785615458626",
+    "https://www.dyna.co/dyna-2.1"
+  ],
+  "source_episode": 62458843,
+  "source_log_type": "teleoperation",
+  "sample_count": 869,
+  "sample_rate_hz": 12,
+  "encoded_duration_seconds": 72.416667,
+  "geometry": {
+    "visual_meshes": 105,
+    "joint_tree_joints": 48,
+    "robot_links": 49
+  },
+  "runtime": {
+    "mujoco": "3.3.7",
+    "mesa": "23.2.1",
+    "renderer": "OSMesa llvmpipe",
+    "device": "CPU",
+    "native_scene_wall_seconds": 172.280785727,
+    "native_scene_exit_code": 0,
+    "physics_step_calls": 0,
+    "policy_inference": false,
+    "dynamic_dofs": 0,
+    "actuators": 0
+  },
+  "verification": {
+    "installed_package_tests": 8,
+    "dom_tests": 6,
+    "synthetic_http_tests": 6,
+    "browser_actual_media": "passed",
+    "root_screenshot_review": "desktop and mobile",
+    "independent_source_and_transform_review": "no blocking finding within visual-replay scope"
+  },
+  "limits": [
+    "Room and prop dimensions are estimates",
+    "Static towels; no cloth dynamics",
+    "Scripted dryer door; frame and interpolation assumptions are explicit",
+    "No learned controller, autonomous result, or task-success score",
+    "No exact Dyna physics or RL reproduction",
+    "No R1 Lite transfer evidence",
+    "Full ASD-STE100 compliance not checked"
+  ],
+  "preserved_failed_attempts": [
+    "root-native-scene-01: camera occlusion; owned cancellation after 53.9121 seconds",
+    "browser-proof-01: unsupported seeking on old static server"
+  ],
+  "evidence": [
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/docs/SOURCES.json",
+      "bytes": 8656,
+      "sha256": "1a61204b02d78344bd7e727c53f75fca8799562e6e6ade7675b2bc9723a1275c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/scene-candidate-v2/docs/SCENE_NATIVE_PROPOSAL_V3.json",
+      "bytes": 5576,
+      "sha256": "2bdbf6a2a3b0e42ae7e3662e471565ded4436277f9b17cda693918b33a0fbf6e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/scene-candidate-v2/docs/INSTALL_PROOF_0.2.2.json",
+      "bytes": 1132,
+      "sha256": "88c2338a80d4ff238ad21c97f9c8492b3791b4794dd25755eb1211593595ceeb"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/scene-candidate-v2/source-snapshot-0.2.2.tar.gz",
+      "bytes": 30304,
+      "sha256": "ebe0fc5bf1b84cc86e253ed19d0b50f440f7c4773770b35cceaffada18eeaa38"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/scene-candidate-v2/dist/taku_public_replay-0.2.2-py3-none-any.whl",
+      "bytes": 16533,
+      "sha256": "ae20e4a3fd556cc41f7b40ce0950cbc43406ff1eab2f8bc24597eafe37337492"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/ROOT_REPOSITORY_SOURCE_MATCH.json",
+      "bytes": 2828,
+      "sha256": "b6bb564853e7c1d708ae3fcf31a20bd5443cb08aafc7e7ba791f518727170293"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/independent-review/REVIEW.json",
+      "bytes": 8425,
+      "sha256": "4fccac50f7c62ce60be5c9115241febbf377b72a2ef6d6f3ca981be3f7947315"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/independent-review/SCENE_REVIEW.json",
+      "bytes": 7564,
+      "sha256": "b77b5363bfa1cc1c6ee6f59f6d672b3cb71da07c0f323bdad4d7f86fd45e1596"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/independent-review/CAMERA_FOLLOWUP_REVIEW.json",
+      "bytes": 3355,
+      "sha256": "a47762bc3a0ae9466378c1cf097924241d5dd5c0a6abe4fbb1fe2d87998638a7"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/independent-review/CAMERA_REPAIR_REVIEW.json",
+      "bytes": 3589,
+      "sha256": "1e83644249e366a3e3e3e2704c402467cf13ea577a584afa9e0f39b4c9e10617"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/root-native-01/ACCEPTANCE.json",
+      "bytes": 1268,
+      "sha256": "55e4a563e40b90e2467c68e734b0be8388a3a1c86efc8e05c5efb2635330b278"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/root-native-scene-01/ROOT_CANCEL.json",
+      "bytes": 223,
+      "sha256": "8158207fd3a0f98df87e183f654322bee5790d1b20263ec648d24b019ada5cea"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/root-native-scene-01/EXIT.json",
+      "bytes": 146,
+      "sha256": "8976af4b6012972d7ddc966559353a4a40b5a9c3638663215d6eada2931aa097"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/root-native-scene-02/ACCEPTANCE.json",
+      "bytes": 1713,
+      "sha256": "5cac78f7f74c206cb9b492e1375037aa29091f6c80e8f7fed150d2f0c6e34b10"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/root-native-scene-02/EXIT.json",
+      "bytes": 145,
+      "sha256": "5052c7984c414af2fa5096ccf9413d8db4106e5107f73435588cd1351d436051"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/root-native-scene-02/FFPROBE.json",
+      "bytes": 1931,
+      "sha256": "bd9b3f831617c02f94cb1e378d20ffc2f25d76b0e22333c1fd78f1351e0da5f5"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/artifacts/laundry-render-v2/COMPLETE.json",
+      "bytes": 3081,
+      "sha256": "d583887ea4b2ee153fcff7870e8da5800ec0caf2a59766d61ec110a15271694e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/artifacts/laundry-render-v2/frames.jsonl",
+      "bytes": 155213,
+      "sha256": "eb90f9f8eb413ab8ddde9838667268b5d39a5ecb387a3a488324c18997368784"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/artifacts/laundry-render-v2/taku-laundry-reconstruction.mp4",
+      "bytes": 1679118,
+      "sha256": "51916ac2e766262c2a08664989de9debf16e34c6ba116ad8e8f00901e725e9df"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/artifacts/render-v1/taku-measured-replay.mp4",
+      "bytes": 4772819,
+      "sha256": "92f5f9e6d3e542029ea0c261a6df90efaab169da601f7cdaf5295828e3835b01"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/viewer-preparation/SEAL.json",
+      "bytes": 2671,
+      "sha256": "95d363a1e198b272b1cea5649f67cca8d2b69218632665409533ec6a4e141fb5"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/viewer-preparation/range-server/source-v2/SEAL.json",
+      "bytes": 1871,
+      "sha256": "03cfb66f190f8132f8d4536fe9afbfe640c35a42992213cc552d66af61ff7c31"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/viewer-preparation/range-server/source-v2/HTTP_TESTS.log",
+      "bytes": 968,
+      "sha256": "a7f312c88b45ce3a34212865d222e4f1586ea0aa24ae3277f40e70da53f70a34"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/viewer-preparation/range-server/source-v2/LINT_AND_HELP.log",
+      "bytes": 438,
+      "sha256": "f3d6273ea084eefa0db27ffbf65c908a98dabb7b96e0a0edf6f8cc22eb772b7c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/browser-proof-01/SEEK_DIAGNOSTIC.json",
+      "bytes": 609,
+      "sha256": "be0fc3a516811490eff85f1116aab5117f07a1d847d1aafb83381b4c006be5e1"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/browser-proof-02/ROOT_ACCEPTANCE.json",
+      "bytes": 1373,
+      "sha256": "5afc0eda83253597fdf4071e38e2e12acaa16d3ac3fc94c505d460dac0c24138"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/browser-proof-02/BROWSER_RESULT.json",
+      "bytes": 1139,
+      "sha256": "d52dc592d3489745a72281f7ac25b5f48831223ace430688cd6a22d3e36681b8"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/browser-proof-02/desktop.png",
+      "bytes": 826542,
+      "sha256": "ad0e023b293cc4ba6a3b9fc9533c354948b88676af2f0933451403694d9ca657"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/browser-proof-02/mobile.png",
+      "bytes": 315369,
+      "sha256": "7df207ff0a9d5e8613483a145dd53099bf3c6c585ffe1ec8e79fc22750de5634"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/viewer-server-02/LAUNCH.json",
+      "bytes": 623,
+      "sha256": "49282aebaae02e597dbe9a81033c047ffc194c7932efc53dffdacc735a54269e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/viewer-server-02/HTTP_VERIFIED.json",
+      "bytes": 1122,
+      "sha256": "a57f2a77460bfad0845c204ab7220a8a13abbe24d4feef0ec49a833030f66a27"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/viewer-public-01/media.json",
+      "bytes": 1042,
+      "sha256": "3d48c3c169ddfc0fcf719ba3fc3526ae696024a1188eae9fcd7799d917d7076f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/post-scene-reproduction-20261014/ROOT_REPOSITORY_FINAL_SOURCE_MATCH.json",
+      "bytes": 3380,
+      "sha256": "1c2757054c3c51fc9ada8ec862c4493a49ea3a89d4b5f98d0cb07d12b8ff294f"
+    }
+  ]
+}
