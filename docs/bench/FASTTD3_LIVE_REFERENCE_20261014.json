@@ -1,0 +1,81 @@
+{
+  "schema": "fasttd3-live-reference-evidence/v1",
+  "status": "live_partial_observation_only",
+  "run_id": "author-subset-20261014T030724-7fc63f",
+  "history_cutoff_vector_index": 59700,
+  "evaluation_cutoff_vector_index": 55000,
+  "warning_snapshot_utc": "2026-10-14T04:38:20.495581+00:00",
+  "printed_qacc_warnings_at_snapshot": 8,
+  "warning_count_is_lower_bound_on_detected_recoveries": true,
+  "local_run_complete": false,
+  "benchmark_reproduction_established": false,
+  "cause_of_performance_gap_established": false,
+  "independent_report_review": "no_blocking_findings",
+  "artifacts": [
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/REFERENCE_REVIEW.json",
+      "bytes": 3992,
+      "sha256": "2d224164afd594bce23c1dd72e8048be72e1ee42600c7b691240e24ada64d02e"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/PARTIAL_COMPARISON.json",
+      "bytes": 2568,
+      "sha256": "29c2e199a725bcbf2089dfa25d89ecc34ae620f6317e910e82edb77011493041"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/AUTHOR_HURDLE_CURVE.json",
+      "bytes": 5510,
+      "sha256": "48cdca1a43a4ef43048507e6986ed26114be753fbe07bcc3be19b66bf6eef881"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/PLOT_MANIFEST.json",
+      "bytes": 1544,
+      "sha256": "f68a18036336b56f987fcaf71be278810179681b0933590a1d690322edc0f405"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/exploration-config-fix.txt",
+      "bytes": 598,
+      "sha256": "641491717bb6cd806deb279ba0337584b73d11f3f5eb93aaf00c56bdf2cd0b9f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/categorical-projection-fix.txt",
+      "bytes": 766,
+      "sha256": "9fb274bc34eea2ee627d66f9adda17c0e52c61b6e4793d06cb765c6a504c6239"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/data-addition.txt",
+      "bytes": 495,
+      "sha256": "3d1fd2cb5050a75722d3e001fdb5f2b29bb44675bfa8b62fbc2c4da27a6a0afd"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-stability-observation-20261014/SEAL.json",
+      "bytes": 1806,
+      "sha256": "4f93126fd2ad02bac2fa10ce05dba6929cd39bc98abb27d656cdc1b7e5a99e85"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-stability-observation-20261014/ASSESSMENT.json",
+      "bytes": 2596,
+      "sha256": "2afd068310651468395a9c5bc2d4130bae86d9cf2c5c544c0ff0c185221a1bec"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-stability-observation-20261014/ASSESSMENT.md",
+      "bytes": 7525,
+      "sha256": "2ac35bf64608a15e51f1bc2a8ceef617a400e045d726ea689a7cba50c671f86c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-stability-observation-20261014/AVAILABLE_SCALARS.json",
+      "bytes": 1566,
+      "sha256": "22d08e3be8bf74787dd57a19f6f59e667f5233f2ed23dbd6b2dbf5a607331b65"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-stability-observation-20261014/LOG_OBSERVATION.json",
+      "bytes": 14749,
+      "sha256": "907438e54e2c3a28924379ab2cb0444aa2ea3a514020b12e67e1654d29ee0017"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/independent-review/REVIEW.json",
+      "bytes": 14248,
+      "sha256": "01abf53b8fabcceed7f4d86356be281d63cc5494b05b67535c3849a1236b7262"
+    }
+  ]
+}

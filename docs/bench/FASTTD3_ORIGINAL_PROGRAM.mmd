@@ -6,5 +6,9 @@ flowchart LR
   C --> W[Original native worlds and FastTD3 learner]
   W --> O[Original checkpoints and offline W&B output]
   S --> E[Process-only receipt and stdout]
-  O -. root actual acceptance pending .-> V[Measured native returns and videos]
+  O --> L[Observed partial returns and original recordings]
+  E --> D[Independent review: logged physics warnings]
+  D --> L
+  O -. root terminal acceptance pending .-> V[Completed-run returns, videos and explicit limits]
+  D -. full log review pending .-> V
   E -. canonical owned cleanup .-> R

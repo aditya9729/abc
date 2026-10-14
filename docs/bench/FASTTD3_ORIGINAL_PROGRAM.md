@@ -46,6 +46,60 @@ Full 100,000-call training is a separate experiment. Root launched it on GPU0
 after these qualifications and the serial Mulligan evaluations. Its result
 remains pending. The original eight-hour worker watchdog remains active.
 
+## Live full run and reference comparison — 14 October 2026
+
+Run `author-subset-20261014T030724-7fc63f` uses the unchanged current-release
+recipe above. Its process remains live. The immutable 04:29 UTC history snapshot
+contains 597 scalar rows through index 59,700 and 11 evaluations through 55,000.
+Mean return rose from 7.44 at index 5,000 to 91.71 at 45,000, then declined to
+89.50 at 50,000 and 82.01 at 55,000. These are original periodic measurements,
+not a completed benchmark or a success rate.
+
+[Partial reference plot](/home/user/aditya/RL/builds/fasttd3-released-reference-comparison-20261014/reference-comparison.png)
+compares these observations with the authors' released Hurdle curve. At the
+same nominal 7.04 million transition coordinate, our observed mean is 82.01;
+the released aggregate is 377.23. The gap is present in these data. Its cause
+has not been isolated. The plot includes every local evaluation and does not
+fill the remaining training interval with predictions.
+
+The paper reports three FastTD3 runs on an A100 with 16 CPU cores. This attempt
+uses one seed on the available host. The current default ends after 12.8 million
+training transitions; the released reference extends to 19.84 million nominal
+steps. The released JSON contains no per-seed configurations, generating source
+revision or runtime metadata. This descriptive comparison is not a controlled
+revision comparison. [Paper setup](https://arxiv.org/html/2505.22642v3#S3),
+[pinned released data](https://github.com/younggyoseo/FastTD3/blob/229ed59bbf43ea2f7a2d5d90d1076314839944d7/data/humanoidbench_result.json).
+
+The source history also contains later author fixes: `d2fc7e9` passes configured
+exploration bounds into the actor, and `7acc3a3` changes categorical projection
+at exact support positions. Both are included in the selected release. They
+show why the method name alone cannot identify a historical experiment. They
+do not explain this performance gap. The author's README suggests disabling
+compilation when reproduction is difficult. We have preserved this run's
+original default and have not launched that comparison.
+
+The 04:38:20 UTC stdout snapshot contains **eight printed QACC warnings** and
+continues through index 65,325. In MuJoCo 3.1.6, that condition resets internal
+physics state. Gym termination is separate, so an episode can continue across
+the discontinuity. Warning suppression makes the printed count a lower bound
+on detected recoveries. The log does not identify affected worlds or phases.
+The warning after the 65,000 evaluation marker could concern evaluation or
+the separate render rollout. [Versioned MuJoCo implementation](https://github.com/google-deepmind/mujoco/blob/3.1.6/src/engine/engine_forward.c).
+
+The saved scalar snapshot through 59,700 is finite. Later/full checks remain
+pending. Finite tensors and complete history do not establish uninterrupted,
+warning-free physics. Keep the warnings visible beside any eventual scores.
+No fatal traceback or inspected nonfinite scalar requires an immediate stop;
+the original bounded run continues unchanged. This is not evidence that the
+recoveries were harmless or that every measurement is invalid.
+
+[Live observation evidence](FASTTD3_LIVE_REFERENCE_20261014.json) pins the local
+comparison, original sources and independent stability assessment. Raw source
+diffs and the plot are under `builds/fasttd3-released-reference-comparison-20261014/`.
+The stability assessment is under `builds/fasttd3-original-stability-observation-20261014/`.
+Both paths are relative to this repository's parent. Terminal acceptance and
+the final result remain separate pending steps.
+
 ## Canonical command and configuration
 
 Root releases the candidate normally before launch. Use the existing coordinator:
@@ -166,13 +220,12 @@ Root release evidence is under
 `/home/user/aditya/RL/builds/fasttd3-original-root-release-20261014/`.
 `NORMAL_WHEEL_AUTHENTICATION.json` identifies the wheel and installed prefix.
 `ACTUAL_INSTALLED_METADATA.json` records source/runtime checks and three job pins.
-The live canonical prefix remains unchanged while Mulligan holds GPU0.
-No Fast GPU/EGL qualification, full 128-world run or score exists yet.
-The prepared jobs are not queued. Admission tests establish configuration validity only.
-Root must accept native rendering, allocation and update behavior before training.
-The separate [EGL check](FASTTD3_EGL_RENDER_QUALIFICATION.md) is now integrated.
-Its helper has a normal installation in the idle author prefix. Native execution
-still waits for the existing Mulligan GPU0 job to finish.
+That initial release preceded the native qualifications described above.
+Mulligan has since released GPU0. Rendering, allocation and first-update checks
+passed before the full run started. The canonical and Fast author prefixes now
+remain unchanged while that original run is active. Its terminal artifact
+acceptance and final report are pending. The separate
+[EGL check](FASTTD3_EGL_RENDER_QUALIFICATION.md) records the rendering boundary.
 
 Root reviews, releases and executes the command. The runtime agent qualifies
 dependencies and assets. The recipe reviewer checks original task defaults.
