@@ -13,6 +13,11 @@ R1 Lite connections below remain proposed. The original FastTD3 Hurdle run also
 completed its current-release schedule. Its last mean return is 572.72 at 95000
 calls, below the released 778.71 reference. The result includes nine printed
 physics warnings; see the [full report](FASTTD3_ORIGINAL_RESULTS_20261014.md).
+The [Real-Time EXPO GPU pilot](REALTIME_CATCHER_GPU_20261014.md) now has 3,343
+actor updates and a frozen 3/4 result versus BC24's 1/4 on four environment seeds.
+This is one level and a reused development cohort, not a deployment-data scaling result.
+The training client ended on SIGINT; a separate full-checkpoint recovery passed.
+All four subsequent frozen evaluations exited cleanly and have complete videos.
 
 ## The first scaling decision
 
@@ -119,12 +124,26 @@ ordinary flow policy, so robot RTC-SFT requirements must not be imposed on that
 experiment without justification. The read-only next-study proposal is at
 `builds/realtime-expo-catcher-next-study-20261014/PLAN.md`. Root selected its
 4096-index timing profile with the full prior, batch 64, UTD 20 and original
-transition-derived updates. Run `author-subset-20261014T053638-6a599b` launched
-on GPU0 at 05:36 UTC on 14 October. The native client uses CPU; the original learner
-uses CUDA. Worker and parent bounds are 3600 and 3700 seconds. Its actual update
-counts, checkpoint and frozen performance remain pending. This is an explicit
-Catcher integration, not the missing exact simulation release configuration.
-Admission and live identity evidence are under
+transition-derived updates. Run `author-subset-20261014T053638-6a599b` completed
+its author program in a 1,388.52-second supervised run on 14 October. The native
+client used CPU; the original learner used GPU0. The saved counters are 3,343
+actor/editor/temperature calls and 66,860 critic/filter/encoder calls. This passed
+the actor's 1,000-call warmup. Native training collected 32 successes in 59 complete
+episodes, plus one partial episode. Offline replay retained 1,011,008 rows; online
+replay retained 4,037 labelled rows. These changing-policy counts are not frozen scores.
+The client exited −2 on SIGINT during shutdown, after native closure. The strict
+clean-client acceptance did not pass. Separate trace and public full-checkpoint
+recovery checks passed, with the original exit status preserved. The harness
+repair adds natural-exit grace and rejects nonzero client completion.
+Four subsequent CPU frozen trials have unchanged learner/optimizer state,
+complete videos and clean process exits. They score 3/4 versus BC24's 1/4 on the
+same four environment seeds. These are different trajectories on one fixed
+physical layout; the saved learned RNG remains distinct from baseline noise.
+The learned policy fixes three failures and loses one success. Four reused
+development trials do not establish a reliable gain or isolate data scaling.
+This remains an explicit Catcher integration, not the missing exact simulation
+release configuration. [Full result and evidence](REALTIME_CATCHER_GPU_20261014.md).
+Admission, process and recovery evidence are under
 `builds/realtime-expo-catcher-gpu-readiness-20261014/root-launch-01/`.
 Per-step rewards are absent from the archive;
 source-derived sparse rewards require an explicit contract. Reward and stored

@@ -1,0 +1,199 @@
+{
+  "schema": "realtime-catcher-gpu-pilot-results/v1",
+  "status": "measured_published_development_result",
+  "producer_run": "author-subset-20261014T053638-6a599b",
+  "training": {
+    "driver_final_index": 4096,
+    "dispatches": 4097,
+    "native_controls": 4038,
+    "complete_episodes": 59,
+    "partial_episodes": 1,
+    "native_terminal_successes": 32,
+    "positive_terminal_rewards": 35,
+    "actor_updates": 3343,
+    "critic_updates": 66860,
+    "filter_updates": 66860,
+    "offline_rows": 1011008,
+    "online_labelled_rows": 4037,
+    "elapsed_s": 1388.5249199608807,
+    "author_exit_code": 0,
+    "client_exit_code": -2,
+    "client_shutdown": "sigint",
+    "clean_client_exit": false,
+    "artifact_recovery_accepted": true,
+    "exact_resume": false
+  },
+  "frozen": {
+    "baseline_successes": 1,
+    "learned_successes": 3,
+    "trials_per_arm": 4,
+    "rows": [
+      {
+        "seed": 100001,
+        "baseline_success": true,
+        "learned_success": false,
+        "learned_return": -1.0,
+        "learned_controls": 58,
+        "process_elapsed_seconds": 121.31532562500797
+      },
+      {
+        "seed": 100002,
+        "baseline_success": false,
+        "learned_success": true,
+        "learned_return": 1.0,
+        "learned_controls": 66,
+        "process_elapsed_seconds": 121.55328203109093
+      },
+      {
+        "seed": 100003,
+        "baseline_success": false,
+        "learned_success": true,
+        "learned_return": 1.0,
+        "learned_controls": 65,
+        "process_elapsed_seconds": 125.158064434072
+      },
+      {
+        "seed": 100004,
+        "baseline_success": false,
+        "learned_success": true,
+        "learned_return": 1.0,
+        "learned_controls": 66,
+        "process_elapsed_seconds": 123.57770321890712
+      }
+    ],
+    "physical_layouts": 1,
+    "development_cohort": true,
+    "common_policy_noise": false,
+    "all_processes_exit_zero": true,
+    "model_optimizer_unchanged": true,
+    "complete_videos": true
+  },
+  "verification": {
+    "normal_wheel_payloads": 1149,
+    "focused_python_tests": 61,
+    "dom_tests": 26,
+    "actual_browser": "passed",
+    "all_eight_videos_play_seek_refresh": true,
+    "prior_panels_preserved": true,
+    "broader_suite": "Previously775passed/24failed/2skipped; not rerun or certified by focused release checks."
+  },
+  "scope": "Original Real-Time EXPO learner and drivers with explicit Catcher integration. Small whole-policy development comparison; not exact simulation-paper reproduction, reliable improvement, deployment-data scaling or R1 transfer.",
+  "sources": {
+    "expo": "https://github.com/pd-perry/expo-ft",
+    "realtime_paper": "https://arxiv.org/html/2609.18207v1"
+  },
+  "inputs": [
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/COHORT.json",
+      "bytes": 8895,
+      "sha256": "039afa00ea01e6e94f92ba1f3a100e9818d6c7097657888daa8df270c43de142"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/ROOT_FROZEN_ACCEPTANCE.json",
+      "bytes": 5520,
+      "sha256": "140328b8c41698886876e907ac10b320b23c568b7707781070b88512f758ca76"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/PUBLICATION.json",
+      "bytes": 1003,
+      "sha256": "32ec4ffe3833be307b6ec7e50fa56cd7e66c197585f426bceea2f3b67d4d3f40"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/browser-proof-01/VIEWER_BROWSER_RESULT.json",
+      "bytes": 9992,
+      "sha256": "a240a39eb3c553b9764bdaa4b498cfac1025c6f5b2eb30be691f7d8e9e52f36a"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/browser-proof-01/desktop.png",
+      "bytes": 323272,
+      "sha256": "39b3a314f2166f4b5e03f5a17cb23d313ebefd71ae4ea994e35ba3692b3c2440"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/browser-proof-01/mobile.png",
+      "bytes": 171248,
+      "sha256": "9cf3bb9f87ccf73cbb4230b4d42a3f76d8b75dda4ec63bef8b94ae1aff97c198"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/independent-review/PUBLISHER_SOURCE_REVIEW.json",
+      "bytes": 1958,
+      "sha256": "04c947157c5b42a224c3f2c54d8c76d2b8e8fc03f9852b90882ffba12eb9a5a3"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/independent-review/RECOVERY_ARTIFACT_REVIEW.json",
+      "bytes": 3277,
+      "sha256": "9aceee06ecfe8d908b189036a016b666c50296da24266c7fa63e8055f533ca63"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/independent-review/ACTUAL_COHORT_REVIEW.json",
+      "bytes": 19908,
+      "sha256": "51250b6a97a64bfa796acaeef15132da25bf47f6f258e9c4c27297dc40ce2928"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-final-release-20261014/CANONICAL_INSTALL.json",
+      "bytes": 1013,
+      "sha256": "be4022c78947eaa5c4a7d092e0028a96893c63557cded9e2c29267fefba5fb49"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-final-release-20261014/INSTALLED_TESTS_FINAL.log",
+      "bytes": 100,
+      "sha256": "576f6e0d76e07a324371522ace7a37c3815c224fcef1b60257b714cd17410ca4"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-final-release-20261014/DOM_TESTS_FINAL.log",
+      "bytes": 5975,
+      "sha256": "cd09a14f85c6cd1f6f70d1556fa8daf42191392af401b86e7c6ef41cae82c672"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-catcher-final-release-20261014/EXPORT_PROCESS.json",
+      "bytes": 1538,
+      "sha256": "129f69ad126bb0337eaaad7ebc6f16fa1ccc0668365c17e3cb3f6af33c6e15a6"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-readiness-20261014/root-launch-01/TERMINAL_ARTIFACT_RECOVERY.json",
+      "bytes": 8802,
+      "sha256": "2ea875099bb7bcd4fa094ead91ac0b539c774b5c14910da2a8c718f96095cb4f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-readiness-20261014/root-launch-01/CHECKPOINT_RECOVERY_ACCEPTED.json",
+      "bytes": 2664,
+      "sha256": "55cd957afec50ebb0ba62157fa7c4ccf65691ca93a45fa6068949510c69ac30c"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-inspection-20261014/client-sigint-review/ACTUAL_TRACE_01.json",
+      "bytes": 1116561,
+      "sha256": "e27226e1683f2e7635bfc062fe6cd59b3e14755f6a6ee052fcde97203b33188d"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-checkpoint-20261014/client-sigint-recovery/ACTUAL_CHECKPOINT_01.json",
+      "bytes": 44526,
+      "sha256": "1925ae18d4c40b349ffa9e4d7e7ba4d583f815212d7b0714dc845b4ca1feefc0"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-checkpoint-20261014/client-sigint-recovery/ACTUAL_CHECKPOINT_01_PROCESS.json",
+      "bytes": 1526,
+      "sha256": "2d03f6053e2d35036d953128ebbaea2580588437068d6ccf3c909fea2c45e396"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-frozen-plan-20261014/recovery-v2/SEAL.json",
+      "bytes": 10346,
+      "sha256": "a02fb83218c9e16d4e1765eab98adc41aa039805eeb15a6254a2e5a5332b441f"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-frozen-ui-20261014/recovery-v2/SEAL.json",
+      "bytes": 4620,
+      "sha256": "cd64193cd4b958c71447903765cab77925f1541ff365c3a3ba422e4c37bfa4f7"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-shutdown-repair-20261014/provenance-v2/SEAL.json",
+      "bytes": 2366,
+      "sha256": "cfefd261b6d0952ba9758257d8f5e8b704fa08308e79a553aa62095689071c80"
+    },
+    {
+      "path": "/home/user/aditya/RL/builds/realtime-expo-catcher-gpu-publication-20261014/independent-review/FINAL_REPORT_REVIEW.json",
+      "bytes": 9445,
+      "sha256": "53c7a70dc829efb16784dbcc943c1ce217f7883b1dbc967b52d8bd25e0a5a156"
+    }
+  ],
+  "architecture": "REALTIME_CATCHER_GPU_20261014.mmd",
+  "ste": "STE guidance; full compliance unchecked"
+}

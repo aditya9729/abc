@@ -1,0 +1,43 @@
+flowchart TD
+  subgraph Author[Author implementations and released assets]
+    BC[Flow BC24 policy]
+    Prior[Catcher archive: 1,011,008 complete-episode rows]
+    Learner[RealTimeEXPOFTLearner and original training driver]
+    Sampler[Original AsyncChunkSampler]
+    Eval[Original evaluation driver and full-state restore]
+  end
+  subgraph Sadhana[Sadhana: harness and explicit Catcher integration]
+    Root[Coordinator: source, configuration and process checks]
+    Adapter[Catcher state-policy backend and task adapter]
+    Native[CPU Kinetix world: observations, actions, rewards]
+    Replay[Original offline and online replay]
+    Saved[Finalized learner checkpoint at index 4096]
+    Recovery[CPU artifact recovery: trace, replay, optimizer and RNG checks]
+    Frozen[Four CPU frozen trials on one level]
+    Review[Independent agents: source and artifact review]
+    Viewer[Results viewer: complete videos and actual update counts]
+  end
+  Root -->|bounded GPU0 launch| Learner
+  BC -->|initial policy parameters| Adapter
+  Prior -->|offline transitions| Replay
+  Adapter -->|declared model and task interface| Learner
+  Learner -->|slow action inference and fast correction| Sampler
+  Sampler -->|delayed action chunks| Native
+  Native -->|observations and labelled transitions| Replay
+  Replay -->|original sampling and update schedule| Learner
+  Learner -->|author save and exit0| Saved
+  Saved -->|immutable artifact; client shutdown SIGINT disclosed| Recovery
+  Root -->|resource release and recovery acceptance| Recovery
+  Review -->|independent evidence checks| Recovery
+  Recovery -->|accepted parameters, clocks and RNG| Eval
+  Eval -->|no updates; original action path| Frozen
+  Frozen -->|full episode traces, outcomes and videos| Viewer
+  Review -->|source, media and presentation checks| Viewer
+  subgraph Planned[Planned transfer and scaling study]
+    Data[Atlas and Engram: published curated data]
+    Leela[Leela: published R1 Lite simulation and reset contract]
+    Study[Matched new-data and collection-policy experiments]
+  end
+  Data -. proposed artifact handoff .-> Leela
+  Leela -. reward and action contracts required .-> Study
+  Recovery -. method integration evidence only .-> Study
