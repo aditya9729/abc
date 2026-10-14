@@ -4,6 +4,12 @@
 It owns process bounds and output paths. It implements no model, learner,
 replay buffer, update, evaluation, or training loop. Root owns actual execution.
 
+**Completed result:** the original 100000-call run finished in 8385.47 seconds.
+Its last measured return is 572.72 at 95000 calls. All 19 evaluations and three
+original recordings are now in the [viewer](http://127.0.0.1:8770/original-methods/#fast-original-heading).
+The [full result](FASTTD3_ORIGINAL_RESULTS_20261014.md) supersedes the partial
+snapshot below. Nine printed physics warnings remain a stated limitation.
+
 The selected current-release recipe is H1Hand Hurdle, seed1, classic FastTD3.
 Fast source is `229ed59bbf43ea2f7a2d5d90d1076314839944d7`.
 HumanoidBench source is `cb1189039151c8aadaaa987b442da54383c87fab`.
@@ -43,10 +49,13 @@ Evidence: `builds/fasttd3-original-native-acceptance-20261014/actual-egl-r2-acce
 and `builds/fasttd3-short-temp-repair-20261014/next-acceptance/actual-{one-r2,twelve}-acceptance.json`.
 The [compact index](FASTTD3_NATIVE_QUALIFICATION_20261014.json) pins these receipts.
 Full 100,000-call training is a separate experiment. Root launched it on GPU0
-after these qualifications and the serial Mulligan evaluations. Its result
-remains pending. The original eight-hour worker watchdog remains active.
+after these qualifications and the serial Mulligan evaluations. It completed
+within the original eight-hour worker watchdog; terminal acceptance passed.
 
-## Live full run and reference comparison — 14 October 2026
+## Historical partial observation — 14 October 2026
+
+The following section preserves the evidence available during training.
+It is superseded by the linked full result above.
 
 Run `author-subset-20261014T030724-7fc63f` uses the unchanged current-release
 recipe above. Its process remains live. The immutable 04:29 UTC history snapshot
@@ -135,7 +144,7 @@ A separate `original_humanoidbench_qualification` phase permits exactly1 or12
 original vector calls and a worker bound of1800seconds, with60seconds cleanup.
 This phase is allocation or first-update evidence, not a benchmark.
 The full job has an8hour worker bound and60seconds cleanup.
-These are chosen watchdogs; completion within them is not yet measured.
+These are chosen watchdogs; the completed run finished within them.
 Other workers retain their existing admission bounds.
 
 ## Source, imports and runtime
@@ -222,9 +231,10 @@ Root release evidence is under
 `ACTUAL_INSTALLED_METADATA.json` records source/runtime checks and three job pins.
 That initial release preceded the native qualifications described above.
 Mulligan has since released GPU0. Rendering, allocation and first-update checks
-passed before the full run started. The canonical and Fast author prefixes now
-remain unchanged while that original run is active. Its terminal artifact
-acceptance and final report are pending. The separate
+passed before the full run started. Terminal artifact acceptance and full-result
+publication are complete. The Fast author prefix remains unchanged. Root then
+released the reviewed canonical viewer and EXPO process-profile wheel. The
+next original EXPO timing run now holds GPU0. Its result is separate. The
 [EGL check](FASTTD3_EGL_RENDER_QUALIFICATION.md) records the rendering boundary.
 
 Root reviews, releases and executes the command. The runtime agent qualifies

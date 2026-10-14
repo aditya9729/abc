@@ -1,0 +1,664 @@
+{
+  "schema": "fasttd3-original-current-release-single-seed-result/v1",
+  "created_utc": "2026-10-14T05:34:12.193587+00:00",
+  "reviewer": "/root/fast_fresh_launch_preparation",
+  "status": "completed_current_release_run_verified_available_evidence",
+  "independent_verdict": "no_concrete_mismatch_found",
+  "run_id": "author-subset-20261014T030724-7fc63f",
+  "scope": "Original current-release classic FastTD3 H1Hand Hurdle seed1. No ABC adaptation, R1Lite result or historical three-seed reproduction claim.",
+  "root_acceptance": {
+    "path": "/home/user/aditya/RL/builds/fasttd3-full-acceptance-20261014/actual-full-01.json",
+    "bytes": 31147,
+    "sha256": "deb11c88c3f5b6e8050aedbb10777335a0e50260204a5b579fe2847e07898aa0"
+  },
+  "root_acceptance_process": {
+    "argv": [
+      "/usr/bin/timeout",
+      "--kill-after=20",
+      "900",
+      "/home/user/aditya/RL/abc/.venv/bin/python",
+      "-I",
+      "-B",
+      "/home/user/aditya/RL/builds/fasttd3-full-acceptance-20261014/check_phase.py",
+      "accept",
+      "--run-dir",
+      "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261014T030724-7fc63f",
+      "--live-snapshot",
+      "/home/user/aditya/RL/builds/fasttd3-short-temp-repair-20261014/next-acceptance/actual-full-live.json",
+      "--output",
+      "/home/user/aditya/RL/builds/fasttd3-full-acceptance-20261014/actual-full-01.json"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 42.731929870089516
+  },
+  "author_elapsed_s": 8385.472207810031,
+  "source_commits": {
+    "fasttd3": "229ed59bbf43ea2f7a2d5d90d1076314839944d7",
+    "humanoid_bench": "cb1189039151c8aadaaa987b442da54383c87fab"
+  },
+  "recipe": {
+    "env_name": "h1hand-hurdle-v0",
+    "agent": "fasttd3",
+    "seed": 1,
+    "torch_deterministic": true,
+    "cuda": true,
+    "device_rank": 0,
+    "exp_name": "hyperparams",
+    "project": "FastTD3",
+    "use_wandb": true,
+    "checkpoint_path": null,
+    "num_envs": 128,
+    "num_eval_envs": 128,
+    "total_timesteps": 100000,
+    "critic_learning_rate": 0.0003,
+    "actor_learning_rate": 0.0003,
+    "critic_learning_rate_end": 0.0003,
+    "actor_learning_rate_end": 0.0003,
+    "buffer_size": 51200,
+    "num_steps": 1,
+    "gamma": 0.99,
+    "tau": 0.1,
+    "batch_size": 32768,
+    "policy_noise": 0.001,
+    "std_min": 0.001,
+    "std_max": 0.4,
+    "learning_starts": 10,
+    "policy_frequency": 2,
+    "noise_clip": 0.5,
+    "num_updates": 2,
+    "init_scale": 0.01,
+    "num_atoms": 101,
+    "v_min": -250.0,
+    "v_max": 250.0,
+    "critic_hidden_dim": 1024,
+    "actor_hidden_dim": 512,
+    "critic_num_blocks": 2,
+    "actor_num_blocks": 1,
+    "use_cdq": true,
+    "measure_burnin": 3,
+    "eval_interval": 5000,
+    "render_interval": 5000,
+    "compile": true,
+    "compile_mode": "reduce-overhead",
+    "obs_normalization": true,
+    "reward_normalization": false,
+    "use_grad_norm_clipping": false,
+    "max_grad_norm": 0.0,
+    "amp": true,
+    "amp_dtype": "bf16",
+    "disable_bootstrap": false,
+    "use_domain_randomization": false,
+    "use_push_randomization": false,
+    "use_tuned_reward": false,
+    "action_bounds": 1.0,
+    "task_embedding_dim": 32,
+    "weight_decay": 0.1,
+    "save_interval": 5000,
+    "sim_type": "",
+    "sim_dimension": 64,
+    "critic_seq_len": 8,
+    "actor_seq_len": 8
+  },
+  "runtime": {
+    "prefix": "/home/user/aditya/runtimes/fasttd3-original-humanoidbench-229ed59-py310",
+    "distributions": {
+      "fast-td3": {
+        "version": "0.1.0",
+        "payloads": 12,
+        "manifest_sha256": "fc0a6d391c9353f1ccf43f51c2e42b121fef6a07ffe4d3aca967ccd2cdf14df3"
+      },
+      "humanoid-bench": {
+        "version": "0.2",
+        "payloads": 2780,
+        "manifest_sha256": "428340bad89c7953e9e4391ed03c4a3c035bf5c2c19178de1407dabe074aeddc"
+      }
+    },
+    "versions": {
+      "torch": "2.6.0+cu124",
+      "tensordict": "0.7.2",
+      "torchrl": "0.7.2",
+      "mujoco": "3.1.6",
+      "gymnasium": "0.29.1",
+      "stable-baselines3": "2.3.2",
+      "wandb": "0.30.0",
+      "jax": "0.4.35",
+      "jaxlib": "0.4.35"
+    },
+    "dependency_limit": "HumanoidBench declares Torch2.3.1; Fast requires2.6.0. Native/EGL/compile qualification remains independent."
+  },
+  "training_budget": {
+    "completed_vector_calls": 100000,
+    "configured_worlds": 128,
+    "training_transitions_source_accounted": 12800000,
+    "basis": "Completed original loop and saved step100000 with original128-world construction; no independent per-control trace",
+    "last_evaluated_index": 95000,
+    "last_evaluated_nominal_steps": 12160000,
+    "last_evaluation_collected_training_transitions_before_log": 12160128,
+    "has_final100000_evaluation": false
+  },
+  "metrics": {
+    "last_periodic_mean_return": 572.722412109375,
+    "last_periodic_mean_length": 960.0234375,
+    "task_success_rate": null,
+    "per_world_outcomes": null,
+    "paired_periodic_points": [
+      {
+        "global_step": 5000,
+        "nominal_env_step": 640000,
+        "training_transitions_collected_before_log": 640128,
+        "local_mean_return": 7.442450523376465,
+        "local_mean_length": 593.953125,
+        "released_mean_return": 6.492611567179362,
+        "local_minus_released": 0.9498389561971026,
+        "released_lower_field": 6.225973005334275,
+        "released_upper_field": 6.7592501290244495
+      },
+      {
+        "global_step": 10000,
+        "nominal_env_step": 1280000,
+        "training_transitions_collected_before_log": 1280128,
+        "local_mean_return": 7.407980918884277,
+        "local_mean_length": 645.4375,
+        "released_mean_return": 10.588607947031656,
+        "local_minus_released": -3.180627028147379,
+        "released_lower_field": 8.412515126451241,
+        "released_upper_field": 12.764700767612071
+      },
+      {
+        "global_step": 15000,
+        "nominal_env_step": 1920000,
+        "training_transitions_collected_before_log": 1920128,
+        "local_mean_return": 8.843467712402344,
+        "local_mean_length": 707.4765625,
+        "released_mean_return": 18.610817273457844,
+        "local_minus_released": -9.7673495610555,
+        "released_lower_field": 15.738143769806989,
+        "released_upper_field": 21.4834907771087
+      },
+      {
+        "global_step": 20000,
+        "nominal_env_step": 2560000,
+        "training_transitions_collected_before_log": 2560128,
+        "local_mean_return": 13.144728660583496,
+        "local_mean_length": 748.34375,
+        "released_mean_return": 29.661352157592773,
+        "local_minus_released": -16.516623497009277,
+        "released_lower_field": 21.76995365926382,
+        "released_upper_field": 37.55275065592173
+      },
+      {
+        "global_step": 25000,
+        "nominal_env_step": 3200000,
+        "training_transitions_collected_before_log": 3200128,
+        "local_mean_return": 25.832229614257812,
+        "local_mean_length": 668.09375,
+        "released_mean_return": 49.00843048095703,
+        "local_minus_released": -23.17620086669922,
+        "released_lower_field": 31.328784883872007,
+        "released_upper_field": 66.68807607804206
+      },
+      {
+        "global_step": 30000,
+        "nominal_env_step": 3840000,
+        "training_transitions_collected_before_log": 3840128,
+        "local_mean_return": 33.19626998901367,
+        "local_mean_length": 830.1796875,
+        "released_mean_return": 85.58958435058594,
+        "local_minus_released": -52.393314361572266,
+        "released_lower_field": 56.83435619834776,
+        "released_upper_field": 114.34481250282411
+      },
+      {
+        "global_step": 35000,
+        "nominal_env_step": 4480000,
+        "training_transitions_collected_before_log": 4480128,
+        "local_mean_return": 48.524009704589844,
+        "local_mean_length": 708.1640625,
+        "released_mean_return": 115.55878194173177,
+        "local_minus_released": -67.03477223714192,
+        "released_lower_field": 79.92347525493489,
+        "released_upper_field": 151.19408862852865
+      },
+      {
+        "global_step": 40000,
+        "nominal_env_step": 5120000,
+        "training_transitions_collected_before_log": 5120128,
+        "local_mean_return": 60.65013885498047,
+        "local_mean_length": 771.7734375,
+        "released_mean_return": 173.2019500732422,
+        "local_minus_released": -112.55181121826172,
+        "released_lower_field": 112.07297356902194,
+        "released_upper_field": 234.33092657746244
+      },
+      {
+        "global_step": 45000,
+        "nominal_env_step": 5760000,
+        "training_transitions_collected_before_log": 5760128,
+        "local_mean_return": 91.70697021484375,
+        "local_mean_length": 763.5234375,
+        "released_mean_return": 218.64263916015625,
+        "local_minus_released": -126.9356689453125,
+        "released_lower_field": 138.09470906365925,
+        "released_upper_field": 299.19056925665325
+      },
+      {
+        "global_step": 50000,
+        "nominal_env_step": 6400000,
+        "training_transitions_collected_before_log": 6400128,
+        "local_mean_return": 89.50335693359375,
+        "local_mean_length": 751.3203125,
+        "released_mean_return": 319.6346893310547,
+        "local_minus_released": -230.13133239746094,
+        "released_lower_field": 216.08342306974944,
+        "released_upper_field": 423.18595559235996
+      },
+      {
+        "global_step": 55000,
+        "nominal_env_step": 7040000,
+        "training_transitions_collected_before_log": 7040128,
+        "local_mean_return": 82.0117416381836,
+        "local_mean_length": 851.7578125,
+        "released_mean_return": 377.22975667317706,
+        "local_minus_released": -295.21801503499347,
+        "released_lower_field": 259.30040536744895,
+        "released_upper_field": 495.1591079789052
+      },
+      {
+        "global_step": 60000,
+        "nominal_env_step": 7680000,
+        "training_transitions_collected_before_log": 7680128,
+        "local_mean_return": 181.15109252929688,
+        "local_mean_length": 871.203125,
+        "released_mean_return": 496.73987833658856,
+        "local_minus_released": -315.5887858072917,
+        "released_lower_field": 389.9528713112492,
+        "released_upper_field": 603.526885361928
+      },
+      {
+        "global_step": 65000,
+        "nominal_env_step": 8320000,
+        "training_transitions_collected_before_log": 8320128,
+        "local_mean_return": 215.25308227539062,
+        "local_mean_length": 865.578125,
+        "released_mean_return": 490.29189046223956,
+        "local_minus_released": -275.03880818684894,
+        "released_lower_field": 378.8689856869445,
+        "released_upper_field": 601.7147952375346
+      },
+      {
+        "global_step": 70000,
+        "nominal_env_step": 8960000,
+        "training_transitions_collected_before_log": 8960128,
+        "local_mean_return": 279.0829772949219,
+        "local_mean_length": 973.5390625,
+        "released_mean_return": 610.6637573242188,
+        "local_minus_released": -331.5807800292969,
+        "released_lower_field": 480.1631532334461,
+        "released_upper_field": 741.1643614149914
+      },
+      {
+        "global_step": 75000,
+        "nominal_env_step": 9600000,
+        "training_transitions_collected_before_log": 9600128,
+        "local_mean_return": 364.9333190917969,
+        "local_mean_length": 964.4765625,
+        "released_mean_return": 658.8320719401041,
+        "local_minus_released": -293.89875284830725,
+        "released_lower_field": 565.0675789124052,
+        "released_upper_field": 752.596564967803
+      },
+      {
+        "global_step": 80000,
+        "nominal_env_step": 10240000,
+        "training_transitions_collected_before_log": 10240128,
+        "local_mean_return": 443.0930480957031,
+        "local_mean_length": 970.9765625,
+        "released_mean_return": 689.0982869466146,
+        "local_minus_released": -246.0052388509115,
+        "released_lower_field": 598.9966247159923,
+        "released_upper_field": 779.1999491772369
+      },
+      {
+        "global_step": 85000,
+        "nominal_env_step": 10880000,
+        "training_transitions_collected_before_log": 10880128,
+        "local_mean_return": 467.91888427734375,
+        "local_mean_length": 955.6484375,
+        "released_mean_return": 710.2075602213541,
+        "local_minus_released": -242.28867594401038,
+        "released_lower_field": 618.670444534875,
+        "released_upper_field": 801.7446759078333
+      },
+      {
+        "global_step": 90000,
+        "nominal_env_step": 11520000,
+        "training_transitions_collected_before_log": 11520128,
+        "local_mean_return": 565.246826171875,
+        "local_mean_length": 984.171875,
+        "released_mean_return": 735.3473714192709,
+        "local_minus_released": -170.10054524739587,
+        "released_lower_field": 659.2942580856163,
+        "released_upper_field": 811.4004847529254
+      },
+      {
+        "global_step": 95000,
+        "nominal_env_step": 12160000,
+        "training_transitions_collected_before_log": 12160128,
+        "local_mean_return": 572.722412109375,
+        "local_mean_length": 960.0234375,
+        "released_mean_return": 778.7053426106771,
+        "local_minus_released": -205.98293050130212,
+        "released_lower_field": 729.4083980816131,
+        "released_upper_field": 828.0022871397412
+      }
+    ]
+  },
+  "reference": {
+    "data": {
+      "path": "/home/user/aditya/RL/builds/fasttd3-pristine-author-readiness-20261013/source/data/humanoidbench_result.json",
+      "bytes": 132177,
+      "sha256": "8f0676c014d353d68df9776d5c634cd7cb90d9f5b48edf1979c7557a082da0d0"
+    },
+    "task_key": "h1hand_hurdle",
+    "coordinate_join": "Exact nominal env_step == global_step*128; no interpolation",
+    "last_matched_released_mean": 778.7053426106771,
+    "last_local_minus_released": -205.98293050130212,
+    "reference_endpoint_nominal_steps": 19840000,
+    "release_fields": "return_min and return_max retained with their source names; do not infer confidence interval or significance",
+    "historical_limit": "Released aggregate lacks per-seed configuration, generating code revision and runtime provenance; one local seed does not reproduce or causally explain it"
+  },
+  "learning_observation": "Late periodic returns increased from 82.0117416381836 at 55,000 calls to 572.722412109375 at 95,000 calls. The completed trajectory supersedes the earlier partial 82 snapshot as the current result.",
+  "checkpoint": {
+    "pin": {
+      "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261014T030724-7fc63f/author-output/models/h1hand-hurdle-v0__hyperparams__1_final.pt",
+      "bytes": 15426654,
+      "sha256": "26dc7809fc58bd46a0661c86ad6e0e2c9e8cfabd4408309024055aed63ff9b0b"
+    },
+    "global_step": 100000,
+    "finite_saved_tensor_groups": [
+      "actor_state_dict",
+      "qnet_state_dict",
+      "qnet_target_state_dict",
+      "obs_normalizer_state",
+      "critic_obs_normalizer_state"
+    ],
+    "owner_cpu_tensor_reader": "Completed root acceptance invokes pinned read_artifacts_cpu.py with CUDA hidden and no model or simulator construction.",
+    "independent_checkpoint_load_by_reviewer": false,
+    "observation_normalizer_count_observed": 13118558208,
+    "critic_normalizer_count_observed": 0,
+    "normalizer_counts_match_static_expectation": true,
+    "source_inferred_update_calls": {
+      "critic": 199978,
+      "actor": 99989
+    },
+    "observed_optimizer_counters": null,
+    "resume_scope": "Original weights/normalizers/arguments/index only. Optimizer, scheduler, replay, RNG and native-world state absent; no exact continuation."
+  },
+  "history": {
+    "scalar_rows": 999,
+    "scalar_index_range": [
+      100,
+      99900
+    ],
+    "scalar_values_finite": true,
+    "all999_rows_match_decoded_raw_history": true,
+    "periodic_evaluations": 19,
+    "original_gif_inventory": 19,
+    "gif_bytes_authenticated": true,
+    "gifs_fully_decoded_by_reviewer": false
+  },
+  "physics": {
+    "printed_qacc_warnings": 9,
+    "closed_log_scan": {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/FINAL_STDOUT_SCAN.json",
+      "bytes": 2276,
+      "sha256": "5b0927e24f9d39fbc5c93f7f1419932e8e70f632c698a51499e67247f93bbec6"
+    },
+    "printed_warning_messages": [
+      {
+        "character_offset": 1850782,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 46. The simulation is unstable. Time = 18.0800.",
+        "nearby_prior_index": 47917
+      },
+      {
+        "character_offset": 2035709,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 36. The simulation is unstable. Time = 9.3140.",
+        "nearby_prior_index": 52861
+      },
+      {
+        "character_offset": 2199853,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 18.2500.",
+        "nearby_prior_index": 57259
+      },
+      {
+        "character_offset": 2227396,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 17. The simulation is unstable. Time = 6.3000.",
+        "nearby_prior_index": 57997
+      },
+      {
+        "character_offset": 2229389,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 5. The simulation is unstable. Time = 8.3960.",
+        "nearby_prior_index": 58047
+      },
+      {
+        "character_offset": 2410830,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 12.1980.",
+        "nearby_prior_index": 62909
+      },
+      {
+        "character_offset": 2485677,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 22. The simulation is unstable. Time = 5.4300.",
+        "nearby_prior_index": 64917
+      },
+      {
+        "character_offset": 2488870,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 0. The simulation is unstable. Time = 6.9560.",
+        "nearby_prior_index": 65000
+      },
+      {
+        "character_offset": 2914745,
+        "message": "WARNING: Nan, Inf or huge value in QACC at DOF 54. The simulation is unstable. Time = 8.2160.",
+        "nearby_prior_index": 76411
+      }
+    ],
+    "traceback_markers": 0,
+    "interpretation": "MuJoCo 3.1.6 QACC recovery resets native physics state. Printed messages are a lower bound on detected recoveries. The combined log does not identify world or train/eval/render phase. Finite scalar/checkpoint evidence does not establish continuous warning-free physics. No cause or impact magnitude is isolated."
+  },
+  "independent_audit": {
+    "original_source_tracked_manifests_match": {
+      "FastTD3": 25,
+      "HumanoidBench": 2977
+    },
+    "original_sources_clean": true,
+    "normal_installed_author_payloads_match_source_and_worker_manifest": {
+      "FastTD3": 12,
+      "HumanoidBench": 2780
+    },
+    "recorded_runtime_versions_rechecked": 9,
+    "historical_canonical_wheel": {
+      "path": "/home/user/aditya/RL/builds/fasttd3-short-temp-root-release-20261014/wheels/abc_minimal-0.1.0-py3-none-any.whl",
+      "bytes": 48916065,
+      "sha256": "ab5e9253cd1cf8f3122437b4b894057ea4c08d74786be2b74f7541892a8db4a1"
+    },
+    "historical_canonical_module_hashes_match": {
+      "abc_bench.fasttd3_program": "f44b0f8ab140efd0788d5f093e09774430f84880a0afaf411b949351b6ce344a",
+      "abc_bench.subset": "9f8e09676a2403965c9d9a2ef33769417b3e711874e6ce72c9f1dcfa96ba96e7",
+      "abc_bench.runner": "1c4f960cba3624a87407405a9f324af2a10db5d5cfcd5106e22f9a2da419b95e",
+      "abc_bench.resources": "93ed7426f31e81018e5fef33daceb67d539fd55f9067c53d1c8e5efae31e52d1"
+    },
+    "canonical_release_limit": "Old accepted wheel and invocation authenticated. Root later released current canonical code. Sealed checker was not rerun against new canonical hashes.",
+    "sealed_acceptance_preparation_members_authenticated": 12,
+    "checkpoint_history_gif_and_receipt_inputs_authenticated": true,
+    "root_process_cleanup_evidence": "Accepted historical root receipt says owned group empty and GPU0 idle after canonical terminal. No new process/lease/GPU query by reviewer.",
+    "method": "Standard-library source/CSV/JSON/text/ZIP reads, byte hashes and Git metadata only; no model/numerical/native/GPU execution or imports."
+  },
+  "media_publication": {
+    "original_periodic_gif_inventory_status": "19 byte-authenticated original one-world recordings; three preselected recordings have accepted timing-preserving MP4 publication.",
+    "accepted_native_video": {
+      "status": "accepted_original_periodic_recordings",
+      "prepared": {
+        "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/evidence-01/PREPARED.json",
+        "bytes": 54224,
+        "sha256": "6ba98f11876b9fc05a4bcd5e2c2b4b0849c567ff92c87d27f3292d7c9b74ef35"
+      },
+      "publication": {
+        "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/evidence-01/PUBLICATION.json",
+        "bytes": 818,
+        "sha256": "9658f276905e2c84e04fd66c68afc0be4a248fb990bdbd06d2f55e3167dea395"
+      },
+      "clips": [
+        {
+          "vector_index": 5000,
+          "source_gif": {
+            "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261014T030724-7fc63f/wandb/wandb/offline-run-20261014_030743-ypub3wg3/files/media/videos/render_video_4900_e7e240a2b378bae8159e.gif",
+            "bytes": 306390,
+            "sha256": "e7e240a2b378bae8159e59cb27ace886c5191e288a6763969d397388d3f727a5"
+          },
+          "published_mp4": {
+            "path": "/home/user/aditya/RL/builds/abc-visual-results-20261008/public/original-methods/d12be6032a0efc2f.mp4",
+            "bytes": 56541,
+            "sha256": "d12be6032a0efc2f667d2cad0da302b4cc255a6ccd832c7679a7db1dfe39ef59"
+          },
+          "converted_copy": {
+            "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/evidence-01/d12be6032a0efc2f.mp4",
+            "bytes": 56541,
+            "sha256": "d12be6032a0efc2f667d2cad0da302b4cc255a6ccd832c7679a7db1dfe39ef59"
+          },
+          "frames": 36,
+          "duration_seconds": 1.08,
+          "all_source_frame_timestamps_preserved": true,
+          "owner_full_cpu_decode_passed": true,
+          "owner_browser_http_play_seek_refresh_passed": true,
+          "url": "http://127.0.0.1:8770/original-methods/d12be6032a0efc2f.mp4"
+        },
+        {
+          "vector_index": 50000,
+          "source_gif": {
+            "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261014T030724-7fc63f/wandb/wandb/offline-run-20261014_030743-ypub3wg3/files/media/videos/render_video_49900_2ad83aaf0b24ba730115.gif",
+            "bytes": 3747507,
+            "sha256": "2ad83aaf0b24ba7301151dda2bac85491c30e033cb7a45e9750b51bc865e5f8d"
+          },
+          "published_mp4": {
+            "path": "/home/user/aditya/RL/builds/abc-visual-results-20261008/public/original-methods/da752cc8f059c91f.mp4",
+            "bytes": 714927,
+            "sha256": "da752cc8f059c91fd058fc77da0b5e4218300a77d7e4f95682f34e694782fb04"
+          },
+          "converted_copy": {
+            "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/evidence-01/da752cc8f059c91f.mp4",
+            "bytes": 714927,
+            "sha256": "da752cc8f059c91fd058fc77da0b5e4218300a77d7e4f95682f34e694782fb04"
+          },
+          "frames": 462,
+          "duration_seconds": 13.86,
+          "all_source_frame_timestamps_preserved": true,
+          "owner_full_cpu_decode_passed": true,
+          "owner_browser_http_play_seek_refresh_passed": true,
+          "url": "http://127.0.0.1:8770/original-methods/da752cc8f059c91f.mp4"
+        },
+        {
+          "vector_index": 95000,
+          "source_gif": {
+            "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261014T030724-7fc63f/wandb/wandb/offline-run-20261014_030743-ypub3wg3/files/media/videos/render_video_94900_6fd52c84e915c78921f6.gif",
+            "bytes": 2877648,
+            "sha256": "6fd52c84e915c78921f635c9b2525a19fd2877703f6ee31ba219b47f0f4f8f0c"
+          },
+          "published_mp4": {
+            "path": "/home/user/aditya/RL/builds/abc-visual-results-20261008/public/original-methods/6a399172af556ede.mp4",
+            "bytes": 640425,
+            "sha256": "6a399172af556eded2262aadea609081c19dd1f2e2fa2f86ff688ce78e359a41"
+          },
+          "converted_copy": {
+            "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/evidence-01/6a399172af556ede.mp4",
+            "bytes": 640425,
+            "sha256": "6a399172af556eded2262aadea609081c19dd1f2e2fa2f86ff688ce78e359a41"
+          },
+          "frames": 500,
+          "duration_seconds": 15.0,
+          "all_source_frame_timestamps_preserved": true,
+          "owner_full_cpu_decode_passed": true,
+          "owner_browser_http_play_seek_refresh_passed": true,
+          "url": "http://127.0.0.1:8770/original-methods/6a399172af556ede.mp4"
+        }
+      ],
+      "scope": "Existing original one-world periodic recordings; no new native rollout and no final100000-call evaluation."
+    },
+    "browser_publication": {
+      "status": "owner_browser_passed_independently_authenticated",
+      "receipt": {
+        "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/browser-proof-01/VIEWER_BROWSER_RESULT.json",
+        "bytes": 6098,
+        "sha256": "16a9d8d19eebb83e9899dfb2c32c83dedcb774325f1a6a487d3598d15df0a872"
+      },
+      "url": "http://127.0.0.1:8770/original-methods/#fast-original-heading",
+      "desktop_screenshot": {
+        "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/browser-proof-01/desktop.png",
+        "bytes": 336470,
+        "sha256": "a4c86b0c5b86faa386e02c3e029675341383ea1ba5879ba6f3a3ce067e370d95"
+      },
+      "mobile_screenshot": {
+        "path": "/home/user/aditya/RL/builds/fasttd3-original-final-publication-20261014/browser-proof-01/mobile.png",
+        "bytes": 212299,
+        "sha256": "407d382304a212adab09bd165984c2053e60e7f5c3d427dc14198c51fbe99ad3"
+      },
+      "reviewed_snapshot": {
+        "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/PUBLISHED_SNAPSHOT_REVIEWED.json",
+        "bytes": 715823,
+        "sha256": "dd87f7a99fdf576568c9aa697161e0797d26436a0355b13c4aa552ba206ed153"
+      },
+      "live_browser_rerun_by_reviewer": false
+    }
+  },
+  "limits": [
+    "One local seed; no stochastic uncertainty estimate or significance test.",
+    "Original HumanoidBench seed path does not prove paired reset states.",
+    "No per-world success rate, native action/state trace or recovery attribution is available.",
+    "Saved final 100,000-call weights have no corresponding original 100,000-call evaluation.",
+    "Runtime retains the explicit HumanoidBench Torch 2.3.1 versus Fast Torch 2.6.0 declared metadata conflict; native execution passed for this task and run, not every dependency combination.",
+    "No compilation ablation was selected or launched; this report does not change the already-selected next EXPO job.",
+    "Published clips preserve all existing source frames and encoded GIF timing. They do not supply missing per-control native traces or establish wall-clock timing."
+  ],
+  "evidence_index": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/EVIDENCE.json",
+  "architecture": "FASTTD3_ORIGINAL_PROGRAM.mmd",
+  "ste_note": "Uses ASD-STE100 guidance; no full vocabulary/grammar compliance check",
+  "report_revision": "published_media_v1",
+  "prior_report": {
+    "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/FINAL_RESULTS.json",
+    "bytes": 21440,
+    "sha256": "0d99d87fa9149adb222eff2e4e20e3c7a6b1fa8465f405b34abd96cbbcd35c4e"
+  },
+  "prior_seal": {
+    "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/SEAL.json",
+    "bytes": 1269,
+    "sha256": "87903c3b719c5e10ab0551847d3ed4df26f013bf6c5cb2ba4da26dbd7caeb238"
+  },
+  "publication_review": {
+    "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/PUBLICATION_REVIEW.json",
+    "bytes": 16174,
+    "sha256": "ce1ec0d8120f6e2f8cc85757e60d61b6d4adedd062c8ddc992e5cd5c0035a6da"
+  },
+  "root_publication": {
+    "status": "root_viewed_and_published",
+    "structured_source": {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/FINAL_RESULTS_PUBLISHED.json",
+      "bytes": 28082,
+      "sha256": "d92efa58e177f30e92088017c26a5d27323ba7ceae2842dd6530db608bfe82d2"
+    },
+    "publication_review": {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/PUBLICATION_REVIEW.json",
+      "bytes": 16174,
+      "sha256": "ce1ec0d8120f6e2f8cc85757e60d61b6d4adedd062c8ddc992e5cd5c0035a6da"
+    },
+    "plot_source": {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/root-plot/plot.py",
+      "bytes": 2020,
+      "sha256": "a89518fc3514f38253f97571dd496548df20bb9f1e12d61444959538fbb37272"
+    },
+    "plot": {
+      "path": "/home/user/aditya/RL/builds/fasttd3-original-final-results-20261014/root-plot/full-reference.png",
+      "bytes": 150540,
+      "sha256": "9cc8379aeab4914cac2cba0c29e59bcaf4c3678e6008e3a4c4f0ecffb2bec9fa"
+    },
+    "plot_scope": "All19 accepted nominal-coordinate comparisons; not held-out success or a causal explanation",
+    "plot_execution": "First canonical-prefix attempt exited1:matplotlib absent; unchanged script completed0 in existing idle Mulligan prefix with GPU/GL disabled. No packages installed."
+  }
+}

@@ -9,7 +9,10 @@ It includes accepted local IDQL and DIVL training on the original Mulligan task.
 Execution update: the [original Mulligan experiment](MULLIGAN_AUTHOR_EXPERIMENTS_20261013.md)
 now has a working command launcher, matched released-policy scores and six full
 native videos. Both original local training stages have completed. The wider collection feedback and
-R1 Lite connections below remain proposed.
+R1 Lite connections below remain proposed. The original FastTD3 Hurdle run also
+completed its current-release schedule. Its last mean return is 572.72 at 95000
+calls, below the released 778.71 reference. The result includes nine printed
+physics warnings; see the [full report](FASTTD3_ORIGINAL_RESULTS_20261014.md).
 
 ## The first scaling decision
 
@@ -114,8 +117,15 @@ that exposure. BC24 is ordinary author flow-BC used with RTC inference; it is
 not an executed Catcher RTC-SFT artifact. The simulation paper starts from an
 ordinary flow policy, so robot RTC-SFT requirements must not be imposed on that
 experiment without justification. The read-only next-study proposal is at
-`builds/realtime-expo-catcher-next-study-20261014/PLAN.md`; it is not a selected
-or executed replacement for the missing exact simulation release configuration.
+`builds/realtime-expo-catcher-next-study-20261014/PLAN.md`. Root selected its
+4096-index timing profile with the full prior, batch 64, UTD 20 and original
+transition-derived updates. Run `author-subset-20261014T053638-6a599b` launched
+on GPU0 at 05:36 UTC on 14 October. The native client uses CPU; the original learner
+uses CUDA. Worker and parent bounds are 3600 and 3700 seconds. Its actual update
+counts, checkpoint and frozen performance remain pending. This is an explicit
+Catcher integration, not the missing exact simulation release configuration.
+Admission and live identity evidence are under
+`builds/realtime-expo-catcher-gpu-readiness-20261014/root-launch-01/`.
 Per-step rewards are absent from the archive;
 source-derived sparse rewards require an explicit contract. Reward and stored
 success flags are not interchangeable.
@@ -182,7 +192,7 @@ The inspected repositories provide different parts of the system:
 | `abc_bench/runner.py`, `author_program.py`, and `mulligan_program.py` | GPU0 supervision, bounded author commands, accepted local IDQL/DIVL training and evaluation | Connect collection feedback |
 | `abc_bench/captured_reset.py` | Captured ABC validation resets | A separate validated TRAIN reset bank; validation captures must not become curriculum data |
 | Current Sadhana `mixture.py`, `rollout_artifacts.py`, and `rollout_execution.py`, inspected at `85fe831` | Real-data floor sampling, persistent rollout evidence, execution events | Method-specific collection feedback and an original RL learner connection |
-| Existing result viewer | Released Mulligan scores and six videos; local IDQL scores and three full videos | Learning curves against data, compute, and supervision cost; per-start failure maps |
+| Existing result viewer | Released/local Mulligan scores and full videos; Catcher frozen comparisons; original FastTD3 curve and recordings | Matched deployment-data scaling curves; supervision cost and per-start failure maps |
 
 The current real-data floor applies over an epoch. It is not an exact
 per-update actor/critic balance. The legacy comparison also requires equal

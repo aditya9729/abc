@@ -6,9 +6,9 @@ flowchart LR
   C --> W[Original native worlds and FastTD3 learner]
   W --> O[Original checkpoints and offline W&B output]
   S --> E[Process-only receipt and stdout]
-  O --> L[Observed partial returns and original recordings]
-  E --> D[Independent review: logged physics warnings]
-  D --> L
-  O -. root terminal acceptance pending .-> V[Completed-run returns, videos and explicit limits]
-  D -. full log review pending .-> V
-  E -. canonical owned cleanup .-> R
+  O --> L[Root: final checkpoint and all19 evaluations accepted]
+  E --> D[Independent review: nine printed physics warnings]
+  L --> V[Published curve and three full original recordings]
+  D -->|unknown world and phase effects remain visible| V
+  V --> B[Root: actual browser playback, seek and refresh checks]
+  E -->|verified owned cleanup and released lease| R
