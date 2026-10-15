@@ -73,3 +73,23 @@ sampler equations and source availability. No new GPU experiment was launched
 for this study. [Diagram source](SGS_RECIPE_STUDY.mmd) distinguishes the paper
 workflow from a proposed ABC connection. Text uses STE guidance. No full
 ASD-STE100 compliance check was done.
+
+## R1 recovery and configuration history — 15 October 2026
+
+The user highlighted reuse of past success for each configuration. SGS stores
+recent success and failure outcomes for each fixed reset configuration. It uses
+those outcomes to allocate new episodes. It does not retrieve a successful
+trajectory or supply observation history to the acting policy. The paper's
+configuration includes the initial state, goal and environment. Event-based
+grouping would be an additional design choice. Sections 3.1–3.2 and B.2 support
+these distinctions; the author project still marks code as coming soon today.
+
+For the R1 recovery study, retain configuration IDs, source lineage and versioned
+outcomes with each episode. Keep three interventions separate: adaptive reset
+selection, replay sampling of successful experience, and policy history. Start
+with the fixed-input EXPO identity and selection audit. Then validate independent
+corrections and reset coverage before comparing uniform with guided collection.
+Use the same TRAIN bank and learning budget; keep evaluation outcomes outside
+the sampler. Connecting SGS allocation to EXPO remains an explicit off-policy
+extension, with both collected and sampled replay mixtures measured. No sampler,
+learner, reward, memory architecture or runtime was changed by this update.
