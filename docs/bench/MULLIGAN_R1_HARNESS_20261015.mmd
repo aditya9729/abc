@@ -1,0 +1,12 @@
+flowchart LR
+    Data["Sadhana: pinned R1 TRAIN data"] --> Author["Original Mulligan trainer and sampler\nSeparate author runtime"]
+    Scene["Leela: R1 task and native simulation"] <--> Adapter["Sadhana: explicit R1 process adapter"]
+    Adapter <--> Author
+    Config["Root: admitted configuration and source pins"] --> Guard["ABC harness: training / evaluation admission"]
+    Guard -- "control: GPU0 lease and finite bounds" --> Author
+    Author -- "data: original checkpoints and TRAIN logs" --> Inspect["Root: artifact and trace inspection"]
+    Inspect -- "separate checkpoint acceptance" --> Frozen["Original frozen evaluator\nSeparate DEV starts"]
+    Guard -- "control: admitted evaluation" --> Frozen
+    Frozen <--> Adapter
+    Frozen -- "data: outcomes and videos" --> Report["Root: accepted report and viewer"]
+    Peer["Agents: source and evidence review"] -- "findings" --> Inspect

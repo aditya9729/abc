@@ -52,6 +52,24 @@ def load_config(path: Path) -> dict[str, Any]:
     ):
         raise ValueError("Use an absolute regular Mulligan JSON config within1MiB")
     config = json.loads(path.read_text())
+    if config.get("mode") == "r1lite-original-qualification":
+        from abc_bench.mulligan_r1lite_qualification import (
+            load_config as load_qualification,
+        )
+
+        return load_qualification(path)
+    if config.get("mode") == "r1lite-native-diagnostic":
+        from abc_bench.mulligan_r1lite_diagnostic import load_config as load_diagnostic
+
+        return load_diagnostic(path)
+    if config.get("mode") == "r1lite-original-training":
+        from abc_bench.mulligan_r1lite_training import load_config as load_training
+
+        return load_training(path)
+    if config.get("mode") == "r1lite-frozen-eval":
+        from abc_bench.mulligan_r1lite_eval import load_config as load_eval
+
+        return load_eval(path)
     required = {
         "schema_version",
         "python",
@@ -282,6 +300,22 @@ def command_for(config: dict[str, Any], author_output: Path) -> list[str]:
 
 
 def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
+    if config["mode"] == "r1lite-original-qualification":
+        from abc_bench.mulligan_r1lite_qualification import run as run_qualification
+
+        return run_qualification(config, output)
+    if config["mode"] == "r1lite-native-diagnostic":
+        from abc_bench.mulligan_r1lite_diagnostic import run as run_diagnostic
+
+        return run_diagnostic(config, output)
+    if config["mode"] == "r1lite-original-training":
+        from abc_bench.mulligan_r1lite_training import run as run_training
+
+        return run_training(config, output)
+    if config["mode"] == "r1lite-frozen-eval":
+        from abc_bench.mulligan_r1lite_eval import run as run_eval
+
+        return run_eval(config, output)
     if config["mode"] == "gpu":
         require_subset_lease()
     verify_source(config)

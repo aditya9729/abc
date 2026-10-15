@@ -338,15 +338,54 @@ def load_job(path: Path) -> dict[str, Any]:
         if len(arguments) != 2 or arguments[0] != "--config":
             raise ValueError("Mulligan jobs require one explicit --config")
         config = load_config(Path(arguments[1]))
-        if (
-            config["mode"] != "gpu"
-            or type(maximum) not in (int, float)
-            or config["timeout_s"] + CLEANUP_SECONDS > maximum
-        ):
-            raise ValueError(
-                "Mulligan GPU jobs need the declared worker timeout plus60s cleanup"
+        if config["mode"] == "r1lite-native-diagnostic":
+            from abc_bench.mulligan_r1lite_diagnostic import check_parent
+
+            check_parent(job, config)
+            maximum_allowed = 1900
+        elif config["mode"] == "r1lite-original-qualification":
+            from abc_bench.mulligan_r1lite_qualification import (
+                check_parent as check_qualification_parent,
             )
-        maximum_allowed = MAX_WORKER_SECONDS + CLEANUP_SECONDS
+
+            check_qualification_parent(job, config)
+            maximum_allowed = 1900
+        elif config["mode"] == "r1lite-original-training":
+            from abc_bench.mulligan_r1lite_training import (
+                MAX_WORKER_SECONDS as R1_TRAINING_MAX,
+            )
+            from abc_bench.mulligan_r1lite_training import (
+                PARENT_MARGIN_SECONDS,
+            )
+            from abc_bench.mulligan_r1lite_training import (
+                check_parent as check_training_parent,
+            )
+
+            check_training_parent(job, config)
+            maximum_allowed = R1_TRAINING_MAX + PARENT_MARGIN_SECONDS
+        elif config["mode"] == "r1lite-frozen-eval":
+            from abc_bench.mulligan_r1lite_eval import (
+                MAX_WORKER_SECONDS as R1_EVAL_MAX,
+            )
+            from abc_bench.mulligan_r1lite_eval import (
+                PARENT_MARGIN_SECONDS as R1_EVAL_MARGIN,
+            )
+            from abc_bench.mulligan_r1lite_eval import (
+                check_parent as check_eval_parent,
+            )
+
+            check_eval_parent(job, config)
+            maximum_allowed = R1_EVAL_MAX + R1_EVAL_MARGIN
+        else:
+            if (
+                config["mode"] != "gpu"
+                or type(maximum) not in (int, float)
+                or config["timeout_s"] + CLEANUP_SECONDS > maximum
+            ):
+                raise ValueError(
+                    "Mulligan GPU jobs need the declared worker timeout plus60s cleanup"
+                )
+            maximum_allowed = MAX_WORKER_SECONDS + CLEANUP_SECONDS
     if job["module"] == "abc_bench.fasttd3_program":
         from abc_bench.fasttd3_program import (
             CLEANUP_SECONDS,
@@ -466,6 +505,39 @@ def run_job(args: Any) -> dict[str, Any]:
         from abc_bench.realtime_update_probe import validate_job
 
         validate_job(job, args.timeout_seconds)
+    r1_diagnostic = False
+    r1_training = False
+    r1_eval = False
+    r1_qualification = False
+    if job["module"] == "abc_bench.mulligan_program":
+        from abc_bench.mulligan_program import load_config as load_mulligan_config
+
+        mulligan_config = load_mulligan_config(Path(job["arguments"][1]))
+        r1_diagnostic = mulligan_config["mode"] == "r1lite-native-diagnostic"
+        if r1_diagnostic:
+            from abc_bench.mulligan_r1lite_diagnostic import check_parent
+
+            # Refuse a shortened CLI bound before creating outputs or taking a lease.
+            check_parent(job, mulligan_config, args.timeout_seconds)
+        r1_training = mulligan_config["mode"] == "r1lite-original-training"
+        if r1_training:
+            from abc_bench.mulligan_r1lite_training import (
+                check_parent as check_training_parent,
+            )
+
+            check_training_parent(job, mulligan_config, args.timeout_seconds)
+        r1_qualification = mulligan_config["mode"] == "r1lite-original-qualification"
+        if r1_qualification:
+            from abc_bench.mulligan_r1lite_qualification import (
+                check_parent as check_qualification_parent,
+            )
+
+            check_qualification_parent(job, mulligan_config, args.timeout_seconds)
+        r1_eval = mulligan_config["mode"] == "r1lite-frozen-eval"
+        if r1_eval:
+            from abc_bench.mulligan_r1lite_eval import check_parent as check_eval_parent
+
+            check_eval_parent(job, mulligan_config, args.timeout_seconds)
     training_config = _extended_author_training_config(job)
     if training_config is not None:
         from abc_bench.author_program import TRAINING_WATCHDOG_LIMITS, admit_host_memory
@@ -636,6 +708,46 @@ def run_job(args: Any) -> dict[str, Any]:
             ],
             "blockers": [],
         }
+        if r1_diagnostic:
+            receipt.update(
+                phase="native_adapter_diagnostic",
+                task="r1lite_remote_into_tray",
+                embodiment="r1lite_2025",
+                experiment_accepted=False,
+                claim_scope="Sealed R1 adapter diagnostic only; no learner score or scientific acceptance",
+                cleanup_profile="r1lite-native-diagnostic",
+            )
+        if r1_training:
+            receipt.update(
+                phase="original_r1_training",
+                task="r1lite_remote_into_tray",
+                embodiment="r1lite_2025",
+                experiment_accepted=False,
+                claim_scope="Original Mulligan training with declared R1/data substitutions; no automatic checkpoint or score acceptance",
+                cleanup_profile="r1lite-original-training",
+            )
+        if r1_qualification:
+            receipt.update(
+                phase="original_r1_qualification",
+                task="r1lite_remote_into_tray",
+                embodiment="r1lite_2025",
+                qualification_stage=mulligan_config["stage"],
+                qualification_phase=mulligan_config["phase"],
+                experiment_accepted=False,
+                claim_scope="Short original trainer qualification only; no benchmark or exact-resume claim",
+                cleanup_profile="r1lite-original-qualification",
+            )
+        if r1_eval:
+            receipt.update(
+                phase="original_r1_frozen_eval",
+                task="r1lite_remote_into_tray",
+                embodiment="r1lite_2025",
+                experiment_accepted=False,
+                claim_scope="Original Mulligan frozen DEV20 evaluation; native/media/cleanup and scores require separate root acceptance",
+                cleanup_profile="r1lite-frozen-eval",
+                method=mulligan_config["method"],
+                num_action_samples=mulligan_config["num_action_samples"],
+            )
         if config_snapshots is not None:
             receipt["config_snapshots"] = config_snapshots
         if (
@@ -652,8 +764,17 @@ def run_job(args: Any) -> dict[str, Any]:
         write_json(ledger_path, ledger)
         started = time.monotonic()
         try:
+            execution_options = {"gpu_uuid": binding["uuid"]}
+            if r1_diagnostic:
+                execution_options["cleanup_profile"] = "r1lite-native-diagnostic"
+            if r1_training:
+                execution_options["cleanup_profile"] = "r1lite-original-training"
+            if r1_qualification:
+                execution_options["cleanup_profile"] = "r1lite-original-qualification"
+            if r1_eval:
+                execution_options["cleanup_profile"] = "r1lite-frozen-eval"
             code = execute_command(
-                command, out / "run.log", timeout, gpu_uuid=binding["uuid"]
+                command, out / "run.log", timeout, **execution_options
             )
             receipt["worker_exit_code"] = code
             if code != 0:

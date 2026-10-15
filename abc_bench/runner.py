@@ -50,9 +50,33 @@ class RunCancelled(RuntimeError):
 
 
 def execute_command(
-    command: list[str], log_path: Path, timeout: float, *, gpu_uuid: str | None = None
+    command: list[str],
+    log_path: Path,
+    timeout: float,
+    *,
+    gpu_uuid: str | None = None,
+    cleanup_profile: str | None = None,
 ) -> int:
     """Reap the job's process group on timeout, SIGTERM or keyboard cancellation."""
+    if cleanup_profile not in (
+        None,
+        "r1lite-native-diagnostic",
+        "r1lite-original-training",
+        "r1lite-frozen-eval",
+        "r1lite-original-qualification",
+    ):
+        raise ValueError("Unknown canonical cleanup profile")
+    cleanup_seconds = (
+        90
+        if cleanup_profile
+        in (
+            "r1lite-native-diagnostic",
+            "r1lite-original-training",
+            "r1lite-frozen-eval",
+            "r1lite-original-qualification",
+        )
+        else 5
+    )
 
     def cancelled(signum: int, frame: Any) -> None:
         raise RunCancelled(f"Received cancellation signal {signum}")
@@ -88,7 +112,7 @@ def execute_command(
                 except ProcessLookupError:
                     pass
                 try:
-                    process.wait(timeout=5)
+                    process.wait(timeout=cleanup_seconds)
                 except subprocess.TimeoutExpired:
                     pass
                 # The leader can exit before descendants, including workers which ignore TERM.

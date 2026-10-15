@@ -175,7 +175,7 @@ def test_config_rejects_boundary_changes(tmp_path, config, change):
         worker.load_config(write_config(tmp_path, config))
 
 
-def test_finite_long_job_and_unchanged_old_bound(tmp_path, config):
+def test_finite_long_job_keeps_author_config_and_generic_bounds(tmp_path, config):
     config["timeout_s"] = 20000
     path = write_config(tmp_path, config)
     job = {
@@ -194,6 +194,10 @@ def test_finite_long_job_and_unchanged_old_bound(tmp_path, config):
     with pytest.raises(ValueError, match="cleanup"):
         load_job(job_path)
     job.update(module="abc_bench.author_program", max_wall_s=7201, arguments=[])
+    job_path.write_text(json.dumps(job))
+    with pytest.raises(ValueError, match="one explicit --config"):
+        load_job(job_path)
+    job["module"] = "abc_bench.upstream_eval"
     job_path.write_text(json.dumps(job))
     with pytest.raises(ValueError, match="7200"):
         load_job(job_path)
