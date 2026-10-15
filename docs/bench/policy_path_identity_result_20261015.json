@@ -1,0 +1,200 @@
+{
+  "schema": "sadhana.policy_path_root_acceptance/1",
+  "status": "accepted_fixed_input_original_inference",
+  "owner": "/root",
+  "at_utc": "2026-10-15T22:48:31.167042+00:00",
+  "run_id": "author-subset-20261015T223638-f6d777",
+  "artifact_accepted": true,
+  "benchmark_accepted": false,
+  "task_success_claim": false,
+  "training_gain_claim": false,
+  "native_controls": 0,
+  "optimizer_steps_performed": 0,
+  "canonical": {
+    "path": "/home/user/aditya/RL/abc/outputs/bench/runs/author-subset-20261015T223638-f6d777.json",
+    "bytes": 2533,
+    "sha256": "aedb84382fff611d6656657005845dcaec3feba40aef2341f2c09965c04275be"
+  },
+  "worker": {
+    "path": "/home/user/aditya/RL/abc/outputs/bench/author-subset-20261015T223638-f6d777/receipt.json",
+    "bytes": 2279,
+    "sha256": "75313cdf3422074b65a8f48d032fb920b655264ba25753d9708ecc09faaf36b9"
+  },
+  "result": {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/policy-path-equivalence-execution-20261015-01/diagnostic/RESULT.json",
+    "bytes": 205541,
+    "sha256": "583e13b591614a5cef7a4fbaff3efa8abae7a942575b65312ea92172b07f8d71"
+  },
+  "analysis": {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/policy-path-equivalence-execution-20261015-01/ROOT_TENSOR_ANALYSIS.json",
+    "bytes": 6866,
+    "sha256": "3d9d1724226c3bc48d0f015c6d87d10d4493c60785d23610e317402fa9f40119"
+  },
+  "cleanup": {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/policy-path-equivalence-execution-20261015-01/ROOT_RESOURCE_CLEANUP.json",
+    "bytes": 3432,
+    "sha256": "7e300bc02d710da2dba073c732565c1bd8fab622972d4631ff59113d73935d73"
+  },
+  "independent_review": {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/policy-path-equivalence-execution-20261015-01/independent-actual-review/REVIEW.json",
+    "bytes": 9935,
+    "sha256": "ee4b48c4ec09854ebeb846610564e279840debee9caf8d7963325b1600c31f7a"
+  },
+  "admission": {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/policy-path-equivalence-execution-20261015-01/ROOT_REVIEW.json",
+    "bytes": 2872,
+    "sha256": "861f8536f21848e85e37111bb6d0f60967f295bd055cb06d7431fcd1edbb1032"
+  },
+  "release": {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/policy-path-equivalence-canonical-release-02/RELEASE.json",
+    "bytes": 73002,
+    "sha256": "ecf99a6469fcdb956b8241f00eeb8449aa3a6c30f494e1edb279ed657d641d9c"
+  },
+  "arrays": 172,
+  "tested_input_cases": 2,
+  "exact_checks": {
+    "repeated_preprocessing_leaves": 18,
+    "wrapper_and_fixed_candidate": 10,
+    "bank_immutability": 2,
+    "mismatches": 0
+  },
+  "measured_case_results": [
+    {
+      "case": "boot",
+      "delay": 0,
+      "N1_vs_N32_candidate0_joint_radians": {
+        "max_abs": 0.0023850202560424805,
+        "rms": 0.0005860420833373187
+      },
+      "N1_vs_N32_candidate0_jaw_metres": {
+        "max_abs": 6.53192400932312e-05,
+        "rms": 3.510983259113871e-05
+      },
+      "fixed_candidate_bypass_bitwise_equal": true,
+      "selection": {
+        "D": {
+          "index": 5,
+          "kind": "base",
+          "base_index": 5,
+          "q_selected": -0.2684307098388672,
+          "q_candidate0": -0.3025406002998352,
+          "q_min": -0.3178435266017914,
+          "q_max": -0.2684307098388672,
+          "joint_radians_vs_bypass": {
+            "max_abs": 0.09836626052856445,
+            "rms": 0.032660629234141
+          },
+          "jaw_metres_vs_bypass": {
+            "max_abs": 0.0004952698945999146,
+            "rms": 0.00025308943442638876
+          },
+          "jaw_range_metres": [
+            0.07885774970054626,
+            0.08144240081310272
+          ]
+        },
+        "E": {
+          "index": 62,
+          "kind": "edit",
+          "base_index": 30,
+          "q_selected": -0.23746514320373535,
+          "q_candidate0": -0.3025406002998352,
+          "q_min": -0.38073015213012695,
+          "q_max": -0.23746514320373535,
+          "joint_radians_vs_bypass": {
+            "max_abs": 0.11064016819000244,
+            "rms": 0.03942747956873715
+          },
+          "jaw_metres_vs_bypass": {
+            "max_abs": 0.004241779446601868,
+            "rms": 0.0025036262173210623
+          },
+          "jaw_range_metres": [
+            0.07521072030067444,
+            0.0830584391951561
+          ]
+        }
+      },
+      "D_E_original_base_Q_difference": {
+        "max_abs": 9.676814079284668e-05,
+        "rms": 1.8707025865300118e-05
+      }
+    },
+    {
+      "case": "prefix",
+      "delay": 5,
+      "N1_vs_N32_candidate0_joint_radians": {
+        "max_abs": 0.0014089345932006836,
+        "rms": 0.00040376491795505217
+      },
+      "N1_vs_N32_candidate0_jaw_metres": {
+        "max_abs": 5.638599395751953e-05,
+        "rms": 2.5023895145028564e-05
+      },
+      "fixed_candidate_bypass_bitwise_equal": true,
+      "selection": {
+        "D": {
+          "index": 21,
+          "kind": "base",
+          "base_index": 21,
+          "q_selected": 0.28821539878845215,
+          "q_candidate0": 0.2647241950035095,
+          "q_min": 0.2647241950035095,
+          "q_max": 0.28821539878845215,
+          "joint_radians_vs_bypass": {
+            "max_abs": 0.03862643241882324,
+            "rms": 0.011490057644334748
+          },
+          "jaw_metres_vs_bypass": {
+            "max_abs": 0.00018411874771118164,
+            "rms": 0.00010027434716702071
+          },
+          "jaw_range_metres": [
+            0.07937831431627274,
+            0.07982924580574036
+          ]
+        },
+        "E": {
+          "index": 50,
+          "kind": "edit",
+          "base_index": 18,
+          "q_selected": 0.3370896577835083,
+          "q_candidate0": 0.2647241950035095,
+          "q_min": 0.1802898347377777,
+          "q_max": 0.3370896577835083,
+          "joint_radians_vs_bypass": {
+            "max_abs": 0.10790562629699707,
+            "rms": 0.03544835020356379
+          },
+          "jaw_metres_vs_bypass": {
+            "max_abs": 0.004729442298412323,
+            "rms": 0.0021475816198642745
+          },
+          "jaw_range_metres": [
+            0.0747901052236557,
+            0.0822780579328537
+          ]
+        }
+      },
+      "D_E_original_base_Q_difference": {
+        "max_abs": 1.755356788635254e-05,
+        "rms": 3.103061721614573e-06
+      }
+    }
+  ],
+  "accepted_interpretation": [
+    "In the two recorded cases the public actor/RTC reconstruction and fixed-bank full bypass match bitwise after the same original output boundary.",
+    "Original N1/N32 calls differ despite shared candidate-zero noise; measured batch-size differences remain reported, not treated as exact equality.",
+    "Fresh original Q selection and editing select different candidates and commands from bypass.",
+    "The E-versus-bypass difference combines base-candidate selection with editing; it does not isolate the edit."
+  ],
+  "limits": [
+    "No native command was executed and no task success or recovery candidate was measured.",
+    "No claim of universal adapter correctness or causal explanation for earlier four-start scores.",
+    "O3/O8 are recorded observations that did not execute the new shared prefix.",
+    "No historical random stream was reconstructed.",
+    "The 30 checks are checks within two cases, not30 independent trials."
+  ],
+  "next_step": "Use original learner with verified corrective evidence; fixed-data fit/ranking diagnostic is proposed separately and not yet admitted.",
+  "goal_status": "active"
+}

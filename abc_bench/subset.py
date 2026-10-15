@@ -19,6 +19,7 @@ from abc_bench.resources import inspect_reserved_gpu
 
 ALLOWED_MODULES = {
     "abc_bench.realtime_update_probe",
+    "abc_bench.policy_path_probe",
     "abc_bench.author_program",
     "abc_bench.mulligan_program",
     "abc_bench.fasttd3_program",
@@ -491,6 +492,10 @@ def load_job(path: Path) -> dict[str, Any]:
         from abc_bench.realtime_update_probe import validate_job
 
         validate_job(job)
+    if job["module"] == "abc_bench.policy_path_probe":
+        from abc_bench.policy_path_probe import validate_job
+
+        validate_job(job)
     return job
 
 
@@ -503,6 +508,11 @@ def run_job(args: Any) -> dict[str, Any]:
     job = load_job(args.training_config)
     if job["module"] == "abc_bench.realtime_update_probe":
         from abc_bench.realtime_update_probe import validate_job
+
+        validate_job(job, args.timeout_seconds)
+    policy_identity = job["module"] == "abc_bench.policy_path_probe"
+    if policy_identity:
+        from abc_bench.policy_path_probe import validate_job
 
         validate_job(job, args.timeout_seconds)
     r1_diagnostic = False
@@ -708,6 +718,15 @@ def run_job(args: Any) -> dict[str, Any]:
             ],
             "blockers": [],
         }
+        if policy_identity:
+            receipt.update(
+                phase="r1lite-policy-path-identity",
+                task="r1lite_remote_into_organizer",
+                embodiment="r1lite_2025",
+                experiment_accepted=False,
+                claim_scope="Fixed-input original inference identity audit; no native controls or score",
+                cleanup_profile="r1lite-policy-path-identity",
+            )
         if r1_diagnostic:
             receipt.update(
                 phase="native_adapter_diagnostic",
@@ -765,6 +784,8 @@ def run_job(args: Any) -> dict[str, Any]:
         started = time.monotonic()
         try:
             execution_options = {"gpu_uuid": binding["uuid"]}
+            if policy_identity:
+                execution_options["cleanup_profile"] = "r1lite-policy-path-identity"
             if r1_diagnostic:
                 execution_options["cleanup_profile"] = "r1lite-native-diagnostic"
             if r1_training:

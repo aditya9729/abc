@@ -64,6 +64,7 @@ def execute_command(
         "r1lite-original-training",
         "r1lite-frozen-eval",
         "r1lite-original-qualification",
+        "r1lite-policy-path-identity",
     ):
         raise ValueError("Unknown canonical cleanup profile")
     cleanup_seconds = (
@@ -74,6 +75,7 @@ def execute_command(
             "r1lite-original-training",
             "r1lite-frozen-eval",
             "r1lite-original-qualification",
+            "r1lite-policy-path-identity",
         )
         else 5
     )

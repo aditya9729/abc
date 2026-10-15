@@ -1,0 +1,11 @@
+flowchart LR
+    I[TRAIN20044 RGB and state] -->|recorded data| D[Fixed-input diagnostic caller]
+    P[RTC2000 actor and fresh seed42 heads] -->|parameters| D
+    K[Explicit noise and common prefix] -->|diagnostic inputs| D
+    R[Root: canonical runner and GPU0 lease] -. control .-> W[Fixed identity worker]
+    W -. supervision .-> S[Existing child watcher and memory guard]
+    S -. control .-> D
+    D -->|inference calls| A[Author actor, RTC and full EXPO helpers]
+    A -->|data| O[Inputs, actions, Q values, indices and parameter digests]
+    O -->|read-only analysis| V[Root result interpretation]
+    X[Simulator task outcomes and learning gains: not tested] -. scope limit .-> V
