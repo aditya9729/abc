@@ -1,0 +1,10 @@
+flowchart LR
+    Actor[RTC actor checkpoint 2000] --> Learner[Original RealTimeEXPOFTLearner]
+    Data[TRAIN: 21 same-lineage demos and 9,899 timeout rows] --> Replay[Original replay restore and sampler]
+    Replay -->|B64, UTD20; ten calls| Learner
+    Learner -->|measure at 0, 1 and 10| Measure[Terminal-value error and fixed-bank ranking]
+    Frozen[Fixed observations, actions, keys and target-head selections] --> Measure
+    Measure --> Evidence[Recorded arrays, counters and sampled-label counts]
+    Root[Root: installed runtime and GPU0 supervision] -. controls .-> Learner
+    Peer[Independent reviewer: source and numerical evidence] -. checks .-> Evidence
+    Evidence --> Report[Report: TRAIN diagnostic; task success remains separate]

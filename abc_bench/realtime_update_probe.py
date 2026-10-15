@@ -95,7 +95,7 @@ def load_config(path: Path) -> dict[str, Any]:
     if not path.is_absolute():
         raise ValueError("Probe config must be absolute")
     config = json.loads(path.read_text())
-    if set(config) != {
+    required_fields = {
         "schema",
         "online_config",
         "source_manifest",
@@ -108,8 +108,13 @@ def load_config(path: Path) -> dict[str, Any]:
         "parent_seconds",
         "minimum_start_bytes",
         "minimum_run_bytes",
-    }:
+    }
+    if set(config) not in (required_fields, required_fields | {"phase", "fixed_data"}):
         raise ValueError("Unexpected capacity-probe fields")
+    if "phase" in config:
+        from abc_bench.fixed_data_learning import load_spec
+
+        load_spec(config)
     exact = {
         "schema": SCHEMA,
         "memory_environment": MEMORY_ENV,
@@ -156,7 +161,12 @@ def validate_job(job: dict[str, Any], effective_seconds: float | None = None) ->
         )
     config = load_config(Path(job["arguments"][1]))
     online = json.loads(Path(config["online_config"]["path"]).read_text())
-    if job["python"] != online["python"]:
+    expected_python = (
+        config["fixed_data"]["python"]["path"]
+        if "phase" in config
+        else online["python"]
+    )
+    if job["python"] != expected_python:
         raise ValueError("Probe must use the pinned original server interpreter")
     if effective_seconds is not None and (
         type(effective_seconds) not in (int, float)
@@ -191,6 +201,10 @@ def authenticate_inputs(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Require accepted initialized actor-weight evidence")
     for pin in accepted["weight_loader_files_after"]:
         authenticate(pin)
+    if "phase" in config:
+        from abc_bench.fixed_data_learning import authenticate_data
+
+        authenticate_data(config)
     return {
         "source_files": len(manifest["files"]),
         "runtime_files": len(runtime["files"]),
@@ -286,6 +300,7 @@ def watch_child(
 
 def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
     """Original construction, data, batch pipeline, and exactly one update."""
+    run_started = time.monotonic()
     import jax
     import numpy as np
 
@@ -314,11 +329,23 @@ def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
     model.delay = 5
     if model.model_cls != "RealTimeEXPOFTLearner":
         raise ValueError("Require the original full real-time learner")
-    task = task_module.make_task_config()
+    fixed_spec = None
+    if "phase" in config:
+        from abc_bench.fixed_data_learning import load_spec
+
+        fixed_spec = load_spec(config)
+    task = (
+        task_module.make_task_config(fixed_spec["settings"]["path"])
+        if fixed_spec
+        else task_module.make_task_config()
+    )
     dataset = original.load_task_dataset(flags["--dataset_path"], task, num_data=21)
     if len(dataset) != 7069 or len(dataset.episodes) != 21:
         raise ValueError("Require the unchanged 21-episode TRAIN cohort")
-    original.set_compilation_cache_dir("sync-RealTimeEXPOFTLearner")
+    if fixed_spec:
+        jax.config.update("jax_compilation_cache_dir", str(output / "jax-cache"))
+    else:
+        original.set_compilation_cache_dir("sync-RealTimeEXPOFTLearner")
     mesh = sharding.make_mesh(1)
     data_sharding = jax.sharding.NamedSharding(
         mesh, jax.sharding.PartitionSpec(sharding.DATA_AXIS)
@@ -409,16 +436,18 @@ def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
             raise ValueError("Expected nonempty parameter state")
         return {"finite_leaves": leaves, "finite_bytes": checked_bytes}
 
-    def parameters_state() -> dict[str, Any]:
-        result = {name: finite_tree(getattr(agent, name).params) for name in COUNTERS}
-        result["target_critic"] = finite_tree(agent.target_critic.params)
-        result["target_actor_params"] = finite_tree(agent.target_actor_params)
+    def parameters_state(state=None) -> dict[str, Any]:
+        state = agent if state is None else state
+        result = {name: finite_tree(getattr(state, name).params) for name in COUNTERS}
+        result["target_critic"] = finite_tree(state.target_critic.params)
+        result["target_actor_params"] = finite_tree(state.target_actor_params)
         return result
 
-    def optimizer_state() -> dict[str, Any]:
+    def optimizer_state(state=None) -> dict[str, Any]:
+        state = agent if state is None else state
         result = {}
         for name in COUNTERS:
-            branch = getattr(agent, name)
+            branch = getattr(state, name)
             step = np.asarray(jax.device_get(branch.step))
             if step.shape or step.dtype.kind not in "iu":
                 raise ValueError(f"Invalid integer optimizer step: {name}")
@@ -453,6 +482,24 @@ def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
     write_json(
         output / "before.json", {"optimizers": before, "parameters": before_parameters}
     )
+    if fixed_spec:
+        fixed = checked_import("abc_bench.fixed_data_learning", config)
+        for name in (
+            "sadhana_terminal_critic.contracts",
+            "expo_ft.agents.alg.batch_utils",
+        ):
+            checked_import(name, config)
+        return fixed.run(
+            agent,
+            processor,
+            dataset,
+            task,
+            config,
+            output,
+            optimizer_state,
+            parameters_state,
+            time.monotonic() - run_started,
+        )
     combine_rng = jax.random.PRNGKey(142)
     with ThreadPoolExecutor(max_workers=1) as prefetch:
         batch, actor_batch, combine_rng = prefetch.submit(
@@ -561,7 +608,12 @@ def main() -> None:
     code = 1
     try:
         online = json.loads(Path(config["online_config"]["path"]).read_text())
-        if Path(sys.executable).resolve() != Path(online["python"]).resolve():
+        expected_python = (
+            config["fixed_data"]["python"]["path"]
+            if "phase" in config
+            else online["python"]
+        )
+        if Path(sys.executable).resolve() != Path(expected_python).resolve():
             raise ValueError(
                 "Probe supervisor must use the original server interpreter"
             )
@@ -589,16 +641,21 @@ def main() -> None:
         if lifecycle["stop_reason"] or lifecycle["child_exit_code"] != 0:
             raise RuntimeError(f"Capacity child did not complete: {lifecycle}")
         detail = json.loads((detail_output / "update.json").read_text())
+        expected_status, expected_calls = "one_original_update_completed", 1
+        if "phase" in config:
+            from abc_bench.fixed_data_learning import CALLS, STATUS
+
+            expected_status, expected_calls = STATUS, CALLS
         if (
-            detail["status"] != "one_original_update_completed"
-            or detail["update_calls"] != 1
+            detail["status"] != expected_status
+            or detail["update_calls"] != expected_calls
         ):
             raise ValueError("Missing complete original update evidence")
         receipt.update(
             status="completed",
             update=file_pin(detail_output / "update.json"),
             metrics={
-                "original_update_calls": 1,
+                "original_update_calls": expected_calls,
                 "update_seconds": detail["update_seconds"],
             },
         )
