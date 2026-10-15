@@ -17,27 +17,30 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <section id="r1lite" class="card" aria-labelledby="r1lite-heading" style="margin-bottom:22px" hidden>
 <h2 id="r1lite-heading">R1 Lite · remote placement</h2>
 <label for="r1lite-cohort">Choose the policy cohort</label>
-<select id="r1lite-cohort" style="display:block;max-width:100%;margin:10px 0;padding:10px;font:inherit"><option value="rtc">Frozen RTC base</option><option value="initialized_full_expo" disabled>Full EXPO before online learning · pending acceptance</option></select>
+<select id="r1lite-cohort" style="display:block;max-width:100%;margin:10px 0;padding:10px;font:inherit"><option value="rtc">Frozen RTC base</option><option value="initialized_full_expo" disabled>Historical full EXPO initialization · pending acceptance</option><option value="matched_initialized_full_expo" disabled>Matched full EXPO before RL · pending acceptance</option><option value="trained_full_expo" disabled>Full EXPO after RL · pending acceptance</option><option value="continued_full_expo" disabled>Full EXPO after bounded restart · pending acceptance</option></select>
 <p id="r1lite-score" class="score"></p>
-<p id="r1lite-snapshot"></p>
-<p id="r1lite-method"></p>
-<p>Supporting RTC baseline: <strong id="r1lite-table-score"></strong>. Its score stays separate from the full EXPO comparison.</p>
-<h3>Full EXPO before and after online learning</h3>
-<div class="table-wrap" tabindex="0" role="region" aria-label="R1 Lite learning stages">
-<table><thead><tr><th scope="col">Stage</th><th scope="col">Measured result</th></tr></thead><tbody>
-<tr><th scope="row">Full EXPO before online learning</th><td id="r1lite-initialized-score">Evaluation result pending acceptance</td></tr>
-<tr><th scope="row">Full EXPO after online learning</th><td>Training and matched evaluation pending</td></tr>
-</tbody></table>
-</div>
-<p><small>The full EXPO starting policy includes freshly initialized editor and critics. Compare it with the later trained full policy to assess learning. RTC versus initialized EXPO does not measure learning improvement.</small></p>
 <h3>All 20 complete episodes · selected cohort</h3>
 <label for="r1lite-episode">Choose an episode, in the original evaluation order</label>
 <select id="r1lite-episode" style="display:block;max-width:100%;margin:10px 0;padding:10px;font:inherit"></select>
 <p id="r1lite-episode-detail" role="status"></p>
 <video id="r1lite-video" controls preload="metadata" aria-label="Complete selected R1 Lite episode"></video>
 <p><small>Each cohort defaults to its first episode in the original order. Every recording includes the reset image and every native control. Playback uses 15 simulation frames per second. It does not establish 15 Hz wall-clock control.</small></p>
+<p>Supporting RTC baseline: <strong id="r1lite-table-score"></strong>. Its score stays separate from the full EXPO comparison.</p>
+<p>Historical full EXPO initialization, with unrecorded PRNG settings: <strong id="r1lite-initialized-score">Evaluation result pending acceptance</strong>. Its videos remain available.</p>
+<h3>Matched full EXPO before and after online learning</h3>
+<div class="table-wrap" tabindex="0" role="region" aria-label="R1 Lite learning stages">
+<table><thead><tr><th scope="col">Stage</th><th scope="col">Measured result</th></tr></thead><tbody>
+<tr><th scope="row">Matched full EXPO before RL</th><td id="r1lite-matched-initialized-score">Evaluation result pending acceptance</td></tr>
+<tr><th scope="row">Full EXPO after RL</th><td id="r1lite-trained-score">Evaluation result pending acceptance</td></tr>
+</tbody></table>
+</div>
+<p id="r1lite-continued-score">Bounded restart evaluation pending acceptance</p>
+<p id="r1lite-comparison">Matched before and after evaluation must both be accepted before a learning comparison is available.</p>
+<details><summary>Method, timing and execution details</summary><p id="r1lite-snapshot"></p>
+<p id="r1lite-method"></p>
+<p><small>The matched starting policy uses fresh editor and critics with declared PRNG settings. The trained policy restores its own RNG, so noise streams differ. RTC and the historical initialization remain supporting context.</small></p>
 <p id="r1lite-contacts"></p>
-<details><summary>Scope and execution evidence</summary><p id="r1lite-scope"></p><p id="r1lite-supervision"></p><p id="r1lite-run" class="run-id"></p></details>
+<p id="r1lite-scope"></p><p id="r1lite-supervision"></p><p id="r1lite-run" class="run-id"></p></details>
 </section>
 <section id="catcher" class="card" aria-labelledby="catcher-heading" style="margin-bottom:22px" hidden>
 <h2 id="catcher-heading">Catcher · original BC and RTC evaluator</h2>
@@ -1016,12 +1019,12 @@ function renderMulliganFullGrid(result) {
   }
   section.hidden = false;
 }
-function renderR1Lite(rtc, initialized) {
+function renderR1Lite(rtc, initialized, matchedInitialized, trained, continued) {
   const section = document.getElementById('r1lite');
-  if (!rtc && !initialized) { section.hidden = true; return; }
-  const cohorts = {rtc, initialized_full_expo: initialized};
-  const labels = {rtc: 'Frozen RTC base', initialized_full_expo: 'Full EXPO before online learning'};
-  const schemas = {rtc: 'sadhana.r1lite_viewer/1', initialized_full_expo: 'sadhana.r1lite_initialized_full_expo_viewer/1'};
+  if (!rtc && !initialized && !matchedInitialized && !trained && !continued) { section.hidden = true; return; }
+  const cohorts = {rtc, initialized_full_expo: initialized, matched_initialized_full_expo: matchedInitialized, trained_full_expo: trained, continued_full_expo: continued};
+  const labels = {rtc: 'Frozen RTC base', initialized_full_expo: 'Historical full EXPO initialization', matched_initialized_full_expo: 'Matched full EXPO before RL', trained_full_expo: 'Full EXPO after RL', continued_full_expo: 'Full EXPO after bounded restart' + (continued ? ' · ' + continued.learning_updates + ' policy / ' + continued.producer_update_counters.critic + ' critic updates · checkpoint label ' + continued.evaluation_checkpoint_step : '')};
+  const schemas = {rtc: 'sadhana.r1lite_viewer/1', initialized_full_expo: 'sadhana.r1lite_initialized_full_expo_viewer/1', matched_initialized_full_expo: 'sadhana.r1lite_matched_full_expo_viewer/1', trained_full_expo: 'sadhana.r1lite_matched_full_expo_viewer/1', continued_full_expo: 'sadhana.r1lite_continued_full_expo_viewer/1'};
   const scores = {};
   for (const [key, result] of Object.entries(cohorts)) {
     if (!result) continue;
@@ -1029,6 +1032,20 @@ function renderR1Lite(rtc, initialized) {
     const successes = integer(result.successes, 'R1 Lite successes');
     if (successes > 20 || result.episodes.filter(row => row.success === true).length !== successes) throw Error('R1 Lite score differs from outcomes');
     if (key === 'initialized_full_expo' && (result.evaluation_checkpoint_step !== 0 || result.learning_updates !== 0)) throw Error('Invalid initialized EXPO scope');
+    if (key === 'matched_initialized_full_expo' || key === 'trained_full_expo') {
+      const after = key === 'trained_full_expo';
+      if (result.cohort !== (after ? 'trained' : 'initialized') || !/^[0-9a-f]{64}$/.test(result.comparison_binding_sha256)) throw Error('Invalid matched EXPO cohort binding');
+      if (after ? integer(result.evaluation_checkpoint_step, 'trained checkpoint', 9009) < 9009 || integer(result.learning_updates, 'online updates', 1) < 1 : result.evaluation_checkpoint_step !== 0 || result.learning_updates !== 0) throw Error('Invalid matched EXPO update scope');
+      const scope = result.producer_history_scope;
+      if (!scope || scope.acceptance_scope !== 'frozen_evaluation_only' || scope.frozen_evaluation_only !== true || scope.raw_history_complete !== false || scope.training_metrics_available !== false) throw Error('Missing producer history limits');
+    }
+    if (key === 'continued_full_expo') {
+      const scope = result.producer_history_scope;
+      if (result.cohort !== 'trained' || integer(result.evaluation_checkpoint_step, 'continued checkpoint', 1) < 1 || integer(result.learning_updates, 'continued total updates', 1) < 1 || !/^[0-9a-f]{64}$/.test(result.comparison_binding_sha256)) throw Error('Invalid continued EXPO checkpoint');
+      if (!scope || scope.resumed_segment_complete !== true || scope.parent_history_complete !== false || scope.approximate_restart !== true || scope.metrics_scope !== 'final_logged_update_only' || integer(scope.new_learning_updates, 'new learning updates', 1) >= result.learning_updates) throw Error('Invalid continued EXPO history scope');
+      const counters = result.producer_update_counters;
+      if (!counters || ['actor_train_state', 'edit_actor', 'temp'].some(key => counters[key] !== result.learning_updates) || ['critic', 'filter_critic', 'batch_encoder'].some(key => counters[key] !== 20 * result.learning_updates)) throw Error('Invalid continued EXPO counters');
+    }
     result.episodes.forEach((row, index) => {
       if (row.seed !== 9100 + index || typeof row.success !== 'boolean' || !/^[0-9a-f]{16}\.mp4$/.test(row.video) || !['native_success', 'native_timeout', 'native_failure'].includes(row.outcome) || row.success !== (row.outcome === 'native_success')) throw Error('Invalid R1 Lite episode');
       if (integer(row.native_controls, 'R1 Lite controls', 1) > 900) throw Error('R1 Lite control horizon differs');
@@ -1037,20 +1054,35 @@ function renderR1Lite(rtc, initialized) {
   }
   text('r1lite-table-score', scores.rtc || 'Pending acceptance');
   text('r1lite-initialized-score', scores.initialized_full_expo || 'Evaluation result pending acceptance');
+  text('r1lite-matched-initialized-score', scores.matched_initialized_full_expo || 'Evaluation result pending acceptance');
+  text('r1lite-trained-score', scores.trained_full_expo || 'Evaluation result pending acceptance');
+  text('r1lite-continued-score', continued ? labels.continued_full_expo + ' · ' + scores.continued_full_expo : 'Bounded restart evaluation pending acceptance');
+  if (matchedInitialized && trained) {
+    if (matchedInitialized.comparison_binding_sha256 !== trained.comparison_binding_sha256) throw Error('Full EXPO comparison settings differ');
+    const difference = trained.successes - matchedInitialized.successes;
+    text('r1lite-comparison', 'Both matched cohorts accepted. Observed success difference: ' + (difference > 0 ? '+' : '') + difference + '/20 (' + (difference > 0 ? '+' : '') + difference * 5 + ' percentage points). One fixed cohort does not establish reliable improvement.');
+  } else {
+    text('r1lite-comparison', 'Learning comparison pending: both matched before-RL and after-RL cohorts must be accepted.');
+  }
   const cohortPicker = document.getElementById('r1lite-cohort');
   for (const option of cohortPicker.options) {
     option.disabled = !cohorts[option.value];
     option.textContent = labels[option.value] + (cohorts[option.value] ? '' : ' · pending acceptance');
   }
-  if (!cohorts[cohortPicker.value]) cohortPicker.value = rtc ? 'rtc' : 'initialized_full_expo';
+  if (!cohorts[cohortPicker.value]) cohortPicker.value = Object.keys(cohorts).find(key => cohorts[key]);
   const display = () => {
     const key = cohortPicker.value;
     const result = cohorts[key];
     text('r1lite-score', labels[key] + ' · ' + scores[key]);
     text('r1lite-snapshot', 'Accepted cohort · snapshot ' + result.snapshot_utc);
-    text('r1lite-method', key === 'rtc'
-      ? 'Original RTC-SFT trains EXPO’s pi0.5 base. This cohort uses checkpoint 2000, which contains 2,001 RTC updates.'
-      : 'Original Real-Time EXPO-FT initialization: RTC2000 actor weights, fresh editor and critics, 32 base plus 32 edited candidates, H16/C8/delay5. This evaluator performs zero learning updates.');
+    const methods = {
+      rtc: 'Original RTC-SFT trains EXPO’s pi0.5 base. This cohort uses checkpoint 2000, which contains 2,001 RTC updates.',
+      initialized_full_expo: 'Historical full EXPO initialization: zero learning updates. Inherited PRNG settings were not recorded; use the separate matched starting cohort for the learning comparison.',
+      matched_initialized_full_expo: 'Original full EXPO before RL: RTC2000 actor weights, fresh editor and critics, declared JAX PRNG settings, 32 base plus 32 edited candidates, H16/C8/delay5. Zero learning updates.',
+      trained_full_expo: 'Original full EXPO after RL: saved checkpoint ' + result.evaluation_checkpoint_step + ', ' + result.learning_updates + ' actor/editor updates. Full agent and RNG restored; N32 plus32 edited candidates, H16/C8/delay5. The frozen evaluator performs no updates. Training loss metrics are unavailable.',
+      continued_full_expo: continued ? 'Original full EXPO after a bounded approximate restart: checkpoint ' + continued.evaluation_checkpoint_step + ', ' + continued.learning_updates + ' total actor/editor updates (' + continued.producer_history_scope.new_learning_updates + ' new), ' + continued.producer_update_counters.critic + ' critic updates. Complete new-segment history includes final logged-update metrics only; the parent history remains incomplete. Full agent and saved RNG restored; no evaluator updates.' : ''
+    };
+    text('r1lite-method', methods[key]);
     text('r1lite-scope', result.scope);
     text('r1lite-supervision', result.supervision);
     text('r1lite-run', result.run_id);
@@ -1093,7 +1125,7 @@ async function refresh() {
     if (!response.ok) throw Error('Results unavailable');
     const data = await response.json();
     if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
-    renderR1Lite(data.r1lite, data.r1lite_initialized_full_expo);
+    renderR1Lite(data.r1lite, data.r1lite_initialized_full_expo, data.r1lite_matched_initialized_full_expo, data.r1lite_trained_full_expo, data.r1lite_continued_full_expo);
     renderCatcher(data.catcher);
     renderMulligan(data.mulligan);
     renderFastOriginal(data.fasttd3_original);

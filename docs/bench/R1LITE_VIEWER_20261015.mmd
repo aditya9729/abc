@@ -1,0 +1,11 @@
+flowchart LR
+  Native["Leela: native traces and videos"] --> Checks["Root: checkpoint, trace, media and cleanup checks"]
+  Checks --> Accepted["Four accepted cohorts:80 videos\nHistorical failures and original comparison retained"]
+  Checks -. "Future frozen DEV20 acceptance" .-> Continued["Fifth cohort pending\nActual checkpoint label and optimizer counters"]
+  Accepted --> Publisher["Sadhana/ABC: installed publisher\nShared lock, hashes, backups, atomic result write"]
+  Continued -. "Append only after genuine acceptance" .-> Publisher
+  Publisher --> Viewer["Video-first selector\nExisting four cohorts retained"]
+  CPU["Root:9 CPU cases,12 new refusal subtests,19 DOM cases passed"] --> Publisher
+  Browser["Root:four-cohort desktop/mobile preview passed\nLive viewer unchanged; fifth slot pending"] --> Viewer
+  Viewer -. "Future root100-video publication checks" .-> Future["Five accepted cohorts only after evaluation and publication"]
+  Review["Agents: source and evidence review\nNo learner or simulator changes"] -.-> Publisher
