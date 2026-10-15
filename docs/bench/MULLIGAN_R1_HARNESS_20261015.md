@@ -46,6 +46,24 @@ match their previously qualified runtime versions. Nine newer viewer files
 were preserved. Six test files received import formatting changes. The two
 earlier lint failures remain recorded with their correction.
 
+The later frozen caller correction replaces an incorrect optional-dimension check.
+Original checkpoints leave `robot_state_dim` and `env_state_dim` unset. Actor
+features specify 44 robot and 35 environment inputs, with 14 action outputs.
+Caller 0.1.1 checks those features and the original horizon and queue lengths.
+The original loader, learner, evaluator and sampler remain unchanged.
+
+The corrected caller passed 19 installed CPU methods and 21 subtests. An actual
+CPU restore of the accepted two-update checkpoint passed its dimension check.
+The new canonical binding passed 92 installed CPU cases. All 249 payloads match
+source and wheel; only the evaluation module differs from the prior release.
+Its four constants bind the corrected caller. Active training remains unchanged.
+No frozen task score or final-150k artifact is accepted by these checks.
+
+[Caller source and tests](/home/user/aditya/RL/builds/other-methods-plan-20261015/frozen-eval-caller-preparation-v2/README.md),
+[actual caller qualification](/home/user/aditya/RL/builds/other-methods-plan-20261015/frozen-eval-caller-release-02/CPU_QUALIFICATION.json),
+and [canonical release](/home/user/aditya/RL/builds/other-methods-plan-20261015/frozen-eval-caller-canonical-release-02/RELEASE.json)
+record this correction. Use that corrected pair for future frozen jobs.
+
 Use the existing installed runner, with an actual admitted job:
 
 ```text

@@ -24,14 +24,14 @@ MODE = "r1lite-frozen-eval"
 MAX_WORKER_SECONDS = training.MAX_WORKER_SECONDS
 PARENT_MARGIN_SECONDS = training.PARENT_MARGIN_SECONDS
 PREPARATION = Path(
-    "/home/user/aditya/RL/builds/other-methods-plan-20261015/frozen-eval-caller-preparation-v1"
+    "/home/user/aditya/RL/builds/other-methods-plan-20261015/frozen-eval-caller-preparation-v2"
 )
 RELEASE = Path(
-    "/home/user/aditya/RL/builds/other-methods-plan-20261015/frozen-eval-caller-release-01/CPU_QUALIFICATION.json"
+    "/home/user/aditya/RL/builds/other-methods-plan-20261015/frozen-eval-caller-release-02/CPU_QUALIFICATION.json"
 )
-RELEASE_SHA256 = "7d2a0d3fe4129b2109c0bee36ceb1bcc361d053db753f8db6c39548b90ebc0cb"
+RELEASE_SHA256 = "945f362fe7206c8a7fc4283e6630445aebca3e83cacd644a3ffa5c1f2ac570ff"
 CALLER_SOURCE_SHA256 = (
-    "680f1af976c177c28da80b9bd7bacde25cde7ef4f1027ccd2297fb8d427c3ed9"
+    "ef3b723ceadd6e1bb94c99aa67a92bad025c8ac6818abf1e9c6d6b11424ff124"
 )
 PERIODIC_INSPECTOR_MANIFEST = Path(
     "/home/user/aditya/RL/builds/other-methods-plan-20261015/"

@@ -5,8 +5,9 @@ flowchart LR
     Config["Root: admitted configuration and source pins"] --> Guard["ABC harness: training / evaluation admission"]
     Guard -- "control: GPU0 lease and finite bounds" --> Author
     Author -- "data: original checkpoints and TRAIN logs" --> Inspect["Root: artifact and trace inspection"]
-    Inspect -- "separate checkpoint acceptance" --> Frozen["Original frozen evaluator\nSeparate DEV starts"]
-    Guard -- "control: admitted evaluation" --> Frozen
+    Inspect -- "separate checkpoint acceptance" --> Caller["Corrected caller: original model restore\nCheck actual actor features and horizons"]
+    Guard -- "control: admitted evaluation" --> Caller
+    Caller -- "original evaluation call" --> Frozen["Original frozen evaluator\nSeparate DEV starts"]
     Frozen <--> Adapter
     Frozen -- "data: outcomes and videos" --> Report["Root: accepted report and viewer"]
     Peer["Agents: source and evidence review"] -- "findings" --> Inspect
