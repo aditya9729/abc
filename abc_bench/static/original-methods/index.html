@@ -16,22 +16,26 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <p id="error" role="alert"></p>
 <section id="r1lite" class="card" aria-labelledby="r1lite-heading" style="margin-bottom:22px" hidden>
 <h2 id="r1lite-heading">R1 Lite · remote placement</h2>
+<label for="r1lite-cohort">Choose the policy cohort</label>
+<select id="r1lite-cohort" style="display:block;max-width:100%;margin:10px 0;padding:10px;font:inherit"><option value="rtc">Frozen RTC base</option><option value="initialized_full_expo" disabled>Full EXPO before online learning · pending acceptance</option></select>
 <p id="r1lite-score" class="score"></p>
 <p id="r1lite-snapshot"></p>
-<p>Original RTC-SFT trains EXPO's pi0.5 base. This result uses checkpoint 2000, which contains 2,001 updates. The later full EXPO policy also uses an editor and critics.</p>
+<p id="r1lite-method"></p>
+<p>Supporting RTC baseline: <strong id="r1lite-table-score"></strong>. Its score stays separate from the full EXPO comparison.</p>
+<h3>Full EXPO before and after online learning</h3>
 <div class="table-wrap" tabindex="0" role="region" aria-label="R1 Lite learning stages">
 <table><thead><tr><th scope="col">Stage</th><th scope="col">Measured result</th></tr></thead><tbody>
-<tr><th scope="row">Frozen RTC base</th><td id="r1lite-table-score"></td></tr>
-<tr><th scope="row">Full EXPO before online learning</th><td>Evaluation result pending acceptance</td></tr>
+<tr><th scope="row">Full EXPO before online learning</th><td id="r1lite-initialized-score">Evaluation result pending acceptance</td></tr>
 <tr><th scope="row">Full EXPO after online learning</th><td>Training and matched evaluation pending</td></tr>
 </tbody></table>
 </div>
-<h3>All 20 complete episodes</h3>
+<p><small>The full EXPO starting policy includes freshly initialized editor and critics. Compare it with the later trained full policy to assess learning. RTC versus initialized EXPO does not measure learning improvement.</small></p>
+<h3>All 20 complete episodes · selected cohort</h3>
 <label for="r1lite-episode">Choose an episode, in the original evaluation order</label>
 <select id="r1lite-episode" style="display:block;max-width:100%;margin:10px 0;padding:10px;font:inherit"></select>
 <p id="r1lite-episode-detail" role="status"></p>
 <video id="r1lite-video" controls preload="metadata" aria-label="Complete selected R1 Lite episode"></video>
-<p><small>The default is the first episode, including its failure. Every recording includes the reset image and every native control. Playback uses 15 simulation frames per second. It does not establish 15 Hz wall-clock control.</small></p>
+<p><small>Each cohort defaults to its first episode in the original order. Every recording includes the reset image and every native control. Playback uses 15 simulation frames per second. It does not establish 15 Hz wall-clock control.</small></p>
 <p id="r1lite-contacts"></p>
 <details><summary>Scope and execution evidence</summary><p id="r1lite-scope"></p><p id="r1lite-supervision"></p><p id="r1lite-run" class="run-id"></p></details>
 </section>
@@ -1012,47 +1016,75 @@ function renderMulliganFullGrid(result) {
   }
   section.hidden = false;
 }
-function renderR1Lite(result) {
+function renderR1Lite(rtc, initialized) {
   const section = document.getElementById('r1lite');
-  if (!result) { section.hidden = true; return; }
-  if (result.schema !== 'sadhana.r1lite_viewer/1' || !Array.isArray(result.episodes) || result.episodes.length !== 20) throw Error('Incomplete R1 Lite cohort');
-  const successes = integer(result.successes, 'R1 Lite successes');
-  if (successes > 20 || result.episodes.filter(row => row.success === true).length !== successes) throw Error('R1 Lite score differs from outcomes');
-  result.episodes.forEach((row, index) => {
-    if (row.seed !== 9100 + index || typeof row.success !== 'boolean' || !/^[0-9a-f]{16}\.mp4$/.test(row.video) || !['native_success', 'native_timeout', 'native_failure'].includes(row.outcome)) throw Error('Invalid R1 Lite episode');
-    integer(row.native_controls, 'R1 Lite controls', 1);
-  });
-  const score = successes + '/20 successes · ' + (successes * 5) + '%';
-  text('r1lite-score', score);
-  text('r1lite-table-score', score);
-  text('r1lite-snapshot', 'Accepted RTC result · snapshot ' + result.snapshot_utc);
-  text('r1lite-scope', result.scope);
-  text('r1lite-supervision', result.supervision);
-  text('r1lite-run', result.run_id);
-  const penetration = result.telemetry.penetration_m;
-  text('r1lite-contacts', 'Maximum sampled penetration: robot–scene ' + (penetration.robot_scene.max * 1000).toFixed(3) + ' mm; robot–object ' + (penetration.robot_objects.max * 1000).toFixed(3) + ' mm. Contacts are sampled at 15 Hz, not every 600 Hz physics step.');
-  const picker = document.getElementById('r1lite-episode');
-  const identity = JSON.stringify(result.episodes);
-  if (picker.dataset.identity !== identity) {
-    picker.replaceChildren();
-    const labels = {native_success: 'Success', native_timeout: 'Timeout', native_failure: 'Early failure'};
+  if (!rtc && !initialized) { section.hidden = true; return; }
+  const cohorts = {rtc, initialized_full_expo: initialized};
+  const labels = {rtc: 'Frozen RTC base', initialized_full_expo: 'Full EXPO before online learning'};
+  const schemas = {rtc: 'sadhana.r1lite_viewer/1', initialized_full_expo: 'sadhana.r1lite_initialized_full_expo_viewer/1'};
+  const scores = {};
+  for (const [key, result] of Object.entries(cohorts)) {
+    if (!result) continue;
+    if (result.schema !== schemas[key] || !Array.isArray(result.episodes) || result.episodes.length !== 20) throw Error('Incomplete R1 Lite cohort');
+    const successes = integer(result.successes, 'R1 Lite successes');
+    if (successes > 20 || result.episodes.filter(row => row.success === true).length !== successes) throw Error('R1 Lite score differs from outcomes');
+    if (key === 'initialized_full_expo' && (result.evaluation_checkpoint_step !== 0 || result.learning_updates !== 0)) throw Error('Invalid initialized EXPO scope');
     result.episodes.forEach((row, index) => {
-      const option = document.createElement('option');
-      option.value = String(index);
-      option.textContent = 'Seed ' + row.seed + ' · ' + labels[row.outcome] + ' · ' + row.native_controls + ' controls';
-      picker.append(option);
+      if (row.seed !== 9100 + index || typeof row.success !== 'boolean' || !/^[0-9a-f]{16}\.mp4$/.test(row.video) || !['native_success', 'native_timeout', 'native_failure'].includes(row.outcome) || row.success !== (row.outcome === 'native_success')) throw Error('Invalid R1 Lite episode');
+      if (integer(row.native_controls, 'R1 Lite controls', 1) > 900) throw Error('R1 Lite control horizon differs');
     });
-    const choose = () => {
-      const row = result.episodes[Number(picker.value)];
-      text('r1lite-episode-detail', 'Seed ' + row.seed + ': ' + labels[row.outcome] + '. Complete recording, ' + row.native_controls + ' controls.');
-      const video = document.getElementById('r1lite-video');
-      video.src = row.video;
-      video.load();
-    };
-    picker.onchange = choose;
-    picker.dataset.identity = identity;
-    choose();
+    scores[key] = successes + '/20 successes · ' + (successes * 5) + '%';
   }
+  text('r1lite-table-score', scores.rtc || 'Pending acceptance');
+  text('r1lite-initialized-score', scores.initialized_full_expo || 'Evaluation result pending acceptance');
+  const cohortPicker = document.getElementById('r1lite-cohort');
+  for (const option of cohortPicker.options) {
+    option.disabled = !cohorts[option.value];
+    option.textContent = labels[option.value] + (cohorts[option.value] ? '' : ' · pending acceptance');
+  }
+  if (!cohorts[cohortPicker.value]) cohortPicker.value = rtc ? 'rtc' : 'initialized_full_expo';
+  const display = () => {
+    const key = cohortPicker.value;
+    const result = cohorts[key];
+    text('r1lite-score', labels[key] + ' · ' + scores[key]);
+    text('r1lite-snapshot', 'Accepted cohort · snapshot ' + result.snapshot_utc);
+    text('r1lite-method', key === 'rtc'
+      ? 'Original RTC-SFT trains EXPO’s pi0.5 base. This cohort uses checkpoint 2000, which contains 2,001 RTC updates.'
+      : 'Original Real-Time EXPO-FT initialization: RTC2000 actor weights, fresh editor and critics, 32 base plus 32 edited candidates, H16/C8/delay5. This evaluator performs zero learning updates.');
+    text('r1lite-scope', result.scope);
+    text('r1lite-supervision', result.supervision);
+    text('r1lite-run', result.run_id);
+    const penetration = result.telemetry?.penetration_m;
+    const millimetres = value => Number.isFinite(value) ? (value * 1000).toFixed(3) + ' mm' : 'unavailable';
+    text('r1lite-contacts', 'Maximum sampled penetration: robot–scene ' + millimetres(penetration?.robot_scene?.max) + '; robot–object ' + millimetres(penetration?.robot_objects?.max) + '. Contacts are sampled at 15 Hz, not every 600 Hz physics step.');
+    const picker = document.getElementById('r1lite-episode');
+    const identity = JSON.stringify([key, result.run_id, result.episodes]);
+    if (picker.dataset.identity !== identity) {
+      picker.replaceChildren();
+      const outcomes = {native_success: 'Success', native_timeout: 'Timeout', native_failure: 'Early failure'};
+      result.episodes.forEach((row, index) => {
+        const option = document.createElement('option');
+        option.value = String(index);
+        option.textContent = 'Seed ' + row.seed + ' · ' + outcomes[row.outcome] + ' · ' + row.native_controls + ' controls';
+        picker.append(option);
+      });
+      picker.value = '0';
+      const choose = () => {
+        const row = result.episodes[Number(picker.value)];
+        text('r1lite-episode-detail', labels[key] + ' · seed ' + row.seed + ': ' + outcomes[row.outcome] + '. Complete recording, ' + row.native_controls + ' controls.');
+        const video = document.getElementById('r1lite-video');
+        video.pause();
+        video.src = row.video;
+        video.setAttribute('aria-label', labels[key] + ', complete seed ' + row.seed + ' episode');
+        video.load();
+      };
+      picker.onchange = choose;
+      picker.dataset.identity = identity;
+      choose();
+    }
+  };
+  cohortPicker.onchange = display;
+  display();
   section.hidden = false;
 }
 async function refresh() {
@@ -1061,7 +1093,7 @@ async function refresh() {
     if (!response.ok) throw Error('Results unavailable');
     const data = await response.json();
     if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
-    renderR1Lite(data.r1lite);
+    renderR1Lite(data.r1lite, data.r1lite_initialized_full_expo);
     renderCatcher(data.catcher);
     renderMulligan(data.mulligan);
     renderFastOriginal(data.fasttd3_original);
