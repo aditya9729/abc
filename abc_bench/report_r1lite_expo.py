@@ -510,6 +510,324 @@ def _matched_evidence(
     return evidence, observations, metadata
 
 
+def _copy_video(video: dict, output: Path) -> None:
+    source = checked(video["video"])
+    checked(video["sidecar"])
+    name = video["video"]["sha256"][:16] + ".mp4"
+    target = output / name
+    if target.is_symlink():
+        raise ValueError("Video destination must not be a symlink")
+    if target.exists():
+        if pin(target)["sha256"] != video["video"]["sha256"]:
+            raise ValueError("Video content identity collision")
+    else:
+        with source.open("rb") as reader, target.open("xb") as writer:
+            shutil.copyfileobj(reader, writer)
+
+
+def _commit_publication(
+    base: dict,
+    old_bytes: bytes,
+    output: Path,
+    receipt: Path,
+    acceptance: Path,
+    rows: list,
+    cohort: str,
+    timestamp: str,
+) -> dict:
+    """Original locked backup, export and atomic data-publication transaction."""
+    results = output / "results.json"
+    if results.read_bytes() != old_bytes:
+        raise RuntimeError(
+            "Viewer data changed during preparation; retry from current data"
+        )
+    receipt.parent.mkdir(parents=True, exist_ok=True)
+    backup = receipt.with_suffix(".previous-results.json")
+    with backup.open("xb") as stream:
+        stream.write(old_bytes)
+    old_index = output / "index.html"
+    with receipt.with_suffix(".previous-index.html").open("xb") as stream:
+        stream.write(old_index.read_bytes())
+    export_viewer(output)
+    base["packaged_viewer_release"] = {
+        "previous": base.get("packaged_viewer_release"),
+        "template": pin(old_index),
+        "scope": (
+            "Accepted R1 Lite RTC DEV20 with all20 complete videos"
+            if cohort == "rtc"
+            else "Accepted three-mode TRAIN diagnosis with12 scored videos; historical cohorts preserved"
+            if cohort == "train_diagnostics"
+            else f"Accepted {cohort} DEV20 with all20 complete videos; historical cohorts preserved"
+        ),
+    }
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=output, delete=False) as stream:
+            temporary = Path(stream.name)
+            json.dump(base, stream, indent=2, allow_nan=False)
+            stream.write("\n")
+        os.replace(temporary, results)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+    report = {
+        "status": f"accepted_{cohort}_results_and_all{len(rows)}_videos_published",
+        "at_utc": timestamp,
+        "acceptance": pin(acceptance),
+        "previous_results": pin(backup),
+        "results": pin(results),
+        "template": pin(old_index),
+        "videos": [pin(output / row["video"]) for row in rows],
+        "scope": "Data publication only; browser and video playback checks are separate.",
+    }
+    with receipt.open("x") as stream:
+        json.dump(report, stream, indent=2)
+        stream.write("\n")
+    return report
+
+
+TRAIN_CONDITIONS = ("full", "base", "zero_edit")
+TRAIN_SEEDS = (21000, 21001, 21002, 21003)
+TRAIN_CAMPAIGN_SHA256 = (
+    "90f72670a07b611c8b7e60a4c00fb93d79e3be9d2151fe2839ed283767aea42d"
+)
+TRAIN_ANALYZER_SHA256 = (
+    "7921c4974d801342629771bed4ca68959b87eec2481ec39c9b38712d5620112c"
+)
+
+
+def _train_condition(acceptance: Path, condition: str, campaign: dict) -> dict:
+    """Read one accepted fixed TRAIN diagnostic; do not accept an experiment here."""
+    accepted = json.loads(acceptance.read_text())
+    if (
+        accepted.get("schema") != "sadhana.expo_train_condition_root_acceptance/1"
+        or accepted.get("status") != "accepted_four_train_start_diagnostic"
+        or accepted.get("owner") != "/root"
+        or accepted.get("artifact_accepted") is not True
+        or accepted.get("condition") != condition
+    ):
+        raise ValueError("Actual root condition acceptance is required")
+    analysis = json.loads(checked(accepted["read_only_analysis"]).read_text())
+    if (
+        analysis.get("schema") != "sadhana.expo_multistart_read_only_analysis/1"
+        or analysis.get("status") != "completed_trace_and_media_inventory_checks_passed"
+        or analysis.get("artifact_accepted") is not False
+        or analysis.get("condition") != condition
+        or analysis.get("run_id") != accepted["run_id"]
+        or analysis.get("configuration_manifest") != campaign
+        or analysis["operator_manifest"]["sha256"] != TRAIN_ANALYZER_SHA256
+        or analysis.get("episodes") != 4
+        or analysis.get("startup") != {"seed": 20999, "native_controls": 0}
+        or analysis.get("canonical_status") != "completed"
+        or analysis.get("worker_status") != "completed"
+        or analysis.get("author_exit_code") != 0
+        or analysis.get("client_exit_code") != 0
+    ):
+        raise ValueError("Root acceptance and fixed four-start analysis differ")
+    checked(analysis["operator_manifest"])
+    checked(analysis["analysis_source"])
+    for item in analysis["input_pins"]:
+        checked(item)
+    execution = accepted["execution"]
+    if any(
+        execution[key] not in analysis["input_pins"] for key in ("canonical", "worker")
+    ):
+        raise ValueError("Execution receipts must be the analyzed receipts")
+    _clean_execution(accepted, accepted)
+    initialization = accepted["initialization"]
+    if any(
+        initialization.get(key) != value
+        for key, value in {
+            "seed": 42,
+            "actor_weight_checkpoint_label": 2000,
+            "online_updates": 0,
+            "full_agent_restored": False,
+        }.items()
+    ):
+        raise ValueError(
+            "Require fresh seed42 full initialization and zero online updates"
+        )
+    checked(initialization["evidence"])
+    immutability = accepted["immutability"]
+    if (
+        immutability.get("rtc2000_unchanged") is not True
+        or immutability.get("runtime_source_task_unchanged") is not True
+    ):
+        raise ValueError("Checkpoint, runtime, source and task checks are required")
+    checked(immutability["evidence"])
+    checked(accepted["resource_cleanup"])
+    visual = accepted["visual_review"]
+    if (
+        visual.get("status") != "viewed_by_root"
+        or visual.get("reviewer") != "/root"
+        or not visual.get("files")
+        or not visual.get("seeds")
+        or not visual.get("selection_reason")
+        or any(
+            type(seed) is not int or seed not in TRAIN_SEEDS for seed in visual["seeds"]
+        )
+    ):
+        raise ValueError(
+            "Explicit sampled-frame root review on scored TRAIN seeds is required"
+        )
+    for item in visual["files"]:
+        checked(item)
+    scored = analysis["scored"]
+    if (
+        [row["seed"] for row in scored] != list(TRAIN_SEEDS)
+        or type(analysis["successes"]) is not int
+        or analysis["successes"] != sum(row["success"] is True for row in scored)
+    ):
+        raise ValueError("Expected four complete scored TRAIN outcomes in order")
+    media, inventory = accepted["media"], analysis["videos"]
+    schedule = [20999, *TRAIN_SEEDS]
+    if (
+        [row["seed"] for row in media] != schedule
+        or [row["seed"] for row in inventory] != schedule
+        or len(media) != 5
+    ):
+        raise ValueError(
+            "All five recordings need decode evidence; startup is unscored"
+        )
+    rows = []
+    for index, (video, original) in enumerate(zip(media, inventory, strict=True)):
+        if any(video.get(key) != original[key] for key in original):
+            raise ValueError("Decoded media does not match analyzed inventory")
+        if video["scored"] is not (index > 0) or video["episode"] != index + 1:
+            raise ValueError("Startup/scored media identity differs")
+        controls = 0 if index == 0 else scored[index - 1]["native_controls"]
+        if (
+            type(controls) is not int
+            or not 0 <= controls <= 900
+            or (index and not controls)
+        ):
+            raise ValueError("Native control count differs")
+        probe = video["probe"]
+        checked(video["video"])
+        sidecar = json.loads(checked(video["sidecar"]).read_text())
+        if (
+            video["full_decode_exit_code"] != 0
+            or video["declared_frames"] != controls + 1
+            or int(probe["nb_read_frames"]) != controls + 1
+            or (probe["width"], probe["height"]) != (640, 360)
+            or Fraction(probe["avg_frame_rate"]) != 15
+            or sidecar["seed"] != video["seed"]
+            or sidecar["native_controls"] != controls
+            or sidecar["frames"] != controls + 1
+            or sidecar["fps"] != 15
+            or sidecar["complete_native_episode"] is not (index > 0)
+            or sidecar["end_reason"] != ("terminal" if index else "reset")
+        ):
+            raise ValueError("Require the complete decoded native recording")
+        if not index:
+            continue
+        row = scored[index - 1]
+        if (
+            any(
+                type(row[key]) is not bool
+                for key in ("success", "failure", "truncated")
+            )
+            or sum(row[key] for key in ("success", "failure", "truncated")) != 1
+            or (row["truncated"] and controls != 900)
+            or row["author"]
+            != {
+                "success": row["success"],
+                "return": float(row["success"]),
+                "len": controls + 1,
+            }
+        ):
+            raise ValueError("Author and complete native ending differ")
+        ending = (
+            "success" if row["success"] else "failure" if row["failure"] else "timeout"
+        )
+        rows.append(
+            {
+                "seed": row["seed"],
+                "success": row["success"],
+                "outcome": "native_" + ending,
+                "native_controls": controls,
+                "video": video["video"]["sha256"][:16] + ".mp4",
+            }
+        )
+    return {
+        "condition": condition,
+        "run_id": accepted["run_id"],
+        "acceptance": pin(acceptance),
+        "successes": analysis["successes"],
+        "episodes": rows,
+        "media": media[1:],
+    }
+
+
+def _publish_train_locked(acceptance: Path, output: Path, receipt: Path) -> dict:
+    """Append this one fixed three-mode diagnosis; keep all DEV cohorts intact."""
+    if not all(path.is_absolute() for path in (acceptance, output, receipt)):
+        raise ValueError("Use absolute acceptance, viewer and receipt paths")
+    if not output.is_dir() or output.is_symlink() or receipt.exists():
+        raise ValueError("Require an existing ordinary viewer and a fresh receipt")
+    comparison_pin = pin(acceptance)
+    comparison = json.loads(acceptance.read_text())
+    if (
+        comparison.get("schema") != "sadhana.expo_train_comparison_root_acceptance/1"
+        or comparison.get("status") != "accepted_three_mode_train_diagnostic"
+        or comparison.get("owner") != "/root"
+        or comparison.get("artifact_accepted") is not True
+        or comparison.get("split") != "TRAIN"
+        or comparison.get("initialization_seed") != 42
+        or comparison.get("online_updates") != 0
+        or set(comparison["conditions"]) != set(TRAIN_CONDITIONS)
+        or comparison["configuration_manifest"]["sha256"] != TRAIN_CAMPAIGN_SHA256
+    ):
+        raise ValueError("Require actual acceptance of the three fixed TRAIN modes")
+    campaign = comparison["configuration_manifest"]
+    for item in json.loads(checked(campaign).read_text())["files"]:
+        checked(item)
+    results = output / "results.json"
+    old_bytes = results.read_bytes()
+    base = json.loads(old_bytes)
+    if base.get("schema") != "sadhana.original-methods.progress/v2":
+        raise ValueError("Existing viewer schema differs")
+    if "r1lite_expo_train_diagnostics" in base:
+        raise ValueError("TRAIN diagnosis already exists; publication is append-only")
+    conditions = {
+        name: _train_condition(checked(comparison["conditions"][name]), name, campaign)
+        for name in TRAIN_CONDITIONS
+    }
+    if len({value["run_id"] for value in conditions.values()}) != 3:
+        raise ValueError("Each condition requires its own completed run")
+    # All evidence is validated before copying any media or changing viewer files.
+    rows = []
+    for value in conditions.values():
+        for video in value.pop("media"):
+            _copy_video(video, output)
+        rows.extend(value["episodes"])
+        checked(value["acceptance"])
+    checked(comparison_pin)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    base["r1lite_expo_train_diagnostics"] = {
+        "schema": "sadhana.expo_train_diagnostics_viewer/1",
+        "snapshot_utc": timestamp,
+        "acceptance": comparison_pin,
+        "configuration_manifest": campaign,
+        "split": "TRAIN",
+        "initialization_seed": 42,
+        "online_updates": 0,
+        "actor_weight_checkpoint_label": 2000,
+        "conditions": conditions,
+        "scope": "Three original inference modes on four predeclared TRAIN starts, one initialization seed. Zero online updates. Branch random streams can differ. No pooled benchmark, DEV result or learning-gain claim.",
+    }
+    return _commit_publication(
+        base,
+        old_bytes,
+        output,
+        receipt,
+        acceptance,
+        rows,
+        "train_diagnostics",
+        timestamp,
+    )
+
+
 def _publish_locked(
     acceptance: Path, output: Path, receipt: Path, cohort: str = "rtc"
 ) -> dict:
@@ -597,23 +915,15 @@ def _publish_locked(
     rows = []
     for row in episodes:
         video = media[row["seed"]]
-        source = checked(video["video"])
+        checked(video["video"])
         checked(video["sidecar"])
         if (
             video["full_decode_exit_code"] != 0
             or int(video["probe"]["nb_read_frames"]) != row["native_controls"] + 1
         ):
             raise ValueError("A complete decoded recording is required")
+        _copy_video(video, output)
         name = video["video"]["sha256"][:16] + ".mp4"
-        target = output / name
-        if target.is_symlink():
-            raise ValueError("Video destination must not be a symlink")
-        if target.exists():
-            if pin(target)["sha256"] != video["video"]["sha256"]:
-                raise ValueError("Video content identity collision")
-        else:
-            with source.open("rb") as reader, target.open("xb") as writer:
-                shutil.copyfileobj(reader, writer)
         ending = native[row["seed"]]["native_ending"]
         if (
             ending not in ("success", "failure", "timeout")
@@ -677,51 +987,9 @@ def _publish_locked(
         base["r1lite_" + cohort] = cohort_result
     else:
         base["r1lite"] = cohort_result
-    if results.read_bytes() != old_bytes:
-        raise RuntimeError(
-            "Viewer data changed during preparation; retry from current data"
-        )
-    receipt.parent.mkdir(parents=True, exist_ok=True)
-    backup = receipt.with_suffix(".previous-results.json")
-    with backup.open("xb") as stream:
-        stream.write(old_bytes)
-    old_index = output / "index.html"
-    with receipt.with_suffix(".previous-index.html").open("xb") as stream:
-        stream.write(old_index.read_bytes())
-    export_viewer(output)
-    base["packaged_viewer_release"] = {
-        "previous": base.get("packaged_viewer_release"),
-        "template": pin(old_index),
-        "scope": (
-            "Accepted R1 Lite RTC DEV20 with all20 complete videos"
-            if cohort == "rtc"
-            else f"Accepted {cohort} DEV20 with all20 complete videos; historical cohorts preserved"
-        ),
-    }
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", dir=output, delete=False) as stream:
-            temporary = Path(stream.name)
-            json.dump(base, stream, indent=2, allow_nan=False)
-            stream.write("\n")
-        os.replace(temporary, results)
-    finally:
-        if temporary is not None:
-            temporary.unlink(missing_ok=True)
-    report = {
-        "status": f"accepted_{cohort}_results_and_all20_videos_published",
-        "at_utc": timestamp,
-        "acceptance": pin(acceptance),
-        "previous_results": pin(backup),
-        "results": pin(results),
-        "template": pin(old_index),
-        "videos": [pin(output / row["video"]) for row in rows],
-        "scope": "Data publication only; browser and video playback checks are separate.",
-    }
-    with receipt.open("x") as stream:
-        json.dump(report, stream, indent=2)
-        stream.write("\n")
-    return report
+    return _commit_publication(
+        base, old_bytes, output, receipt, acceptance, rows, cohort, timestamp
+    )
 
 
 def publish(acceptance: Path, output: Path, receipt: Path, cohort: str = "rtc") -> dict:
@@ -730,6 +998,8 @@ def publish(acceptance: Path, output: Path, receipt: Path, cohort: str = "rtc") 
         raise ValueError("Require an existing absolute ordinary viewer directory")
     with (output / ".original-methods-snapshot.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        if cohort == "train_diagnostics":
+            return _publish_train_locked(acceptance, output, receipt)
         return _publish_locked(acceptance, output, receipt, cohort)
 
 
@@ -746,6 +1016,7 @@ def main() -> None:
             "matched_initialized_full_expo",
             "trained_full_expo",
             "continued_full_expo",
+            "train_diagnostics",
         ),
         default="rtc",
     )

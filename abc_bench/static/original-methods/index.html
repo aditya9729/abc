@@ -42,6 +42,26 @@ body{margin:0;background:#101720;color:#edf3fa;font:16px/1.55 system-ui}main{max
 <p id="r1lite-contacts"></p>
 <p id="r1lite-scope"></p><p id="r1lite-supervision"></p><p id="r1lite-run" class="run-id"></p></details>
 </section>
+<section id="r1lite-train" class="card" aria-labelledby="r1lite-train-heading" style="margin-bottom:22px" hidden>
+<h2 id="r1lite-train-heading">R1 Lite · TRAIN inference diagnosis</h2>
+<p>Three original inference modes · initialization seed42 · zero online updates. These four predeclared TRAIN starts are separate from the DEV20 comparison above.</p>
+<label for="r1lite-train-condition">Choose the inference mode</label>
+<select id="r1lite-train-condition" style="display:block;max-width:100%;margin:10px 0;padding:10px;font:inherit"><option value="full">Original full EXPO · edit scale0.1</option><option value="base">Original full learner · base-action bypass</option><option value="zero_edit">Original full EXPO · edit scale0 · ranking retained</option></select>
+<p id="r1lite-train-score" class="score"></p>
+<label for="r1lite-train-episode">Choose one of the four scored TRAIN starts</label>
+<select id="r1lite-train-episode" style="display:block;max-width:100%;margin:10px 0;padding:10px;font:inherit"></select>
+<p id="r1lite-train-detail" role="status"></p>
+<video id="r1lite-train-video" controls preload="metadata" aria-label="Complete selected TRAIN diagnostic episode"></video>
+<p><small>Startup20999 is excluded. Each scored recording includes its reset image and every control. Playback uses15 simulation frames per second; it does not establish15Hz wall-clock control.</small></p>
+<div class="table-wrap" tabindex="0" role="region" aria-label="Separate four-start TRAIN outcomes"><table><thead><tr><th scope="col">Original inference mode</th><th scope="col">TRAIN outcome</th></tr></thead><tbody>
+<tr><th scope="row">Full EXPO · edit scale0.1</th><td id="r1lite-train-full-score"></td></tr>
+<tr><th scope="row">Full learner · base-action bypass</th><td id="r1lite-train-base-score"></td></tr>
+<tr><th scope="row">Full EXPO · edit scale0 · ranking retained</th><td id="r1lite-train-zero_edit-score"></td></tr>
+</tbody></table></div>
+<p id="r1lite-train-method"></p>
+<p>All three modes use RTC2000 actor weights, fresh editor and critics, N32/edit32, H16/replan8/delay5. The actor weight producer's training is separate from these zero-update inference runs. Branch random streams can differ. No pooled benchmark, DEV result or learning-gain claim.</p>
+<details><summary>Diagnostic evidence and scope</summary><p id="r1lite-train-snapshot"></p><p id="r1lite-train-scope"></p><p id="r1lite-train-run" class="run-id"></p><p>All five recordings per mode must pass full decoding before publication. Root's sampled-frame visual review is a separate check.</p></details>
+</section>
 <section id="catcher" class="card" aria-labelledby="catcher-heading" style="margin-bottom:22px" hidden>
 <h2 id="catcher-heading">Catcher · original BC and RTC evaluator</h2>
 <p>Frozen author BC24 policy, one trial per profile, the same seed. These recordings show the starting policy before Real-Time EXPO learning.</p>
@@ -1119,6 +1139,59 @@ function renderR1Lite(rtc, initialized, matchedInitialized, trained, continued) 
   display();
   section.hidden = false;
 }
+function renderR1LiteTrainDiagnostics(data) {
+  const section = document.getElementById('r1lite-train');
+  if (!data) { section.hidden = true; return; }
+  const keys = ['full', 'base', 'zero_edit'];
+  const labels = {full: 'Original full EXPO · edit scale0.1', base: 'Original full learner · base-action bypass', zero_edit: 'Original full EXPO · edit scale0 · ranking retained'};
+  const methods = {full: 'The original full learner ranks base and edited candidates.', base: 'The original full learner still generates N32 prefix-conditioned candidates, then chooses the first base candidate. This is not the separate RTCLearner path.', zero_edit: 'The original full learner keeps candidate generation and Q ranking with edit scale0. Its random branches remain active.'};
+  if (data.schema !== 'sadhana.expo_train_diagnostics_viewer/1' || data.split !== 'TRAIN' || data.initialization_seed !== 42 || data.online_updates !== 0 || data.actor_weight_checkpoint_label !== 2000 || !data.conditions || Object.keys(data.conditions).sort().join(',') !== [...keys].sort().join(',')) throw Error('Invalid fixed TRAIN diagnostic scope');
+  const runs = new Set();
+  for (const key of keys) {
+    const result = data.conditions[key];
+    if (result.condition !== key || typeof result.run_id !== 'string' || !result.run_id || !Array.isArray(result.episodes) || result.episodes.length !== 4) throw Error('Incomplete TRAIN condition');
+    runs.add(result.run_id);
+    const successes = integer(result.successes, 'TRAIN successes');
+    if (successes > 4 || result.episodes.filter(row => row.success === true).length !== successes) throw Error('TRAIN outcomes differ from score');
+    result.episodes.forEach((row, index) => {
+      if (row.seed !== 21000 + index || typeof row.success !== 'boolean' || !/^[0-9a-f]{16}\.mp4$/.test(row.video) || !['native_success', 'native_timeout', 'native_failure'].includes(row.outcome) || row.success !== (row.outcome === 'native_success') || integer(row.native_controls, 'TRAIN controls', 1) > 900 || (row.outcome === 'native_timeout' && row.native_controls !== 900)) throw Error('Invalid complete TRAIN episode');
+    });
+    text('r1lite-train-' + key + '-score', successes + '/4 successes');
+  }
+  if (runs.size !== 3) throw Error('TRAIN conditions must have distinct completed runs');
+  const conditionPicker = document.getElementById('r1lite-train-condition');
+  if (!keys.includes(conditionPicker.value)) conditionPicker.value = 'full';
+  const display = () => {
+    const key = conditionPicker.value, result = data.conditions[key];
+    text('r1lite-train-score', labels[key] + ' · ' + result.successes + '/4 TRAIN successes');
+    text('r1lite-train-method', methods[key]);
+    text('r1lite-train-scope', data.scope);
+    text('r1lite-train-snapshot', 'Accepted diagnostic · snapshot ' + data.snapshot_utc);
+    text('r1lite-train-run', result.run_id);
+    const picker = document.getElementById('r1lite-train-episode');
+    const identity = JSON.stringify([key, result.run_id, result.episodes]);
+    if (picker.dataset.identity !== identity) {
+      picker.replaceChildren();
+      const outcomes = {native_success: 'Success', native_timeout: 'Timeout', native_failure: 'Early failure'};
+      result.episodes.forEach((row, index) => {
+        const option = document.createElement('option'); option.value = String(index);
+        option.textContent = 'TRAIN seed ' + row.seed + ' · ' + outcomes[row.outcome] + ' · ' + row.native_controls + ' controls';
+        picker.append(option);
+      });
+      picker.value = '0';
+      const choose = () => {
+        const row = result.episodes[Number(picker.value)];
+        text('r1lite-train-detail', labels[key] + ' · TRAIN seed ' + row.seed + ': ' + outcomes[row.outcome] + '. Complete recording, ' + row.native_controls + ' controls.');
+        const video = document.getElementById('r1lite-train-video');
+        video.pause(); video.src = row.video;
+        video.setAttribute('aria-label', labels[key] + ', complete TRAIN seed ' + row.seed + ' episode'); video.load();
+      };
+      picker.onchange = choose; picker.dataset.identity = identity; choose();
+    }
+  };
+  conditionPicker.onchange = display; display(); section.hidden = false;
+}
+
 async function refresh() {
   try {
     const response = await fetch('results.json', {cache: 'no-store'});
@@ -1126,6 +1199,7 @@ async function refresh() {
     const data = await response.json();
     if (data.schema !== 'sadhana.original-methods.progress/v2') throw Error('Invalid result schema');
     renderR1Lite(data.r1lite, data.r1lite_initialized_full_expo, data.r1lite_matched_initialized_full_expo, data.r1lite_trained_full_expo, data.r1lite_continued_full_expo);
+    renderR1LiteTrainDiagnostics(data.r1lite_expo_train_diagnostics);
     renderCatcher(data.catcher);
     renderMulligan(data.mulligan);
     renderFastOriginal(data.fasttd3_original);
