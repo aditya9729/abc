@@ -18,6 +18,7 @@ from typing import Any
 from abc_bench.resources import inspect_reserved_gpu
 
 ALLOWED_MODULES = {
+    "abc_bench.realtime_update_probe",
     "abc_bench.author_program",
     "abc_bench.mulligan_program",
     "abc_bench.fasttd3_program",
@@ -442,6 +443,10 @@ def load_job(path: Path) -> dict[str, Any]:
         raise ValueError(
             f"max_wall_s must be finite, positive and at most {maximum_allowed}"
         )
+    if job["module"] == "abc_bench.realtime_update_probe":
+        from abc_bench.realtime_update_probe import validate_job
+
+        validate_job(job)
     return job
 
 
@@ -452,6 +457,10 @@ def run_job(args: Any) -> dict[str, Any]:
     if args.training_config is None:
         raise ValueError("author-subset requires --training-config")
     job = load_job(args.training_config)
+    if job["module"] == "abc_bench.realtime_update_probe":
+        from abc_bench.realtime_update_probe import validate_job
+
+        validate_job(job, args.timeout_seconds)
     training_config = _extended_author_training_config(job)
     if training_config is not None:
         from abc_bench.author_program import TRAINING_WATCHDOG_LIMITS
@@ -622,7 +631,11 @@ def run_job(args: Any) -> dict[str, Any]:
         }
         if config_snapshots is not None:
             receipt["config_snapshots"] = config_snapshots
-        if job["module"] == "abc_bench.author_program" and not catcher_profile:
+        if (
+            job["module"]
+            in {"abc_bench.author_program", "abc_bench.realtime_update_probe"}
+            and not catcher_profile
+        ):
             for name in ("task", "embodiment"):
                 receipt[name] = job.get(name, receipt[name])
         publish(receipt, RESULTS)
