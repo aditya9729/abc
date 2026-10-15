@@ -153,9 +153,9 @@ def _author_config(job: dict[str, Any]) -> dict[str, Any] | None:
     return load_config(path)
 
 
-def _extended_rtc_config(job: dict[str, Any]) -> dict[str, Any] | None:
-    """Admit a longer finite original offline run, without changing its schedule."""
-    from abc_bench.author_program import load_config
+def _extended_author_training_config(job: dict[str, Any]) -> dict[str, Any] | None:
+    """Admit finite original training runs with a program-specific watchdog."""
+    from abc_bench.author_program import TRAINING_WATCHDOG_LIMITS, load_config
 
     maximum = job.get("max_wall_s")
     if job["module"] != "abc_bench.author_program":
@@ -185,12 +185,19 @@ def _extended_rtc_config(job: dict[str, Any]) -> dict[str, Any] | None:
         or len(arguments) == 1
         and arguments[0].startswith("--config=")
     ):
-        raise ValueError("Extended RTC jobs require one explicit --config")
+        raise ValueError("Extended author training jobs require one explicit --config")
     if path is None or not path.is_absolute() or not path.is_file():
-        raise ValueError("Extended RTC jobs require an absolute config file")
+        raise ValueError(
+            "Extended author training jobs require an absolute config file"
+        )
     config = load_config(path)
-    if config["schema_version"] != 1 or config["program"] != "train_offline_rtc.py":
-        raise ValueError("Extended RTC admission is only for original offline RTC")
+    if (
+        config["schema_version"] != 1
+        or config["program"] not in TRAINING_WATCHDOG_LIMITS
+    ):
+        raise ValueError(
+            "Extended admission is only for original schema1 author training"
+        )
     return config
 
 
@@ -286,17 +293,23 @@ def load_job(path: Path) -> dict[str, Any]:
     if job["module"] == "abc_bench.author_program":
         from abc_bench.author_program import (
             CATCHER_CLEANUP_SECONDS,
-            OFFLINE_RTC_CLEANUP_SECONDS,
-            OFFLINE_RTC_MAX_SECONDS,
+            TRAINING_WATCHDOG_LIMITS,
         )
 
-        rtc_config = _extended_rtc_config(job)
-        if rtc_config is not None:
-            if rtc_config["timeout_s"] + OFFLINE_RTC_CLEANUP_SECONDS > maximum:
+        training_config = _extended_author_training_config(job)
+        if training_config is not None:
+            worker_maximum, cleanup_seconds = TRAINING_WATCHDOG_LIMITS[
+                training_config["program"]
+            ]
+            if (
+                type(maximum) not in (int, float)
+                or not math.isfinite(maximum)
+                or training_config["timeout_s"] + cleanup_seconds > maximum
+            ):
                 raise ValueError(
-                    "Extended RTC jobs need worker timeout plus100s cleanup"
+                    "Extended author training jobs need worker timeout plus 100s cleanup"
                 )
-            maximum_allowed = OFFLINE_RTC_MAX_SECONDS + OFFLINE_RTC_CLEANUP_SECONDS
+            maximum_allowed = worker_maximum + cleanup_seconds
 
         config = _author_config(job)
         if config is not None and (
@@ -439,17 +452,20 @@ def run_job(args: Any) -> dict[str, Any]:
     if args.training_config is None:
         raise ValueError("author-subset requires --training-config")
     job = load_job(args.training_config)
-    rtc_config = _extended_rtc_config(job)
-    if rtc_config is not None:
-        from abc_bench.author_program import OFFLINE_RTC_CLEANUP_SECONDS
+    training_config = _extended_author_training_config(job)
+    if training_config is not None:
+        from abc_bench.author_program import TRAINING_WATCHDOG_LIMITS
 
+        _, cleanup_seconds = TRAINING_WATCHDOG_LIMITS[training_config["program"]]
         if (
             type(args.timeout_seconds) not in (int, float)
             or not math.isfinite(args.timeout_seconds)
             or min(job["max_wall_s"], args.timeout_seconds)
-            < rtc_config["timeout_s"] + OFFLINE_RTC_CLEANUP_SECONDS
+            < training_config["timeout_s"] + cleanup_seconds
         ):
-            raise ValueError("Effective RTC parent timeout must include100s cleanup")
+            raise ValueError(
+                "Effective author training parent timeout must include 100s cleanup"
+            )
     r1lite_config = None
     if job["module"] == "sadhana_r1lite.fasttd3":
         r1lite_config, r1lite_raw, task_raw = _r1lite_config(job)

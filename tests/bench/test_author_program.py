@@ -75,7 +75,9 @@ def test_changed_source_refuses_execution(tmp_path, monkeypatch):
         ("eval_droid_policy.py", 36000, False),
     ],
 )
-def test_extended_watchdog_is_offline_only(tmp_path, program, timeout, accepted):
+def test_worker_watchdogs_keep_program_specific_limits(
+    tmp_path, program, timeout, accepted
+):
     config = fixture_config(tmp_path, "raise AssertionError('must not run')\n")
     config.update(program=program, timeout_s=timeout)
     path = tmp_path / "worker.json"
@@ -108,7 +110,7 @@ def test_extended_offline_job_retains_parent_cleanup_and_original_limits(tmp_pat
     import argparse
 
     # Reject before touching the real ledger or GPU, even if the CLI lowers time.
-    with pytest.raises(ValueError, match="Effective RTC parent"):
+    with pytest.raises(ValueError, match="Effective author training parent"):
         subset.run_job(
             argparse.Namespace(training_config=job_path, timeout_seconds=36099)
         )
@@ -122,7 +124,7 @@ def test_extended_offline_job_retains_parent_cleanup_and_original_limits(tmp_pat
     config["program"] = "train_pi_robo.py"
     config["timeout_s"] = 7100
     worker_path.write_text(json.dumps(config))
-    with pytest.raises(ValueError, match="only for original offline RTC"):
+    with pytest.raises(ValueError, match="max_wall_s"):
         subset.load_job(job_path)
 
 
@@ -187,6 +189,140 @@ def test_failed_program_stays_failed(tmp_path, monkeypatch):
     assert receipt["status"] == "failed"
     assert receipt["author_exit_code"] == 1
     assert receipt["owned_children_stopped"] is True
+
+
+def one_shot_process_config(
+    tmp_path, *, one_shot=True, client_exit=0, author_exit=0, author_delay=0.75
+):
+    """Use real CPU children with explicit marker ordering, never model imports."""
+    config = fixture_config(tmp_path, "# Unused process fixture\n")
+    config["program"] = "eval_droid_policy.py"
+    config["client"] = {
+        "python": sys.executable,
+        "arguments": ["--exit-after-session"] if one_shot else [],
+    }
+    marker_wait = (
+        "import sys,time\nfrom pathlib import Path\n"
+        "def wait_for(name):\n"
+        "    deadline = time.monotonic() + 5\n"
+        "    while not Path(name).exists():\n"
+        "        if time.monotonic() >= deadline:\n"
+        "            raise RuntimeError('process fixture marker timeout')\n"
+        "        time.sleep(0.01)\n"
+    )
+    files = {
+        "eval_droid_policy.py": (
+            marker_wait
+            + "Path('server-ready').write_text('ready')\n"
+            + "wait_for('client-exiting')\n"
+            + f"time.sleep({author_delay!r})\nsys.exit({author_exit!r})\n"
+        ),
+        "client/__init__.py": "# Explicit process-test package\n",
+        "client/run_client.py": (
+            marker_wait
+            + "wait_for('server-ready')\n"
+            + "Path('client-exiting').write_text('exiting')\n"
+            + f"sys.exit({client_exit!r})\n"
+        ),
+    }
+    manifest_path = Path(config["source_manifest"])
+    manifest = json.loads(manifest_path.read_text())
+    for name, contents in files.items():
+        path = Path(config["source_root"], name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(contents)
+        data = path.read_bytes()
+        manifest["files"].append(
+            {
+                "path": name,
+                "bytes": len(data),
+                "sha256": hashlib.sha256(data).hexdigest(),
+            }
+        )
+    manifest_path.write_text(json.dumps(manifest))
+    return config
+
+
+def assert_owned_children_reaped(receipt):
+    assert receipt["owned_children_stopped"] is True
+    for role in ("author", "client"):
+        assert receipt[f"{role}_exit_code"] is not None
+        assert not Path(f"/proc/{receipt[f'{role}_pid']}").exists()
+
+
+def test_clean_one_shot_client_first_allows_natural_author_exit(tmp_path, monkeypatch):
+    monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
+    config = one_shot_process_config(tmp_path)
+    receipt = author_program.run(config, tmp_path / "out")
+    assert receipt["status"] == "completed"
+    assert receipt["checkpoint_accepted"] is False
+    assert 0 < receipt["one_shot_client_exit_grace_s"] <= 10
+    for role in ("author", "client"):
+        assert receipt[f"{role}_exit_code"] == 0
+        assert receipt[f"{role}_shutdown"] == "already_stopped"
+    assert_owned_children_reaped(receipt)
+
+
+@pytest.mark.parametrize("one_shot,client_exit", [(False, 0), (True, 7)])
+def test_legacy_or_failed_client_does_not_get_shutdown_grace(
+    tmp_path, monkeypatch, one_shot, client_exit
+):
+    monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
+    config = one_shot_process_config(
+        tmp_path, one_shot=one_shot, client_exit=client_exit, author_delay=30
+    )
+    with pytest.raises(RuntimeError, match=f"environment client exited {client_exit}"):
+        author_program.run(config, tmp_path / "out")
+    receipt = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert receipt["status"] == "failed"
+    assert "one_shot_client_exit_grace_s" not in receipt
+    assert receipt["client_exit_code"] == client_exit
+    assert receipt["author_shutdown"] == "sigterm"
+    assert receipt["elapsed_s"] < 4
+    assert_owned_children_reaped(receipt)
+
+
+def test_clean_one_shot_client_does_not_hide_failed_author(tmp_path, monkeypatch):
+    monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
+    config = one_shot_process_config(tmp_path, author_exit=7)
+    with pytest.raises(RuntimeError, match="author program exited 7"):
+        author_program.run(config, tmp_path / "out")
+    receipt = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert receipt["status"] == "failed"
+    assert receipt["one_shot_client_exit_grace_s"] > 0
+    assert receipt["author_exit_code"] == 7
+    assert receipt["author_shutdown"] == "already_stopped"
+    assert receipt["client_exit_code"] == 0
+    assert_owned_children_reaped(receipt)
+
+
+def test_one_shot_grace_expires_and_reaps_hanging_author(tmp_path, monkeypatch):
+    monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
+    monkeypatch.setattr(author_program, "ONE_SHOT_CLIENT_EXIT_GRACE_SECONDS", 0.2)
+    config = one_shot_process_config(tmp_path, author_delay=30)
+    with pytest.raises(TimeoutError, match="bounded shutdown grace"):
+        author_program.run(config, tmp_path / "out")
+    receipt = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert receipt["status"] == "failed"
+    assert receipt["one_shot_client_exit_grace_s"] == 0.2
+    assert receipt["client_exit_code"] == 0
+    assert receipt["author_shutdown"] == "sigterm"
+    assert receipt["elapsed_s"] < 4
+    assert_owned_children_reaped(receipt)
+
+
+def test_one_shot_grace_is_capped_by_remaining_worker_deadline(tmp_path, monkeypatch):
+    monkeypatch.setattr(author_program, "require_subset_lease", lambda: None)
+    config = one_shot_process_config(tmp_path, author_delay=30)
+    config["timeout_s"] = 1.0
+    with pytest.raises(TimeoutError, match="bounded shutdown grace"):
+        author_program.run(config, tmp_path / "out")
+    receipt = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert receipt["status"] == "failed"
+    assert 0 < receipt["one_shot_client_exit_grace_s"] < config["timeout_s"]
+    assert receipt["author_shutdown"] == "sigterm"
+    assert receipt["elapsed_s"] < 4
+    assert_owned_children_reaped(receipt)
 
 
 def test_graceful_client_interrupt_flushes_exit_cleanup(tmp_path):

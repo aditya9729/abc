@@ -18,8 +18,15 @@ from abc_bench.subset import require_subset_lease
 PROGRAMS = {"train_offline_rtc.py", "train_pi_robo.py", "eval_droid_policy.py"}
 CATCHER_GPU_PROFILE = "kinetix_catcher_gpu_learner_cpu_env_v1"
 CATCHER_CLEANUP_SECONDS = 100
+ONE_SHOT_CLIENT_EXIT_GRACE_SECONDS = 10.0
 OFFLINE_RTC_MAX_SECONDS = 36000
 OFFLINE_RTC_CLEANUP_SECONDS = 100
+ONLINE_EXPO_MAX_SECONDS = 21600
+ONLINE_EXPO_CLEANUP_SECONDS = 100
+TRAINING_WATCHDOG_LIMITS = {
+    "train_offline_rtc.py": (OFFLINE_RTC_MAX_SECONDS, OFFLINE_RTC_CLEANUP_SECONDS),
+    "train_pi_robo.py": (ONLINE_EXPO_MAX_SECONDS, ONLINE_EXPO_CLEANUP_SECONDS),
+}
 ENVIRONMENT_KEYS = {
     "ABC_REALTIME_CONFIG",
     "ABC_REALTIME_EXPO_CLIENT_CONFIG",
@@ -51,8 +58,8 @@ def load_config(path: Path) -> dict[str, Any]:
             raise ValueError(f"{name} must be an existing absolute path")
     timeout = config.get("timeout_s")
     maximum = (
-        OFFLINE_RTC_MAX_SECONDS
-        if config["schema_version"] == 1 and config["program"] == "train_offline_rtc.py"
+        TRAINING_WATCHDOG_LIMITS.get(config["program"], (7100, 0))[0]
+        if config["schema_version"] == 1
         else 7100
     )
     if (
@@ -420,9 +427,31 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
             publish()
             while server.poll() is None:
                 if client is not None and client.poll() is not None:
-                    raise RuntimeError(
-                        f"Original environment client exited {client.returncode}"
-                    )
+                    if (
+                        client.returncode != 0
+                        or "--exit-after-session" not in c["arguments"]
+                    ):
+                        raise RuntimeError(
+                            f"Original environment client exited {client.returncode}"
+                        )
+                    # A one-shot client can finish after socket close while the
+                    # author is still in normal interpreter shutdown.
+                    remaining = config["timeout_s"] - (time.monotonic() - started)
+                    if remaining <= 0:
+                        raise TimeoutError(
+                            "Original author program exceeded the declared wall-time limit"
+                        )
+                    grace = min(ONE_SHOT_CLIENT_EXIT_GRACE_SECONDS, remaining)
+                    result["one_shot_client_exit_grace_s"] = grace
+                    publish()
+                    try:
+                        server.wait(timeout=grace)
+                    except subprocess.TimeoutExpired as error:
+                        raise TimeoutError(
+                            "Original author program did not exit within the "
+                            "one-shot client's bounded shutdown grace"
+                        ) from error
+                    break
                 if time.monotonic() - started > config["timeout_s"]:
                     raise TimeoutError(
                         "Original author program exceeded the declared wall-time limit"

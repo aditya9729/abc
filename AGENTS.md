@@ -94,9 +94,17 @@ extra pins the observed native `ml-collections==1.1.0`; server dependencies stay
 
 R1 Lite uses Sadhana's separately installed task package and the original RTC
 entrypoint. Measured batch64 training takes about7.2seconds/update on GPU0.
-Only schema1 `train_offline_rtc.py` may use up to36000worker seconds and
-36100parent seconds. Both the job and effective CLI timeout must preserve
-100seconds for cleanup. Online/evaluation and Catcher limits remain unchanged.
+Schema1 `train_offline_rtc.py` may use up to36000worker seconds and
+36100parent seconds. Original synchronous `train_pi_robo.py` may use up to
+21600worker seconds and21700parent seconds. Extended jobs and effective CLI
+limits must preserve100seconds for cleanup. Evaluation and Catcher limits remain
+7100worker/7200parent seconds. These limits do not change learner schedules.
+
+An explicit `--exit-after-session` client can exit0 before the author finishes
+interpreter shutdown. The supervisor then waits up to10seconds, capped by the
+remaining worker deadline. It still rejects failed clients, failed authors and
+expired grace periods. Legacy client behavior remains unchanged. Preserve
+historical failed receipts; completed measurements require separate acceptance.
 The original4000-step recipe is not split through approximate resume.
 
 Schema1 author receipts honor explicit nonempty task/embodiment fields.
