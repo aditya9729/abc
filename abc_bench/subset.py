@@ -156,7 +156,11 @@ def _author_config(job: dict[str, Any]) -> dict[str, Any] | None:
 
 def _extended_author_training_config(job: dict[str, Any]) -> dict[str, Any] | None:
     """Admit finite original training runs with a program-specific watchdog."""
-    from abc_bench.author_program import TRAINING_WATCHDOG_LIMITS, load_config
+    from abc_bench.author_program import (
+        TRAINING_WATCHDOG_LIMITS,
+        load_config,
+        memory_profile_requested,
+    )
 
     maximum = job.get("max_wall_s")
     if job["module"] != "abc_bench.author_program":
@@ -178,7 +182,8 @@ def _extended_author_training_config(job: dict[str, Any]) -> dict[str, Any] | No
     extended_parent = type(maximum) in (int, float) and maximum > 7200
     timeout = value.get("timeout_s") if isinstance(value, dict) else None
     extended_worker = type(timeout) in (int, float) and timeout > 7100
-    if not extended_parent and not extended_worker:
+    managed_memory = isinstance(value, dict) and memory_profile_requested(value)
+    if not extended_parent and not extended_worker and not managed_memory:
         return None
     if not (
         len(arguments) == 2
@@ -463,7 +468,9 @@ def run_job(args: Any) -> dict[str, Any]:
         validate_job(job, args.timeout_seconds)
     training_config = _extended_author_training_config(job)
     if training_config is not None:
-        from abc_bench.author_program import TRAINING_WATCHDOG_LIMITS
+        from abc_bench.author_program import TRAINING_WATCHDOG_LIMITS, admit_host_memory
+
+        admit_host_memory(training_config)
 
         _, cleanup_seconds = TRAINING_WATCHDOG_LIMITS[training_config["program"]]
         if (

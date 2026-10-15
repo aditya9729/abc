@@ -27,6 +27,21 @@ TRAINING_WATCHDOG_LIMITS = {
     "train_offline_rtc.py": (OFFLINE_RTC_MAX_SECONDS, OFFLINE_RTC_CLEANUP_SECONDS),
     "train_pi_robo.py": (ONLINE_EXPO_MAX_SECONDS, ONLINE_EXPO_CLEANUP_SECONDS),
 }
+UNIFIED_MEMORY_PROFILE = "original_online_bfc_unified_v1"
+UNIFIED_MEMORY_ENV = {
+    "XLA_PYTHON_CLIENT_ALLOCATOR": "bfc",
+    "TF_FORCE_UNIFIED_MEMORY": "true",
+    "XLA_PYTHON_CLIENT_PREALLOCATE": "false",
+    "XLA_PYTHON_CLIENT_MEM_FRACTION": "1.5",
+    "JAX_PLATFORMS": "cuda",
+    "JAX_PLATFORM_NAME": "cuda",
+    "JAX_DEFAULT_PRNG_IMPL": "threefry2x32",
+    "JAX_THREEFRY_PARTITIONABLE": "true",
+    "JAX_THREEFRY_GPU_KERNEL_LOWERING": "false",
+    "JAX_ENABLE_X64": "false",
+}
+UNIFIED_MEMORY_START_BYTES = 160 * 2**30
+UNIFIED_MEMORY_FLOOR_BYTES = 48 * 2**30
 ENVIRONMENT_KEYS = {
     "ABC_REALTIME_CONFIG",
     "ABC_REALTIME_EXPO_CLIENT_CONFIG",
@@ -41,6 +56,70 @@ ENVIRONMENT_KEYS = {
     "OPENPI_DATA_HOME",
     "HF_HOME",
 }
+
+
+def memory_profile_requested(config: dict[str, Any]) -> bool:
+    env = config.get("environment", {})
+    return "memory_profile" in config or (
+        isinstance(env, dict)
+        and bool(set(env) & (UNIFIED_MEMORY_ENV.keys() - ENVIRONMENT_KEYS))
+    )
+
+
+def validate_memory_profile(config: dict[str, Any]) -> bool:
+    if not memory_profile_requested(config):
+        return False
+    env = config.get("environment", {})
+    if (
+        config.get("memory_profile") != UNIFIED_MEMORY_PROFILE
+        or config.get("schema_version") != 1
+        or config.get("program") != "train_pi_robo.py"
+        or not isinstance(env, dict)
+        or any(env.get(key) != value for key, value in UNIFIED_MEMORY_ENV.items())
+    ):
+        raise ValueError(
+            "Require the explicit fixed schema1 original online unified-memory profile"
+        )
+    return True
+
+
+def host_available_bytes() -> int:
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        row = line.split()
+        if row and row[0] == "MemAvailable:" and len(row) == 3 and row[2] == "kB":
+            value = int(row[1]) * 1024
+            if value > 0:
+                return value
+    raise ValueError("Cannot establish positive host MemAvailable")
+
+
+def admit_host_memory(config: dict[str, Any]) -> int | None:
+    if not validate_memory_profile(config):
+        return None
+    available = host_available_bytes()
+    if available < UNIFIED_MEMORY_START_BYTES:
+        raise RuntimeError(
+            "Unified-memory admission requires host MemAvailable >=160 GiB"
+        )
+    return available
+
+
+def unified_memory_environment(
+    config: dict[str, Any], env: dict[str, str]
+) -> dict[str, str]:
+    if not validate_memory_profile(config):
+        return env
+    # The reviewed profile must not inherit allocator, PRNG or debug overrides.
+    clean = {
+        key: value
+        for key, value in env.items()
+        if not key.startswith(
+            ("XLA_", "JAX_", "TF_GPU_", "TF_CUDA_", "TF_FORCE_UNIFIED_")
+        )
+        and key not in {"TF_FORCE_GPU_ALLOW_GROWTH", "CUDA_MANAGED_FORCE_DEVICE_ALLOC"}
+    }
+    clean.update(config["environment"])
+    return clean
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -69,10 +148,12 @@ def load_config(path: Path) -> dict[str, Any]:
     ):
         raise ValueError(f"timeout_s must be finite and within (0,{maximum}]")
     _arguments(config.get("arguments"))
+    unified_memory = validate_memory_profile(config)
     env = config.get("environment", {})
     if (
         not isinstance(env, dict)
-        or set(env) - ENVIRONMENT_KEYS
+        or set(env)
+        - (ENVIRONMENT_KEYS | (UNIFIED_MEMORY_ENV.keys() if unified_memory else set()))
         or any(not isinstance(v, str) for v in env.values())
     ):
         raise ValueError(
@@ -313,6 +394,7 @@ def _stop(process: subprocess.Popen | None, *, graceful: bool = False) -> str:
 def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     """Own process lifetime only; author programs own all model and data operations."""
     require_subset_lease()
+    host_admitted = admit_host_memory(config)
     if config["schema_version"] == 2:
         validate_catcher_profile(config)
         role_environments(config, dict(os.environ))
@@ -340,6 +422,7 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     # No PYTHONPATH injection, runpy wrapper, or substituted update function.
     env.pop("PYTHONPATH", None)
     env.pop("WANDB_DISABLED", None)
+    env = unified_memory_environment(config, env)
     server_env, client_env = role_environments(config, env)
     command = [
         config["python"],
@@ -358,6 +441,16 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         "claim_scope": "Original program execution with declared task IO integration; no task-success or paper-reproduction claim",
         "metrics": {},
     }
+    if host_admitted is not None:
+        result["memory_profile"] = UNIFIED_MEMORY_PROFILE
+        result["memory_environment"] = {
+            key: server_env[key] for key in UNIFIED_MEMORY_ENV
+        }
+        result["host_memory"] = {
+            "admitted_available_bytes": host_admitted,
+            "minimum_available_bytes": host_admitted,
+            "floor_bytes": UNIFIED_MEMORY_FLOOR_BYTES,
+        }
     if config["schema_version"] == 2:
         result.update(
             task_profile=CATCHER_GPU_PROFILE,
@@ -391,12 +484,15 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
     old_handler = signal.signal(signal.SIGTERM, cancelled)
     started = time.monotonic()
     server = client = None
+    memory_failure = False
     try:
         publish()
         with (
             (output / "author.log").open("w") as server_log,
             (output / "client.log").open("w") as client_log,
         ):
+            if host_admitted is not None:
+                admit_host_memory(config)
             server = subprocess.Popen(
                 command,
                 cwd=source,
@@ -426,6 +522,20 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
                 result.update(client_pid=client.pid, client_command=client_command)
             publish()
             while server.poll() is None:
+                if host_admitted is not None:
+                    try:
+                        available = host_available_bytes()
+                    except (OSError, ValueError):
+                        memory_failure = True
+                        raise
+                    result["host_memory"]["minimum_available_bytes"] = min(
+                        result["host_memory"]["minimum_available_bytes"], available
+                    )
+                    if available < UNIFIED_MEMORY_FLOOR_BYTES:
+                        memory_failure = True
+                        raise RuntimeError(
+                            "Unified-memory host MemAvailable fell below48 GiB"
+                        )
                 if client is not None and client.poll() is not None:
                     if (
                         client.returncode != 0
@@ -473,7 +583,14 @@ def run(config: dict[str, Any], output: Path) -> dict[str, Any]:
         signal.signal(signal.SIGTERM, signal.SIG_IGN)
         try:
             cleanup_errors = []
-            for name, process in (("client", client), ("author", server)):
+            # Stop allocations before waiting for the native client's graceful
+            # shutdown only when the host-memory monitor failed or hit its floor.
+            cleanup = (("client", client), ("author", server))
+            if memory_failure:
+                cleanup = (("author", server), ("client", client))
+                result["host_memory"]["monitor_failed"] = True
+                result["cleanup_order"] = ["author", "client"]
+            for name, process in cleanup:
                 try:
                     result[f"{name}_shutdown"] = _stop(
                         process, graceful=name == "client"
