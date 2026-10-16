@@ -2,8 +2,8 @@
 
 This mode captures an original EXPO proposal bank at **TRAIN21000 after control128**.
 It performs no updates or native controls. The original bank capture is now complete;
-the later candidate0 branch timed out without recovery. The other three selected
-branches remain unrun.
+all four later branches (candidates 0, 39, 25 and 14) timed out without recovery.
+They are one-window interventions followed by a common fresh frozen base controller.
 
 The accepted capture contains the exact reset/replayed commands,129 raw RGB frames,
 full simulator states and public observations. At128 the historical judge is false;
@@ -64,10 +64,10 @@ The choices are base0, full winner, no-edit winner and one uniform64 draw from a
 It does not erase labels or claim distinct post-clipping actions. No policy RNG is consumed
 by this diagnostic choice.
 
-## Planned physical comparison — outside this caller
+## Physical comparison — outside this caller
 
-Root's separate public task wrapper will replay128, send one selected8-command window,
-then return O136 to a **fresh** original base-bypass controller, independently seeded42.
+Root's separate public task wrapper replays128, sends one selected8-command window,
+then returns O136 to a **fresh** original base-bypass controller, independently seeded42.
 That controller has at most764 controls remaining. It starts with no prefix or pending
 future and delay0, then uses original H16/replan8/delay5 behavior. If a native terminal
 occurs inside the forced window, it stops there. Proposed/applied actions and clipping
@@ -88,7 +88,7 @@ The old two-input capture took489.361 seconds; the old772-control continuation t
 seconds of canonical wall time. These are cost references, not new timing guarantees.
 Four full branches would use at most3,600 physical controls including repeated prefixes,
 plus reset settling. Output proposals are capped at64MiB; each future recorded branch
-can reuse the existing250MB trace cap. Root schedules each finite lease after Atlas releases GPU0.
+can reuse the existing250MB trace cap. Root scheduled each finite lease only after strict GPU0 admission passed.
 
 ## Qualification and handoff
 
@@ -138,13 +138,24 @@ the old two-input identity experiment.
 
 Root prepared four hash-bound physical window descriptors. The installed Sadhana
 consumer accepts them. The earlier native qualification used recorded commands,
-so it does not supply outcomes for these new candidates. The later candidate0
-branch has now completed900 native controls:128 replay,8 forced and764 fresh-base
-controls. It timed out with no recorded remote finger contact. The remote position
-stayed unchanged. Native clipping affected0 forced and131 continuation controls
-(jaws only). The three other branches remain unrun after GPU0 occupancy refused
-the next admission. No optimizer update or recovery improvement occurred.
+so it does not supply outcomes for these new candidates. All four selected
+candidate branches have since completed.
 
+| Candidate | Historical outcome | Native controls | Clipped controls: forced / policy |
+| --- | --- | ---: | --- |
+| 0: base proposal | Timeout; no success | 900 | 0 / 131 |
+| 39: full-bank Q winner | Timeout; no success | 900 | 5 / 127 |
+| 25: base-only Q winner | Timeout; no success | 900 | 1 / 136 |
+| 14: seeded uniform draw | Timeout; no success | 900 | 1 / 131 |
+
+Each completed branch used 128 replay, 8 forced and 764 fresh-base controls.
+The remote position stayed unchanged across 773 saved observations per branch.
+No saved 15 Hz observation recorded remote finger contact. All measured clipping
+affected jaws. These are one-window interventions under a common frozen base
+continuation, with initialized heads and no new updates. They do not rank RL
+algorithms, test all 64 candidates, or prove that missing memory caused failure.
+
+[All-four branch acceptance](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-branches-execution-01/ROOT_ACCEPTANCE_02.json) ·
 [Measured branch report](/home/user/aditya/RL/sadhana-r1lite-rl-hillclimb/packages/r1lite-rl/docs/rl/FAILURE_CANDIDATE_BRANCHES.md) ·
 [Video viewer](http://127.0.0.1:8770/original-methods/r1lite-recovery/#failure-candidate-branches).
 
