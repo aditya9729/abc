@@ -259,6 +259,75 @@ def test_subset_admits_only_validated_worker(tmp_path, setup):
         load_job(path)
 
 
+@pytest.mark.parametrize("explicit_scope", [None, "Original WBC pose PPO CPU fixture"])
+def test_canonical_receipt_describes_original_wbc(
+    tmp_path, setup, monkeypatch, explicit_scope
+):
+    """Exercise both published receipts and the original-program boundary on CPU."""
+    import argparse
+
+    from abc_bench import runner, subset
+
+    load(setup)
+    results = tmp_path / "results"
+    results.mkdir()
+    (results / "gpu_budget.json").write_text(
+        json.dumps({"gpu": 0, "charged_seconds": 7, "limit_seconds": 500})
+    )
+    monkeypatch.setattr(runner, "RESULTS", results)
+    monkeypatch.setattr(
+        subset,
+        "inspect_reserved_gpu",
+        lambda _: {"uuid": "explicit-cpu-double", "ordinal": 0},
+    )
+    job = {
+        "schema_version": 1,
+        "label": "Original WBC pose PPO fixture",
+        "task": "task-motion-slow-train",
+        "embodiment": "r1lite",
+        "python": sys.executable,
+        "module": "abc_bench.wbc_program",
+        "arguments": ["--config", str(setup[1])],
+        "max_wall_s": 103,
+    }
+    if explicit_scope is not None:
+        job["claim_scope"] = explicit_scope
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(job))
+    published = []
+    original_publish = runner.publish
+
+    def capture_publish(receipt, output):
+        published.append(json.loads(json.dumps(receipt)))
+        original_publish(receipt, output)
+
+    def cpu_execution_double(command, log, timeout, *, gpu_uuid):
+        assert gpu_uuid == "explicit-cpu-double" and timeout == 103
+        wbc.run(wbc.load_config(Path(command[-3])), Path(command[-1]))
+        return 0
+
+    monkeypatch.setattr(runner, "publish", capture_publish)
+    monkeypatch.setattr(runner, "execute_command", cpu_execution_double)
+    result = subset.run_job(
+        argparse.Namespace(training_config=path, timeout_seconds=103)
+    )
+    assert [receipt["status"] for receipt in published] == ["running", "completed"]
+    for receipt in published:
+        assert receipt["phase"] == "original_wbc_program"
+        assert receipt["task"] == job["task"]
+        assert receipt["embodiment"] == job["embodiment"]
+        assert "ABC-VLA" not in receipt["claim_scope"]
+        assert receipt["claim_scope"] == (
+            explicit_scope
+            or "Original R1 Lite WBC process execution; native results and checkpoints require separate acceptance"
+        )
+    worker_path = results / result["run_id"] / "receipt.json"
+    assert result["worker_receipt_sha256"] == wbc.digest(worker_path)
+    assert json.loads(worker_path.read_text())["experiment_accepted"] is False
+    ledger = json.loads((results / "gpu_budget.json").read_text())
+    assert ledger["charged_seconds"] >= 7 and "active_parent_pid" not in ledger
+
+
 def test_export_evaluator_retains_author_sibling_import(setup):
     cfg = setup[0].copy()
     cfg["program"] = "exported-policy-evaluate"

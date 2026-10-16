@@ -676,7 +676,9 @@ def run_job(args: Any) -> dict[str, Any]:
             "schema_version": 1,
             "run_id": run_id,
             "algorithm": job["label"],
-            "phase": "small_subset",
+            "phase": "original_wbc_program"
+            if job["module"] == "abc_bench.wbc_program"
+            else "small_subset",
             "status": "running",
             "task": "Catcher-v3"
             if catcher_profile
@@ -711,6 +713,8 @@ def run_job(args: Any) -> dict[str, Any]:
                 if job["module"] == "abc_bench.fasttd3_program"
                 else "Original Mulligan process execution; native results and checkpoints require separate acceptance"
                 if job["module"] == "abc_bench.mulligan_program"
+                else "Original R1 Lite WBC process execution; native results and checkpoints require separate acceptance"
+                if job["module"] == "abc_bench.wbc_program"
                 else "small ABC-VLA transfer diagnostic; not full paper reproduction",
             ),
             "gpu": binding,

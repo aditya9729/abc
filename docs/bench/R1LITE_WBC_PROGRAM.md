@@ -4,6 +4,8 @@
 
 Root launches this worker through `python -m abc_bench.runner --algorithm author-subset --training-config JOB.json`. The existing canonical GPU0 lease, strict occupancy check, ledger and process-group cleanup remain authoritative. Workers cannot acquire or override a lease. Worker deadlines are at most 7,100 seconds; both the job and effective parent deadline must include a further 100 seconds. Root retains job admission and scientific acceptance.
 
+Canonical receipts use phase `original_wbc_program`. They retain the job's explicit task, embodiment, and nonempty `claim_scope`. The default scope describes original R1 Lite WBC process execution and requires separate acceptance of native results and checkpoints. Completed historical receipts stay unchanged.
+
 A schema1 worker configuration has exactly these fields:
 
 ```json
