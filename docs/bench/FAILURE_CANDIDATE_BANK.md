@@ -1,7 +1,8 @@
 # Earlier-failure candidate coverage and selection
 
 This mode captures an original EXPO proposal bank at **TRAIN21000 after control128**.
-It performs no updates or native controls. No bank or branch outcome has been produced by this preparation.
+It performs no updates or native controls. The original bank capture is now complete;
+physical branch outcomes remain pending.
 
 The accepted capture contains the exact reset/replayed commands,129 raw RGB frames,
 full simulator states and public observations. At128 the historical judge is false;
@@ -106,3 +107,39 @@ external-target venv; the unchanged cases passed with the existing copied canoni
 [Architecture](FAILURE_CANDIDATE_BANK.mmd). Root owns execution/acceptance; this agent
 prepares the inference caller; Sadhana owns the separate task wrapper; Leela owns physics.
 The text follows STE guidance without a complete compliance check.
+
+## Completed bank capture
+
+Run `author-subset-20261016T171400-2049ea` completed in337.460 canonical seconds.
+It saved32 base and32 edited candidates at the accepted O128 input. All10 exact
+parity checks, including public-call checks, passed. Eight parameter-tree digests
+and all six zero optimizer counters stayed unchanged. No training or simulator
+control occurred.
+
+| Choice | Candidate index | Source | Selected target-Q value |
+| --- | ---: | --- | ---: |
+| Base bypass | 0 | Base proposal0 | Not selected by Q |
+| Full selector | 39 | Edited version of base proposal7 | -0.243566811 |
+| Selector without edits | 25 | Base proposal25 | -0.272201389 |
+| Separate seeded uniform draw | 14 | Base proposal14 | Not selected by Q |
+
+All four physical command windows are distinct. The fresh-head Q values are
+ranking outputs, not calibrated success probabilities. Shared base windows are
+bitwise equal; their scores differ by up to0.000145853 between the two selector
+batch shapes. Keep both score arrays. The full winner proposes a negative right
+jaw value in part of its window. Preserve the native clipping and applied-action
+records when testing it; do not silently repair the proposal.
+
+The result index has38 entries:36 persisted NPY arrays and two explicit null masks.
+The parent retains the old identity supervision/cleanup label. Its worker and
+result correctly identify the new failure-bank schema. This is not a rerun of
+the old two-input identity experiment.
+
+Root prepared four hash-bound physical window descriptors. The installed Sadhana
+consumer accepts them. The earlier native qualification used recorded commands,
+so it does not supply outcomes for these new candidates. Actual branch execution
+and common continuation checks remain pending.
+
+[Bank result](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-bank-execution-01/bank/RESULT.json) ·
+[Root acceptance](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-bank-execution-01/ROOT_ACCEPTANCE.json) ·
+[Branch descriptors](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-branches-preparation-20261016/PREPARATION.json).
