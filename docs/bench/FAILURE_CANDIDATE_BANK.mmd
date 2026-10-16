@@ -3,6 +3,6 @@ flowchart TD
   SOURCE["Original RTC2000 + seed42 constructor\noriginal actor, editor and target critic"] --> BANK
   BANK["Completed original bank capture\n32 base +32 edits;10 parity checks passed\nno updates or native controls"] --> ARRAY["Saved immutable arrays\nQ, indices, RNG, proposed physical commands"]
   ARRAY --> PICK["base0 / full39 / no-edit25 / random14\nfour distinct physical windows"]
-  PICK -. "separate Sadhana wrapper; unexecuted" .-> BRANCH["Public reset +128 replay +8 forced controls\nfresh original base-bypass at136\nremaining764 controls"]
-  BRANCH -.-> OUTCOME["Historical judge + separate placement evidence\nlimited inspected coverage, no learning claim"]
+  PICK -. "separate Sadhana wrapper; candidate0 completed" .-> BRANCH["Public reset +128 replay +8 forced controls\nfresh original base-bypass at136\nremaining764 controls"]
+  BRANCH -.-> OUTCOME["Candidate0 timeout; three unrun\nHistorical judge; strict placement separate\nlimited inspected coverage, no learning claim"]
   LEASE["Existing ABC lease/watchdog\nroot schedules GPU0 after Atlas"] --> BANK

@@ -2,7 +2,8 @@
 
 This mode captures an original EXPO proposal bank at **TRAIN21000 after control128**.
 It performs no updates or native controls. The original bank capture is now complete;
-physical branch outcomes remain pending.
+the later candidate0 branch timed out without recovery. The other three selected
+branches remain unrun.
 
 The accepted capture contains the exact reset/replayed commands,129 raw RGB frames,
 full simulator states and public observations. At128 the historical judge is false;
@@ -137,8 +138,15 @@ the old two-input identity experiment.
 
 Root prepared four hash-bound physical window descriptors. The installed Sadhana
 consumer accepts them. The earlier native qualification used recorded commands,
-so it does not supply outcomes for these new candidates. Actual branch execution
-and common continuation checks remain pending.
+so it does not supply outcomes for these new candidates. The later candidate0
+branch has now completed900 native controls:128 replay,8 forced and764 fresh-base
+controls. It timed out with no recorded remote finger contact. The remote position
+stayed unchanged. Native clipping affected0 forced and131 continuation controls
+(jaws only). The three other branches remain unrun after GPU0 occupancy refused
+the next admission. No optimizer update or recovery improvement occurred.
+
+[Measured branch report](/home/user/aditya/RL/sadhana-r1lite-rl-hillclimb/packages/r1lite-rl/docs/rl/FAILURE_CANDIDATE_BRANCHES.md) ·
+[Video viewer](http://127.0.0.1:8770/original-methods/r1lite-recovery/#failure-candidate-branches).
 
 [Bank result](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-bank-execution-01/bank/RESULT.json) ·
 [Root acceptance](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-bank-execution-01/ROOT_ACCEPTANCE.json) ·
