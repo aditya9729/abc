@@ -77,10 +77,10 @@ def numeric_inventory(checkpoint_parent, expected, cutoff=9908, count=9899):
     return sorted(actual, key=lambda p: int(p.stem))
 
 
-def authenticate_data(config):
+def authenticate_data(config, *, spec=None):
     from abc_bench.realtime_update_probe import authenticate
 
-    spec = load_spec(config)
+    spec = load_spec(config) if spec is None else spec
     for name, version in spec["runtime_versions"].items():
         require(
             importlib.metadata.version(name) == version,
@@ -175,9 +175,12 @@ def isolated_measure(agent, measure, snapshot, pending, iterator):
 
 
 def update_sequence(
-    agent, processor, combine_rng, update, measure, snapshot, labels, emit
+    agent_holder, processor, combine_rng, update, measure, snapshot, labels, emit
 ):
     """Original next_batch/one-ahead/update routing, with explicit quiescent measurements."""
+    agent = (
+        agent_holder.pop()
+    )  # Transfer ownership; callers must not retain old states.
     measurements = {
         0: isolated_measure(
             agent,
@@ -216,6 +219,7 @@ def update_sequence(
                 )
                 measurements[call]["sampling"] = accounting(call, call + 1)
                 emit(f"measurement-{call:02d}.json", measurements[call])
+                del exact_pending  # The original Future retains the exact next batch.
         exact_pending = pending.result()
         internal = retained_queue(processor.replay_iterator)
         unconsumed = {
@@ -252,7 +256,7 @@ def rank_record(values, reference_index=31):
 
 
 def run(
-    agent,
+    agent_holder,
     processor,
     dataset,
     task,
@@ -261,6 +265,9 @@ def run(
     optimizer_state,
     parameters_state,
     construction_seconds,
+    *,
+    recovery=None,
+    checkpoint_writer=None,
 ):
     """No model implementation here: original builders, sampler, update and Q helpers only."""
     import jax
@@ -278,8 +285,9 @@ def run(
 
     from abc_bench import realtime_update_probe as probe
 
+    agent = agent_holder.pop()
     started = time.monotonic()
-    spec = load_spec(config)
+    spec = load_spec(config) if recovery is None else recovery.load_spec(config)
     buffer = processor.replay_buffer
     require(
         len(buffer) == 7069 and len(processor.offline_replay_buffer) == 0,
@@ -319,6 +327,11 @@ def run(
         == buffer._data_config.use_quantile_norm,
         "Actor/replay normalization mode differs",
     )
+
+    recovery_data = None
+    if recovery is not None:
+        recovery_data = recovery.prepare_replay(agent, processor, config, spec)
+        probe.write_json(output / "recovery-data.json", recovery_data)
 
     arrays = []
 
@@ -689,8 +702,10 @@ def run(
             "returned_metrics_last_critic_minibatch_only": metrics,
         }
 
+    agent_holder.append(agent)
+    del agent
     agent, measurements, consumed, unconsumed = update_sequence(
-        agent,
+        agent_holder,
         processor,
         jax.random.PRNGKey(142),
         update,
@@ -708,8 +723,17 @@ def run(
             "Final optimizer counters differ",
         )
     final_parameters = parameters_state(agent)
+    checkpoint = (
+        None
+        if checkpoint_writer is None
+        else checkpoint_writer(agent, config, output)
+    )
     immutability_started = time.monotonic()
-    authenticated = authenticate_data(config)
+    authenticated = (
+        authenticate_data(config)
+        if recovery is None
+        else recovery.authenticate_data(config)
+    )
     probe.authenticate_inputs(config)
     result = {
         "status": STATUS,
@@ -748,5 +772,14 @@ def run(
             "Timing includes compilation and measurements; no automatic extension.",
         ],
     }
+    if recovery is not None:
+        result.update(
+            status=recovery.STATUS,
+            phase=recovery.PHASE,
+            recovery_data=recovery_data,
+            recovery_inputs_after=authenticated["recovery_inputs"],
+        )
+    if checkpoint is not None:
+        result["checkpoint"] = checkpoint
     probe.write_json(output / "update.json", result)
     return result

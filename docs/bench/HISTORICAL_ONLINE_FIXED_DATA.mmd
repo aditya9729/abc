@@ -1,0 +1,26 @@
+flowchart LR
+    subgraph Inputs[Versioned TRAIN artifacts]
+        D[7069 demo rows and 9899 timeout rows]
+        E[349 autonomous controls and 350 boundaries\nHistorical success; strict footprint fails]
+    end
+    subgraph Harness[ABC diagnostic caller]
+        L[Causal loader\nApplied commands; non-HIL labels]
+        C{Fixed A/B condition}
+        U[Ownership-safe ten-call schedule\nOriginal update and prefetch routing]
+    end
+    subgraph Author[Original EXPO and OpenPI interfaces]
+        R[Original replay restore]
+        I[Original normalization and online insertion]
+        M[RealTimeEXPOFTLearner]
+        K[Full agent and params save\nStep 10; wait; close]
+        V[Original separate-process frozen evaluator\nMatched DEV starts; result pending]
+    end
+    D --> R --> C
+    E --> L --> I
+    C -->|A: restored replay| U
+    C -->|B: append episode| I --> U
+    U -->|Ten calls| M --> K
+    K -. Restore verification and task evaluation required .-> V
+    Root[Root: install, GPU 0 lease, watchdog and acceptance] -. Control .-> U
+    Root -. Control .-> V
+    S[Separate strict-teacher adapter\nUnchanged; no complete correction admitted]

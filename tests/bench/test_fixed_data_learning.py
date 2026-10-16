@@ -3,6 +3,7 @@
 import json
 import subprocess
 import sys
+import weakref
 from collections import deque
 from pathlib import Path
 
@@ -133,7 +134,7 @@ def test_actual_orchestration_retains_pending_and_quiesces_measurement():
         return agent + 1, {"completed": call}
 
     result = fixed.update_sequence(
-        0,
+        [0],
         processor,
         142,
         update,
@@ -159,6 +160,105 @@ def test_measurement_rng_mutation_is_refused():
 
     with pytest.raises(ValueError, match="Measurement changed"):
         fixed.isolated_measure(0, bad_measure, lambda *_: state["rng"], None, None)
+
+
+def test_consumed_states_and_batches_are_released_without_losing_prefetch():
+    class Tracked:
+        def __init__(self, kind, number):
+            self.kind = kind
+            self.number = number
+
+    class WeakProcessor:
+        """Retain only the original queue; diagnostic records use weak references."""
+
+        def __init__(self):
+            self.generated = {"critic": 0, "actor": 0}
+            self.references = {"critic": {}, "actor": {}}
+            self.returned = []
+            self.replay_iterator = self.iterator()
+
+        def make(self, kind):
+            self.generated[kind] += 1
+            number = self.generated[kind]
+            batch = Tracked(kind, number)
+            self.references[kind][number] = weakref.ref(batch)
+            return batch
+
+        def iterator(self):
+            queue = deque()
+            for _ in range(3):
+                queue.append(self.make("critic"))
+            while queue:
+                yield queue.popleft()
+                queue.append(self.make("critic"))
+
+        def next_batch(self, rng):
+            critic = next(self.replay_iterator)
+            actor = self.make("actor")
+            self.returned.append((weakref.ref(critic), weakref.ref(actor), rng + 1))
+            return critic, actor, rng + 1
+
+    holder = [Tracked("agent", 0)]
+    initial = weakref.ref(holder[0])
+    processor = WeakProcessor()
+    updates, measurements, emitted = [], [], {}
+
+    def snapshot(agent, combine, pending):
+        return (
+            agent.number,
+            tuple(processor.generated.items()),
+            combine,
+            None if pending is None else pending[2],
+        )
+
+    def measure(agent, call):
+        assert not holder
+        if call:
+            # The exact pending result remains live through its original Future.
+            assert processor.returned[call][0]() is not None
+            assert processor.returned[call][1]() is not None
+            queued = fixed.retained_queue(processor.replay_iterator)
+            assert [batch.number for batch in queued] == [call + 2, call + 3]
+            assert processor.references["critic"][call + 2]() is queued[0]
+            assert processor.references["critic"][call + 3]() is queued[1]
+        measurements.append(call)
+        return {"call": call, "agent_number": agent.number}
+
+    def update(agent, critic, actor, call):
+        assert agent.number == call - 1
+        assert critic is processor.returned[call - 1][0]()
+        assert actor is processor.returned[call - 1][1]()
+        if call >= 2:
+            assert initial() is None
+        if call >= 3:
+            # Measurement 1 must not retain the batch consumed by update 2.
+            assert processor.returned[1][0]() is None
+            assert processor.returned[1][1]() is None
+        updates.append((critic.number, actor.number))
+        return Tracked("agent", call), {"completed": call}
+
+    result = fixed.update_sequence(
+        holder,
+        processor,
+        142,
+        update,
+        measure,
+        snapshot,
+        lambda batch, rows: {
+            "kind": batch.kind,
+            "number": batch.number,
+            "rows": rows,
+        },
+        emitted.__setitem__,
+    )
+    assert not holder and initial() is None
+    assert result[0].number == 10
+    assert updates == [(i, i) for i in range(1, 11)]
+    assert measurements == [0, 1, 10]
+    assert processor.generated == {"critic": 13, "actor": 11}
+    assert result[3]["returned_critic"]["number"] == 11
+    assert [batch["number"] for batch in result[3]["internal_critics"]] == [12, 13]
+    assert len(result[2]) == 10 and len(emitted) == 13
 
 
 def test_measurement_pending_queue_replacement_is_refused():
@@ -239,7 +339,7 @@ def test_failed_measurement_stops_before_any_later_update():
 
     with pytest.raises(ValueError, match="failed measurement"):
         fixed.update_sequence(
-            0,
+            [0],
             processor,
             142,
             update,

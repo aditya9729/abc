@@ -91,6 +91,23 @@ def host_available(path: Path = Path("/proc/meminfo")) -> int:
     return values[0]
 
 
+def fixed_phase_module(config):
+    """Closed dispatch; no phase or module name can execute arbitrary code."""
+    if config.get("phase") == "fixed_data_10":
+        from abc_bench import fixed_data_learning
+
+        return fixed_data_learning
+    if config.get("phase") == "recovery_fixed_data_10":
+        from abc_bench import recovery_fixed_data_learning
+
+        return recovery_fixed_data_learning
+    if config.get("phase") == "historical_online_fixed_data_10":
+        from abc_bench import historical_fixed_data_learning
+
+        return historical_fixed_data_learning
+    raise ValueError("Unknown fixed-data phase")
+
+
 def load_config(path: Path) -> dict[str, Any]:
     if not path.is_absolute():
         raise ValueError("Probe config must be absolute")
@@ -112,9 +129,7 @@ def load_config(path: Path) -> dict[str, Any]:
     if set(config) not in (required_fields, required_fields | {"phase", "fixed_data"}):
         raise ValueError("Unexpected capacity-probe fields")
     if "phase" in config:
-        from abc_bench.fixed_data_learning import load_spec
-
-        load_spec(config)
+        fixed_phase_module(config).load_spec(config)
     exact = {
         "schema": SCHEMA,
         "memory_environment": MEMORY_ENV,
@@ -202,9 +217,7 @@ def authenticate_inputs(config: dict[str, Any]) -> dict[str, Any]:
     for pin in accepted["weight_loader_files_after"]:
         authenticate(pin)
     if "phase" in config:
-        from abc_bench.fixed_data_learning import authenticate_data
-
-        authenticate_data(config)
+        fixed_phase_module(config).authenticate_data(config)
     return {
         "source_files": len(manifest["files"]),
         "runtime_files": len(runtime["files"]),
@@ -331,9 +344,7 @@ def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
         raise ValueError("Require the original full real-time learner")
     fixed_spec = None
     if "phase" in config:
-        from abc_bench.fixed_data_learning import load_spec
-
-        fixed_spec = load_spec(config)
+        fixed_spec = fixed_phase_module(config).load_spec(config)
     task = (
         task_module.make_task_config(fixed_spec["settings"]["path"])
         if fixed_spec
@@ -436,15 +447,13 @@ def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
             raise ValueError("Expected nonempty parameter state")
         return {"finite_leaves": leaves, "finite_bytes": checked_bytes}
 
-    def parameters_state(state=None) -> dict[str, Any]:
-        state = agent if state is None else state
+    def parameters_state(state) -> dict[str, Any]:
         result = {name: finite_tree(getattr(state, name).params) for name in COUNTERS}
         result["target_critic"] = finite_tree(state.target_critic.params)
         result["target_actor_params"] = finite_tree(state.target_actor_params)
         return result
 
-    def optimizer_state(state=None) -> dict[str, Any]:
-        state = agent if state is None else state
+    def optimizer_state(state) -> dict[str, Any]:
         result = {}
         for name in COUNTERS:
             branch = getattr(state, name)
@@ -472,25 +481,27 @@ def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
             }
         return result
 
-    before = optimizer_state()
+    before = optimizer_state(agent)
     if any(
         v["step"] != 0 or not v["counts"] or any(v["counts"].values())
         for v in before.values()
     ):
         raise ValueError("Diagnostic requires fresh optimizer states")
-    before_parameters = parameters_state()
+    before_parameters = parameters_state(agent)
     write_json(
         output / "before.json", {"optimizers": before, "parameters": before_parameters}
     )
     if fixed_spec:
-        fixed = checked_import("abc_bench.fixed_data_learning", config)
+        fixed = checked_import(fixed_phase_module(config).MODULE, config)
         for name in (
             "sadhana_terminal_critic.contracts",
             "expo_ft.agents.alg.batch_utils",
         ):
             checked_import(name, config)
+        agent_holder = [agent]
+        del agent, actor_state, target_actor
         return fixed.run(
-            agent,
+            agent_holder,
             processor,
             dataset,
             task,
@@ -517,8 +528,8 @@ def run_update(config: dict[str, Any], output: Path) -> dict[str, Any]:
         agent, info = agent.update(agent, batch, 20, actor_batch)
         jax.block_until_ready((agent, info))
         elapsed = time.monotonic() - start
-        after = optimizer_state()
-        after_parameters = parameters_state()
+        after = optimizer_state(agent)
+        after_parameters = parameters_state(agent)
         metrics = {
             key: float(np.asarray(jax.device_get(value))) for key, value in info.items()
         }
@@ -643,9 +654,8 @@ def main() -> None:
         detail = json.loads((detail_output / "update.json").read_text())
         expected_status, expected_calls = "one_original_update_completed", 1
         if "phase" in config:
-            from abc_bench.fixed_data_learning import CALLS, STATUS
-
-            expected_status, expected_calls = STATUS, CALLS
+            fixed = fixed_phase_module(config)
+            expected_status, expected_calls = fixed.STATUS, fixed.CALLS
         if (
             detail["status"] != expected_status
             or detail["update_calls"] != expected_calls
