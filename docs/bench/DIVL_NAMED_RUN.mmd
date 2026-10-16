@@ -1,0 +1,9 @@
+flowchart LR
+  Identity["Fresh canonical run identity"] --> Builder
+  Recipe["Sealed DIVL recipe and accepted IDQL parent"] --> Builder
+  Builder["Benchmark command builder: append run name\nInstalled CPU qualification passed"] --> Command["Original trainer command\nOffline logging; unchanged learner and schedule"]
+  Command -. "Future full run" .-> Final["Fixed final model at 150,000 updates"]
+  Command -. "Original 5,000-update save cadence" .-> Rolling["Optimizer, RNG and sampler rolling state"]
+  Final -.-> Inspect["CPU model inspection and root acceptance"]
+  Rolling -.-> Inspect
+  Defaults["IDQL and short qualification commands"] --> Unchanged["Existing naming behavior preserved"]

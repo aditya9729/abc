@@ -347,6 +347,14 @@ def command_for(
             require(parent is not None, "DIVL parent remains unresolved")
             arg = "--pretrained_artifact=" + str(parent)
         arguments.append(arg)
+    if config.get("mode") == MODE and config["stage"] == "divl":
+        # The canonical output identity is fresh. The author's rolling-save gate
+        # needs a name even with WANDB_MODE=offline; this changes no learner option.
+        require(
+            not any(arg.startswith("--wandb.run_name=") for arg in arguments),
+            "Full DIVL recipe must not override its canonical run name",
+        )
+        arguments.append(f"--wandb.run_name=r1-divl-{output.parent.name}")
     return [
         config["python"],
         "-I",

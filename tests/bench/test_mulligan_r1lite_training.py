@@ -194,6 +194,7 @@ def test_sealed_recipes_only_and_canonical_dispatch(tmp_path, config, stage):
     expected["--system.checkpoint_dir"] = str(tmp_path / "training/checkpoints")
     if parent:
         expected["--pretrained_artifact"] = str(parent)
+        expected["--wandb.run_name"] = f"r1-divl-{tmp_path.name}"
     assert actual == expected
     assert actual["--training.training_steps"] == "150000"
     assert "abc_bench.mulligan_r1lite_training" not in subset.ALLOWED_MODULES
