@@ -40,6 +40,7 @@ ALLOWED_MODULES = {
     "expo_abc_adapter.stage",
     "sadhana_fasttd3_hb.stage",
     "sadhana_r1lite.fasttd3",
+    "sadhana_r1lite.vam_forward_probe",
     "nrh.qf3_training",
 }
 
@@ -286,6 +287,12 @@ def load_job(path: Path) -> dict[str, Any]:
     for name in ("task", "embodiment"):
         if name in job and (not isinstance(job[name], str) or not job[name].strip()):
             raise ValueError(f"{name} must be a nonempty description")
+    if job["module"] == "sadhana_r1lite.vam_forward_probe" and not all(
+        name in job for name in ("claim_scope", "task", "embodiment")
+    ):
+        raise ValueError(
+            "VaM forward qualification requires explicit scope, task and embodiment"
+        )
     maximum = job.get("max_wall_s")
     maximum_allowed = (
         12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
@@ -678,6 +685,8 @@ def run_job(args: Any) -> dict[str, Any]:
             "algorithm": job["label"],
             "phase": "original_wbc_program"
             if job["module"] == "abc_bench.wbc_program"
+            else "original_vam_forward_qualification"
+            if job["module"] == "sadhana_r1lite.vam_forward_probe"
             else "small_subset",
             "status": "running",
             "task": "Catcher-v3"
@@ -788,6 +797,7 @@ def run_job(args: Any) -> dict[str, Any]:
                 "abc_bench.author_program",
                 "abc_bench.realtime_update_probe",
                 "abc_bench.wbc_program",
+                "sadhana_r1lite.vam_forward_probe",
             }
             and not catcher_profile
         ):

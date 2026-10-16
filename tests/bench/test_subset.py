@@ -101,6 +101,13 @@ def test_worker_requires_a_held_ancestor_lease(tmp_path, monkeypatch):
             False,
             True,
         ),
+        (
+            "sadhana_r1lite.vam_forward_probe",
+            "one_recorded_wbc_batch",
+            "r1lite",
+            False,
+            True,
+        ),
     ],
 )
 def test_author_stage_keeps_output_contract_and_truthful_task(
@@ -132,7 +139,7 @@ def test_author_stage_keeps_output_contract_and_truthful_task(
     }
     if not explicit_scope:
         del job["claim_scope"]
-    if module == "abc_bench.author_program":
+    if module in {"abc_bench.author_program", "sadhana_r1lite.vam_forward_probe"}:
         job.update(task=task, embodiment=embodiment)
     path = tmp_path / "job.json"
     path.write_text(json.dumps(job))
@@ -166,7 +173,29 @@ def test_author_stage_keeps_output_contract_and_truthful_task(
             in result["claim_scope"]
         )
     assert result["task"] == task and result["embodiment"] == embodiment
+    if module == "sadhana_r1lite.vam_forward_probe":
+        assert result["phase"] == "original_vam_forward_qualification"
     assert result["metrics"] == {"actual_steps": 2}
     ledger = json.loads((tmp_path / "gpu_budget.json").read_text())
     assert ledger["charged_seconds"] >= 17
     assert "active_parent_pid" not in ledger
+
+
+@pytest.mark.parametrize("missing", ["claim_scope", "task", "embodiment"])
+def test_vam_probe_rejects_missing_scope_before_gpu_admission(tmp_path, missing):
+    job = {
+        "schema_version": 1,
+        "label": "Original VaM numerical forward qualification",
+        "python": sys.executable,
+        "module": "sadhana_r1lite.vam_forward_probe",
+        "arguments": [],
+        "max_wall_s": 120,
+        "claim_scope": "Initialization and loss only; no training or task score",
+        "task": "one_recorded_wbc_batch",
+        "embodiment": "r1lite",
+    }
+    del job[missing]
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(job))
+    with pytest.raises(ValueError, match="explicit scope"):
+        load_job(path)
