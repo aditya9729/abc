@@ -1,6 +1,7 @@
 """Explicit CPU fixtures for original-program supervision; no simulator or GPU."""
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -94,6 +95,170 @@ def test_canonical_child_and_summary(tmp_path, setup):
     assert result["descendant_cleanup_owner"] == "canonical runner"
     assert not Path(f"/proc/{result['author_pid']}").exists()
     assert wbc.verify_inputs(setup[0])["files"] == 5
+
+
+@pytest.fixture
+def cache_seed(tmp_path, setup):
+    source = tmp_path / "completed/cache/warp_cache_path"
+    module = source / "1.18.0/wp_explicit_fixture"
+    module.mkdir(parents=True)
+    binary = module / "fixture.sm80.cubin"
+    binary.write_bytes(b"Explicit CPU cache fixture; never a native CUDA binary")
+    metadata = module / "fixture.meta"
+    metadata.write_text('{"explicit_cpu_fixture":true}')
+    receipt = source.parents[1] / "receipt.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "schema": "original_r1lite_wbc_program/1",
+                "status": "completed",
+                "program": "pose-ppo",
+                "author_exit_code": 0,
+                "direct_child_stopped": True,
+                "configuration": setup[0].copy(),
+            }
+        )
+    )
+    canonical = tmp_path / "runs/completed.json"
+    canonical.parent.mkdir()
+    canonical.write_text(
+        json.dumps(
+            {
+                "status": "completed",
+                "worker_exit_code": 0,
+                "worker_receipt_sha256": wbc.digest(receipt),
+            }
+        )
+    )
+    setup[0]["warp_cache_seed"] = str(source)
+    manifest = Path(setup[0]["input_manifest"])
+    data = json.loads(manifest.read_text())
+    data["files"].extend(
+        {"path": str(p), "sha256": wbc.digest(p)}
+        for p in (receipt, canonical, binary, metadata)
+    )
+    manifest.write_text(json.dumps(data))
+    return source, binary, receipt
+
+
+def test_seeded_worker_uses_private_copy(tmp_path, setup, cache_seed):
+    source, binary, _ = cache_seed
+    before = binary.read_bytes()
+    result = wbc.run(load(setup), tmp_path / "out")
+    copied = result["warp_cache_seed"]
+    assert result["status"] == "completed" and copied["files_copied"] == 2
+    assert copied["bytes_copied"] == sum(
+        p.stat().st_size for p in source.rglob("*") if p.is_file()
+    )
+    assert copied["shared_writable_cache"] is False
+    target = Path(copied["destination"]) / binary.relative_to(source)
+    assert target.read_bytes() == before
+    assert target.stat().st_ino != binary.stat().st_ino
+    target.write_bytes(b"Private cache may be updated by Warp")
+    assert binary.read_bytes() == before
+    assert wbc.verify_inputs(setup[0])["files"] == 9
+
+
+@pytest.mark.parametrize("kind", ["file_symlink", "directory_symlink", "fifo"])
+def test_seed_rejects_nonregular_tree(tmp_path, setup, cache_seed, kind):
+    source, binary, _ = cache_seed
+    extra = source / "invalid"
+    if kind == "fifo":
+        os.mkfifo(extra)
+    else:
+        extra.symlink_to(binary if kind == "file_symlink" else binary.parent)
+    with pytest.raises(ValueError, match="regular files"):
+        load(setup)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"status": "running"},
+        {"author_exit_code": 1},
+        {"direct_child_stopped": False},
+        {"configuration": {}},
+    ],
+)
+def test_seed_requires_successful_same_runtime(setup, cache_seed, change):
+    receipt = cache_seed[2]
+    receipt.write_text(json.dumps({**json.loads(receipt.read_text()), **change}))
+    canonical = receipt.parent.parent / "runs/completed.json"
+    data = json.loads(canonical.read_text())
+    data["worker_receipt_sha256"] = wbc.digest(receipt)
+    canonical.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="successful unchanged"):
+        load(setup)
+
+
+@pytest.mark.parametrize(
+    "change", [{"status": "running"}, {"worker_receipt_sha256": "wrong"}]
+)
+def test_seed_requires_completed_canonical_producer(setup, cache_seed, change):
+    canonical = cache_seed[2].parent.parent / "runs/completed.json"
+    canonical.write_text(json.dumps({**json.loads(canonical.read_text()), **change}))
+    with pytest.raises(ValueError, match="matching completed canonical"):
+        load(setup)
+
+
+def test_seed_requires_every_input_pin(tmp_path, setup, cache_seed):
+    cfg = load(setup)
+    manifest = Path(cfg["input_manifest"])
+    data = json.loads(manifest.read_text())
+    data["files"].pop()
+    manifest.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match="omits"):
+        wbc.run(cfg, tmp_path / "out")
+    assert not (tmp_path / "out").exists()
+
+
+def test_changed_seed_refuses_and_copy_checks_its_bytes(tmp_path, setup, cache_seed):
+    cfg = load(setup)
+    cache_seed[1].write_bytes(b"changed fixture")
+    with pytest.raises(ValueError, match="Changed pinned"):
+        wbc.run(cfg, tmp_path / "out")
+    destination = tmp_path / "copy"
+    destination.mkdir()
+    with pytest.raises(ValueError, match="differs from pinned"):
+        wbc.copy_cache_seed(cfg, destination, destination, wbc.time.monotonic())
+
+
+@pytest.mark.parametrize("limit", ["disk", "output"])
+def test_seed_capacity_failure_never_launches_child(
+    tmp_path, setup, cache_seed, monkeypatch, limit
+):
+    cfg = load(setup)
+    monkeypatch.setattr(
+        wbc,
+        "storage_check",
+        lambda _: {
+            "free_bytes": (20 if limit == "disk" else 100) * wbc.GIB,
+            "output_bytes": 5 * wbc.GIB if limit == "output" else 0,
+        },
+    )
+    # Input verification uses git subprocesses. Reject only an attempted author.
+    original = wbc.subprocess.Popen
+
+    def refuse_author(command, *args, **kwargs):
+        assert command[0] == "git", "Cache refusal must precede author creation"
+        return original(command, *args, **kwargs)
+
+    monkeypatch.setattr(wbc.subprocess, "Popen", refuse_author)
+    with pytest.raises(RuntimeError, match="disk/output limits"):
+        wbc.run(cfg, tmp_path / "out")
+    receipt = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert receipt["status"] == "failed" and receipt["direct_child_stopped"]
+    assert "author_pid" not in receipt
+
+
+def test_seed_copy_respects_deadline_and_fresh_destination(tmp_path, setup, cache_seed):
+    cfg = load(setup)
+    destination = tmp_path / "copy"
+    destination.mkdir()
+    with pytest.raises(subprocess.TimeoutExpired):
+        wbc.copy_cache_seed(cfg, destination, destination, wbc.time.monotonic() - 10)
+    with pytest.raises(FileExistsError, match="new and empty"):
+        wbc.copy_cache_seed(cfg, destination, destination, wbc.time.monotonic())
 
 
 @pytest.mark.parametrize(

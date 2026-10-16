@@ -6,7 +6,7 @@ Root launches this worker through `python -m abc_bench.runner --algorithm author
 
 Canonical receipts use phase `original_wbc_program`. They retain the job's explicit task, embodiment, and nonempty `claim_scope`. The default scope describes original R1 Lite WBC process execution and requires separate acceptance of native results and checkpoints. Completed historical receipts stay unchanged.
 
-A schema1 worker configuration has exactly these fields:
+A schema1 worker configuration requires these fields:
 
 ```json
 {
@@ -25,6 +25,8 @@ A schema1 worker configuration has exactly these fields:
 Paths above are examples; nonexistent inputs refuse admission. `INPUTS.json` has `files`, a list of unique absolute `path` and `sha256` pairs. Pin every original and installed `src/**/*.py`, the interpreter, selected script, and all direct input files. Input directories are checked recursively. Root must also pin external mesh files and the teacher manifest's referenced source and episode files. The original dataset loaders enforce their own provenance checks. The worker authenticates pins before and after execution and requires a clean original checkout. The current runtime retains Torch2.11.0+cu128; the original lock selected Torch2.14.1. It is a tested dependency variant, not a lock reproduction.
 
 Supported programs are `feedback-fit`, `feedback-evaluate`, `pose-ppo`, and `exported-policy-evaluate`. The two training programs require `--device cuda:0`; the evaluators require `--device cpu`. Each uses only its declared original arguments. `--output {output}` becomes the new `author-output` directory inside the canonical result. The original program creates that directory. No shell or arbitrary module is accepted. The exported-policy script retains its normal script directory for its original sibling import; other programs use isolated Python mode.
+
+PPO jobs may also set `warp_cache_seed` to a completed PPO run's absolute `cache/warp_cache_path` directory. Omit this field for an empty cache. The seed needs matching successful canonical and worker receipts with a stopped child, the same original interpreter and source commit, and only regular files and directories. Pin both receipts and every seed file in `INPUTS.json`. The worker reads the seed without changing its contents or permissions. It copies bytes into the new job's private cache; it creates no shared writable cache or hard links. Copying uses the worker deadline and the same disk/output limits. The receipt records the copied file and byte counts. Warp still checks its cache version, module hashes, and target architecture. Cache reuse does not change training parameters or establish a training result.
 
 The worker checks 20GiB minimum free space and a 5GiB combined result/cache ceiling before launch, every 0.2 seconds, and after completion. This is a sampled guard, not an atomic quota. A violation cancels the direct child; the canonical parent reaps the whole process group. Caches remain inside the run. Failed exits, timeouts, input mutation and summary mismatches remain failed receipts. A completed receipt means the original process and expected update accounting completed; it does not assert a control or task improvement.
 

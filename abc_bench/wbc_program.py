@@ -9,6 +9,7 @@ import math
 import os
 import shutil
 import signal
+import stat
 import subprocess
 import time
 from pathlib import Path
@@ -95,11 +96,12 @@ def load_config(path):
         "expected_summary",
     }
     if (
-        set(cfg) != required
+        not required.issubset(cfg)
+        or set(cfg) - required - {"warp_cache_seed"}
         or type(cfg["schema_version"]) is not int
         or cfg["schema_version"] != 1
     ):
-        raise ValueError("Require the exact WBC schema1 fields")
+        raise ValueError("Require WBC schema1 fields and only optional warp_cache_seed")
     if (
         cfg["python"] != str(AUTHOR_PYTHON)
         or cfg["source_root"] != str(AUTHOR_ROOT)
@@ -146,6 +148,7 @@ def load_config(path):
         )
     ):
         raise ValueError("Require explicit scalar expected summary fields")
+    cache_seed_info(cfg)
     return cfg
 
 
@@ -197,6 +200,9 @@ def verify_inputs(cfg):
         required.update(
             x for x in p.rglob("*") if x.is_file()
         ) if p.is_dir() else required.add(p)
+    seed = cache_seed_info(cfg)
+    if seed is not None:
+        required.update([seed["receipt"], seed["canonical_receipt"], *seed["files"]])
     if not required.issubset(map(Path, pins)):
         raise ValueError("Manifest omits source/runtime or direct input dependencies")
     return {"manifest_sha256": digest(manifest), "files": len(rows)}
@@ -208,6 +214,115 @@ def storage_check(root):
     if free < 20 * GIB or size > 5 * GIB:
         raise RuntimeError("WBC disk floor20GiB or output ceiling5GiB reached")
     return {"free_bytes": free, "output_bytes": size}
+
+
+def cache_seed_info(cfg):
+    value = cfg.get("warp_cache_seed")
+    if value is None:
+        return None
+    if not isinstance(value, str) or cfg["program"] != "pose-ppo":
+        raise ValueError("Warp seed requires an absolute completed PPO cache path")
+    source = Path(value)
+    if (
+        not source.is_absolute()
+        or source != source.resolve()
+        or not source.is_dir()
+        or source.name != "warp_cache_path"
+        or source.parent.name != "cache"
+    ):
+        raise ValueError("Warp seed must be a completed run/cache/warp_cache_path")
+    receipt_path = source.parents[1] / "receipt.json"
+    receipt = json.loads(receipt_path.read_text())
+    run = receipt_path.parent
+    canonical_path = run.parent / "runs" / f"{run.name}.json"
+    canonical = json.loads(canonical_path.read_text())
+    if (
+        canonical.get("status") != "completed"
+        or canonical.get("worker_exit_code") != 0
+        or canonical.get("worker_receipt_sha256") != digest(receipt_path)
+    ):
+        raise ValueError("Warp seed requires matching completed canonical receipt")
+    if (
+        receipt.get("schema") != "original_r1lite_wbc_program/1"
+        or receipt.get("status") != "completed"
+        or receipt.get("program") != "pose-ppo"
+        or receipt.get("author_exit_code") != 0
+        or receipt.get("direct_child_stopped") is not True
+        or any(
+            receipt.get("configuration", {}).get(key) != cfg[key]
+            for key in ("python", "source_root", "source_commit")
+        )
+    ):
+        raise ValueError("Warp seed requires successful unchanged original PPO runtime")
+    files, size = [], 0
+    for path in [source, *sorted(source.rglob("*"))]:
+        info = path.lstat()
+        if not (stat.S_ISREG(info.st_mode) or stat.S_ISDIR(info.st_mode)):
+            raise ValueError(
+                "Warp seed tree must contain only regular files/directories"
+            )
+        if stat.S_ISREG(info.st_mode):
+            files.append(path)
+            size += info.st_size
+    if not files or size > 5 * GIB:
+        raise ValueError("Warp seed must be nonempty and at most5GiB")
+    return {
+        "source": source,
+        "receipt": receipt_path,
+        "canonical_receipt": canonical_path,
+        "files": files,
+        "bytes": size,
+    }
+
+
+def copy_cache_seed(cfg, destination, output, started):
+    seed = cache_seed_info(cfg)
+    if seed is None:
+        return None
+    destination = Path(destination)
+    if any(destination.iterdir()):
+        raise FileExistsError("Warp destination cache must be new and empty")
+    usage = storage_check(output)
+    if (
+        usage["free_bytes"] - seed["bytes"] < 20 * GIB
+        or usage["output_bytes"] + seed["bytes"] > 5 * GIB
+    ):
+        raise RuntimeError("Warp seed would exceed WBC disk/output limits")
+    pins = {
+        row["path"]: row["sha256"]
+        for row in json.loads(Path(cfg["input_manifest"]).read_text())["files"]
+    }
+    copied = 0
+    for source in seed["files"]:
+        target = destination / source.relative_to(seed["source"])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        remaining = source.stat().st_size
+        with source.open("rb") as incoming, target.open("xb") as outgoing:
+            while remaining:
+                if time.monotonic() - started > cfg["timeout_s"]:
+                    raise subprocess.TimeoutExpired(
+                        "Warp cache seed copy", cfg["timeout_s"]
+                    )
+                storage_check(output)
+                chunk = incoming.read(min(1024**2, remaining))
+                if not chunk:
+                    raise ValueError("Warp seed changed during bounded copy")
+                outgoing.write(chunk)
+                remaining -= len(chunk)
+                copied += len(chunk)
+            if incoming.read(1):
+                raise ValueError("Warp seed grew during bounded copy")
+        if digest(target) != pins.get(str(source)):
+            raise ValueError("Copied Warp seed differs from pinned input")
+    storage_check(output)
+    return {
+        "source": str(seed["source"]),
+        "source_receipt_sha256": digest(seed["receipt"]),
+        "files_copied": len(seed["files"]),
+        "bytes_copied": copied,
+        "destination": str(destination),
+        "shared_writable_cache": False,
+    }
 
 
 def command(cfg, output):
@@ -282,6 +397,11 @@ def run(cfg, output):
 
     previous = signal.signal(signal.SIGTERM, cancelled)
     try:
+        if cfg.get("warp_cache_seed") is not None:
+            receipt["warp_cache_seed"] = copy_cache_seed(
+                cfg, env["WARP_CACHE_PATH"], output, started
+            )
+            write(output / "receipt.json", receipt)
         with (output / "author.log").open("w") as log:
             child = subprocess.Popen(
                 receipt["command"],
