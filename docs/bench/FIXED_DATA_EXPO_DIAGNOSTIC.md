@@ -48,27 +48,46 @@ All 228 checked Python payloads matched the built source. The numerical runtime
 retains the original dependency versions. These checks establish the caller's
 behavior and installation, not learning performance.
 
-The actual run is `author-subset-20261015T232413-c92248`.
-Its final numerical and resource acceptance is pending. Do not use partial
-measurements as a completed learning result.
+The run `author-subset-20261015T232413-c92248` completed naturally in
+1,596.806 seconds (26.6 minutes). The ten update calls took 1,171.538 seconds,
+including compilation. Root verified the recorded results, unchanged inputs,
+process exit and GPU release. An independent reviewer recomputed all measurements.
 
-The first two measurements passed independent arithmetic and frozen-input checks:
+| Original update calls | Critic terminal MSE | Mean-prediction MSE | Variance between heads | Target critic MSE | Logged chunk ranked first | Mean logged-chunk rank |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 1.924788 | 0.200643 | 1.724144 | 1.924788 | 6/21 | 13.095 |
+| 1 | 2.518605 | 2.504774 | 0.013832 | 1.948429 | 1/21 | 24.095 |
+| 10 | 1.617648 | 1.615919 | 0.001729 | 1.754433 | 0/21 | 25.286 |
 
-| Original update calls | Critic terminal MSE | Target critic terminal MSE | Logged chunk ranked first | Mean logged-chunk rank |
-| ---: | ---: | ---: | ---: | ---: |
-| 0 | 1.924788 | 1.924788 | 6/21 | 13.095 |
-| 1 | 2.518605 | 1.948429 | 1/21 | 24.095 |
+The final pooled critic error is below initialization because disagreement between
+heads fell. The mean prediction is farther from the positive targets. All final
+main and target predictions on these windows remain negative. The logged successful
+chunk ranks worse. These observations do not establish useful learning, task harm,
+convergence, or a failure cause. Other candidates have no outcome labels.
 
-Lower MSE and lower numerical rank are better on these particular probes.
-The first call used 1,280 critic rows, including seven with positive return and
-three with zero critic weight. The actor batch contained 64 rows from the original
-success-only sampler. These are recorded batch counts; label hashes alone cannot
-independently reconstruct the sampled rows. Counters advanced by one actor/editor
-step and 20 critic/filter/encoder steps. No numerical failure was recorded.
+Across ten calls, the critic consumed 12,800 rows, including 117 positive-return
+rows and 59 with zero critic weight. The actor consumed 640 rows from successful
+trajectories, including 18 positive-return rows. These are recorded sample counts;
+raw sampled labels were not saved for independent reconstruction. A zero immediate
+return does not exclude a bootstrapped learning target.
 
-The first update worsened these fixed TRAIN measurements. This does not establish
-task harm, convergence, or a failure cause. The ten-call measurement is pending.
-[Independent partial review](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/fixed-data-learning-execution-20261015-02/independent-actual-review/PRELIMINARY_MEASUREMENT_01.json).
+The actor/editor/temperature counters reached 10; critic/filter/encoder counters
+reached 200. Recorded state and returned metrics were finite. The sampler generated
+16,640 critic rows and 704 actor rows; pending and queued batches explain the
+unconsumed difference. All 399 saved arrays passed hash, shape and finite checks.
+
+No policy rollout or trained checkpoint was produced. The candidate banks remain
+fixed, so this test does not measure the updated actor's proposals. The next step
+is verified correction/prevention data from independent failure origins, followed
+by another bounded original-learner comparison. Longer training is not assumed to
+resolve the observed gap.
+
+Source review also found extra initial-agent and consumed-batch references in the
+diagnostic caller. A separate lifetime correction is prepared. The completed run
+is unchanged; no timing or numerical effect is attributed to those references.
+
+[Root acceptance](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/fixed-data-learning-execution-20261015-02/ROOT_ACCEPTANCE.json) ·
+[Independent final review](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/fixed-data-learning-execution-20261015-02/independent-actual-review/REVIEW.json).
 
 - [Installed release](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/fixed-data-learning-release-01/RELEASE.json)
 - [Source and installed review](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/fixed-data-learning-independent-review-20261015/RELEASE_REVIEW.json)
