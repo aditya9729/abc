@@ -11,6 +11,7 @@ import sys
 import time
 from pathlib import Path
 
+from abc_bench import failure_candidate_bank
 from abc_bench import realtime_update_probe as supervision
 
 MODULE = "abc_bench.policy_path_probe"
@@ -25,6 +26,11 @@ PAYLOAD_MANIFEST = {
     "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/policy-path-equivalence-caller-preparation-v2-20261015/PAYLOAD_MANIFEST.json",
     "bytes": 1178,
     "sha256": "63cc92d1a8565fc52bfd709129279d7e996ae1cbf0ee66c86465d1d43cc8b869",
+}
+BANK_PAYLOAD_MANIFEST = {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-bank-preparation-20261016/PAYLOAD_MANIFEST.json",
+    "bytes": 1467,
+    "sha256": "1fb2d9a5aa3a84ca830503bc8039660785df7324ac89909f54dc1e3c41bff051",
 }
 
 
@@ -47,8 +53,8 @@ def fresh_output(value):
     return path
 
 
-def payload():
-    manifest = json.loads(supervision.authenticate(PAYLOAD_MANIFEST).read_text())
+def payload(binding=PAYLOAD_MANIFEST):
+    manifest = json.loads(supervision.authenticate(binding).read_text())
     for item in manifest["files"]:
         supervision.authenticate(item)
     config = json.loads(supervision.authenticate(manifest["config"]).read_text())
@@ -73,12 +79,16 @@ def load_config(path):
     config = json.loads(path.read_text())
     require(
         set(config) == {"schema", "output"}
-        and config["schema"] == SCHEMA
+        and config["schema"] in (SCHEMA, failure_candidate_bank.CONFIG_SCHEMA)
         and isinstance(config["output"], str),
-        "Only the fixed identity diagnostic is admitted",
+        "Only the fixed identity diagnostic or fixed failure bank is admitted",
     )
     fresh_output(config["output"])
-    payload()
+    if config["schema"] == failure_candidate_bank.CONFIG_SCHEMA:
+        _, inputs = payload(BANK_PAYLOAD_MANIFEST)
+        failure_candidate_bank.validate_fixed(inputs)
+    else:
+        payload()
     return config
 
 
@@ -122,6 +132,11 @@ def validate_job(job, effective_seconds=None):
 
 
 def diagnostic_command(config, manifest, inputs):
+    binding = (
+        BANK_PAYLOAD_MANIFEST
+        if config.get("schema") == failure_candidate_bank.CONFIG_SCHEMA
+        else PAYLOAD_MANIFEST
+    )
     return [
         inputs["python"]["path"],
         "-I",
@@ -129,15 +144,22 @@ def diagnostic_command(config, manifest, inputs):
         "-B",
         manifest["caller"]["path"],
         "--manifest",
-        PAYLOAD_MANIFEST["path"],
+        binding["path"],
         "--manifest-sha256",
-        PAYLOAD_MANIFEST["sha256"],
+        binding["sha256"],
         "--output",
         config["output"],
     ]
 
 
-def validate_result(value):
+def validate_result(value, mode=SCHEMA):
+    if mode == failure_candidate_bank.CONFIG_SCHEMA:
+        failure_candidate_bank.validate_result(value)
+        require(
+            value.get("source_manifest") == BANK_PAYLOAD_MANIFEST,
+            "Failure-bank payload differs",
+        )
+        return
     require(
         value.get("schema") == "sadhana.policy_path_identity_result/1"
         and value.get("status") == "policy_path_diagnostic_complete"
@@ -165,18 +187,19 @@ def run(config_path, output):
         "Require leased GPU0 and canonical process group",
     )
     config = load_config(config_path)
-    manifest, inputs = payload()
+    bank_mode = config.get("schema") == failure_candidate_bank.CONFIG_SCHEMA
+    manifest, inputs = payload(BANK_PAYLOAD_MANIFEST) if bank_mode else payload()
     result = {
         "schema_version": 1,
         "status": "failed",
-        "phase": PROFILE,
+        "phase": failure_candidate_bank.PROFILE if bank_mode else PROFILE,
         "task": "r1lite_remote_into_organizer",
         "embodiment": "r1lite_2025",
         "experiment_accepted": False,
         "benchmark_accepted": False,
         "metrics": {},
         "config": supervision.file_pin(config_path),
-        "payload_manifest": PAYLOAD_MANIFEST,
+        "payload_manifest": BANK_PAYLOAD_MANIFEST if bank_mode else PAYLOAD_MANIFEST,
         "worker_seconds": WORKER_SECONDS,
         "parent_seconds": PARENT_SECONDS,
         "optimizer_steps_performed": 0,
@@ -211,17 +234,21 @@ def run(config_path, output):
         )
         result_path = Path(config["output"]) / "RESULT.json"
         value = json.loads(result_path.read_text())
-        validate_result(value)
+        validate_result(
+            value, failure_candidate_bank.CONFIG_SCHEMA
+        ) if bank_mode else validate_result(value)
         for expected in value["arrays"].values():
             if expected is not None:
                 supervision.authenticate(
                     {key: expected[key] for key in ("path", "bytes", "sha256")}
                 )
-        payload()
+        payload(BANK_PAYLOAD_MANIFEST) if bank_mode else payload()
         result.update(
             status="completed",
             diagnostic_result=supervision.file_pin(result_path),
-            scope="Inference completed; root must assess identity discrepancies. No task outcome.",
+            scope="Failure-bank inference completed; branch outcomes remain unexecuted."
+            if bank_mode
+            else "Inference completed; root must assess identity discrepancies. No task outcome.",
         )
     except BaseException as error:
         result["error"] = f"{type(error).__name__}: {error}"
