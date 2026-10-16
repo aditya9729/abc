@@ -1,0 +1,12 @@
+flowchart LR
+  Root["Root coordinator: select finite recipe and pin inputs"] -->|job config| Parent["ABC canonical runner: GPU0 lease, occupancy, deadline"]
+  Parent -->|same process group| Worker["WBC process adapter: verify source, inputs, storage and summary"]
+  Source["Pristine R1 controller source + installed WBC runtime"] -->|authenticated original code| Worker
+  Data["TRAIN references, teacher data and frozen nominal"] -->|immutable paths and hashes| Worker
+  Worker -->|original argv| Original["Original feedback fitter / gated pose PPO / evaluator"]
+  Original -->|checkpoint, export, metrics| Artifacts["Canonical run artifacts and worker receipt"]
+  Worker -->|completion or failure| Parent
+  Parent -->|group cleanup and actual elapsed charge| Receipt["Canonical receipt"]
+  Artifacts --> Review["Independent review + root scientific acceptance"]
+  Receipt --> Review
+  Review --> Report["Measured comparison; no automatic learning claim"]

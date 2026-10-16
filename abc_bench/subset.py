@@ -18,6 +18,7 @@ from typing import Any
 from abc_bench.resources import inspect_reserved_gpu
 
 ALLOWED_MODULES = {
+    "abc_bench.wbc_program",
     "abc_bench.realtime_update_probe",
     "abc_bench.policy_path_probe",
     "abc_bench.author_program",
@@ -496,6 +497,10 @@ def load_job(path: Path) -> dict[str, Any]:
         from abc_bench.policy_path_probe import validate_job
 
         validate_job(job)
+    if job["module"] == "abc_bench.wbc_program":
+        from abc_bench.wbc_program import validate_job
+
+        validate_job(job)
     return job
 
 
@@ -506,6 +511,10 @@ def run_job(args: Any) -> dict[str, Any]:
     if args.training_config is None:
         raise ValueError("author-subset requires --training-config")
     job = load_job(args.training_config)
+    if job["module"] == "abc_bench.wbc_program":
+        from abc_bench.wbc_program import validate_job
+
+        validate_job(job, args.timeout_seconds)
     if job["module"] == "abc_bench.realtime_update_probe":
         from abc_bench.realtime_update_probe import validate_job
 
@@ -771,7 +780,11 @@ def run_job(args: Any) -> dict[str, Any]:
             receipt["config_snapshots"] = config_snapshots
         if (
             job["module"]
-            in {"abc_bench.author_program", "abc_bench.realtime_update_probe"}
+            in {
+                "abc_bench.author_program",
+                "abc_bench.realtime_update_probe",
+                "abc_bench.wbc_program",
+            }
             and not catcher_profile
         ):
             for name in ("task", "embodiment"):
