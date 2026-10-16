@@ -293,9 +293,16 @@ def run(
         len(buffer) == 7069 and len(processor.offline_replay_buffer) == 0,
         "Original demos must be seeded exactly once before restore",
     )
+    before_restore = None
+    if recovery is not None and hasattr(recovery, "prepare_before_restore"):
+        before_restore = recovery.prepare_before_restore(agent, processor, config, spec)
+    added_before_restore = 0 if before_restore is None else before_restore["append"]["rows"]
     restore_start = time.monotonic()
     processor.restore(spec["checkpoint_parent"], up_to_step=9908)
-    require(len(buffer) == 16968, "Original restore did not append exactly9899 rows")
+    require(
+        len(buffer) == 16968 + added_before_restore,
+        "Original restore did not append exactly9899 rows",
+    )
     restore_seconds = time.monotonic() - restore_start
     print(
         json.dumps(
@@ -330,7 +337,12 @@ def run(
 
     recovery_data = None
     if recovery is not None:
-        recovery_data = recovery.prepare_replay(agent, processor, config, spec)
+        if before_restore is None:
+            recovery_data = recovery.prepare_replay(agent, processor, config, spec)
+        else:
+            recovery_data = recovery.prepare_replay(
+                agent, processor, config, spec, before_restore=before_restore
+            )
         probe.write_json(output / "recovery-data.json", recovery_data)
 
     arrays = []

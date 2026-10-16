@@ -19,7 +19,11 @@ MODULE = "abc_bench.historical_fixed_data_learning"
 PHASE = "historical_online_fixed_data_10"
 STATUS = "original_historical_online_ten_calls_checkpoint_completed"
 SPEC_SHA256 = "0f108bb4ad2624877a32d84191438495548cd2516db77355eeb16a5d548a28a6"
-CONDITIONS = ("baseline_16968", "plus_autonomous_349")
+ORDERED_CONDITION = "plus_autonomous_349_before_timeouts"
+ORDERED_SPEC_SHA256 = "d928d37e9c3bb25f48dc6fca14a5014461d1440f8f41e61735bbb8d4ff7d548a"
+ORDER = ("historical_demo_7069", "autonomous_historical_success_349", "historical_timeout_9899")
+CONDITIONS = ("baseline_16968", "plus_autonomous_349", ORDERED_CONDITION)
+DEMO_ROWS = 7069
 BASE_ROWS = 16968
 ROWS = 349
 PROMPT = "put the remote in the organizer"
@@ -34,8 +38,16 @@ def load_spec(config):
     require(set(binding) == {"spec", "python", "condition"}, "Unexpected phase binding")
     require(binding["condition"] in CONDITIONS, "Unknown matched condition")
     require(isinstance(binding["python"], dict), "Root must bind the installed numerical interpreter")
-    require(binding["spec"]["sha256"] == SPEC_SHA256, "Historical specification differs")
+    expected_spec = ORDERED_SPEC_SHA256 if binding["condition"] == ORDERED_CONDITION else SPEC_SHA256
+    require(binding["spec"]["sha256"] == expected_spec, "Historical specification differs")
     spec = json.loads(authenticate(binding["spec"]).read_text())
+    if binding["condition"] == ORDERED_CONDITION:
+        require(
+            spec["schema"] == "sadhana.historical_online_fixed_data_spec/2"
+            and spec["assembly_condition"] == ORDERED_CONDITION
+            and spec["assembly_order"] == list(ORDER),
+            "Require explicit demos/success/timeouts assembly order",
+        )
     authenticate(binding["python"])
     require(
         spec["phase"] == PHASE
@@ -259,14 +271,15 @@ def check_routing(processor):
     )
 
 
-def append_episode(processor, episode, np):
+def append_episode(processor, episode, np, *, start=BASE_ROWS):
     """Use the author's online API; any partial append error aborts the fresh run."""
     buffer = processor.replay_buffer
     require(
-        len(buffer) == buffer._insert_index == BASE_ROWS
+        start in (DEMO_ROWS, BASE_ROWS)
+        and len(buffer) == buffer._insert_index == start
         and buffer._capacity > BASE_ROWS + ROWS
         and buffer._action_horizon == 16 and buffer._replan_steps == 8 and buffer._delay == 5
-        and bool(buffer.dataset_dict["dones"][BASE_ROWS - 1])
+        and bool(buffer.dataset_dict["dones"][start - 1])
         and buffer._ep_step_counter == 0 and not buffer._prev_is_hil,
         "Require exact restored replay, closed prior episode and no circular overwrite",
     )
@@ -275,8 +288,8 @@ def append_episode(processor, episode, np):
     for index in range(ROWS):
         processor.insert_transition(episode[index])
     processor.on_episode_done(True)
-    added = slice(BASE_ROWS, BASE_ROWS + ROWS)
-    require(len(buffer) == buffer._insert_index == BASE_ROWS + ROWS, "Original insertion count differs")
+    added = slice(start, start + ROWS)
+    require(len(buffer) == buffer._insert_index == start + ROWS, "Original insertion count differs")
     require(
         not np.any(buffer.dataset_dict["is_hil"][added])
         and not np.any(buffer.dataset_dict["hil_chunk"][added])
@@ -299,7 +312,7 @@ def append_episode(processor, episode, np):
             "partial_append_policy": "abort worker and discard replay; never continue training"}
 
 
-def verify_normalization(actor, buffer, episode, np):
+def verify_normalization(actor, buffer, episode, np, *, start=BASE_ROWS):
     """Original actor transform must equal original replay's stored current row."""
     for index in range(ROWS):
         row = episode[index]
@@ -310,19 +323,24 @@ def verify_normalization(actor, buffer, episode, np):
         state = np.asarray(expected["state"], dtype=buffer.dataset_dict["state"].dtype)
         require(
             action.shape == (16, 32) and np.isfinite(action).all() and np.isfinite(state).all()
-            and np.array_equal(action[0], buffer.dataset_dict["actions"][BASE_ROWS + index, 0])
-            and np.array_equal(state, buffer.dataset_dict["state"][BASE_ROWS + index]),
+            and np.array_equal(action[0], buffer.dataset_dict["actions"][start + index, 0])
+            and np.array_equal(state, buffer.dataset_dict["state"][start + index]),
             "Actor and replay current applied-action/state normalization disagree",
         )
     return {"rows_checked": ROWS, "raw_action_dtype": "float64", "normalized_action_dim": 32,
             "original_transforms_used": True, "future_chunk_backfill": "unchanged author insertion"}
 
 
-def source_pools(buffer, np):
+def source_pools(buffer, np, *, before_timeouts=False):
     """Original eligible starts; these are not observed sampling indices."""
-    groups = [("historical_demo", 0, 7069), ("historical_timeout", 7069, BASE_ROWS)]
-    if len(buffer) > BASE_ROWS:
-        groups.append(("autonomous_historical_success", BASE_ROWS, len(buffer)))
+    if before_timeouts:
+        groups = [("historical_demo", 0, DEMO_ROWS),
+                  ("autonomous_historical_success", DEMO_ROWS, DEMO_ROWS + ROWS),
+                  ("historical_timeout", DEMO_ROWS + ROWS, BASE_ROWS + ROWS)]
+    else:
+        groups = [("historical_demo", 0, 7069), ("historical_timeout", 7069, BASE_ROWS)]
+        if len(buffer) > BASE_ROWS:
+            groups.append(("autonomous_historical_success", BASE_ROWS, len(buffer)))
     result = []
     for name, start, stop in groups:
         end = max(start, min(stop, len(buffer) - buffer._replan_steps))
@@ -332,11 +350,87 @@ def source_pools(buffer, np):
     return result
 
 
-def prepare_replay(agent, processor, config, spec):
+def prepare_before_restore(agent, processor, config, spec):
+    """Insert this real episode before original timeout restore, without sampling."""
+    if config["fixed_data"]["condition"] != ORDERED_CONDITION:
+        return None
+    import numpy as np
+
+    check_routing(processor)
+    episode = HistoricalEpisode(spec)
+    appended = append_episode(processor, episode, np, start=DEMO_ROWS)
+    check_routing(processor)
+    return {"episode": episode, "append": appended}
+
+
+def verify_ordered_eligibility(buffer, np):
+    """Audit original sampler support; do not sample or change any replay field."""
+    start, terminal = DEMO_ROWS, DEMO_ROWS + ROWS - 1
+    added = slice(start, terminal + 1)
+    require(
+        len(buffer) == buffer._insert_index == BASE_ROWS + ROWS
+        and buffer._ep_step_counter == 0 and not buffer._prev_is_hil
+        and buffer._replan_steps == 8 and buffer._delay == 5
+        and buffer._valids_keep_terminal_windows is True,
+        "Ordered replay must retain original terminal-window routing",
+    )
+    labels = buffer.dataset_dict
+    end = np.arange(ROWS) == ROWS - 1
+    require(
+        np.array_equal(labels["rewards"][added], end.astype(float))
+        and np.array_equal(labels["dones"][added], end)
+        and np.array_equal(labels["masks"][added], (~end).astype(float))
+        and np.array_equal(labels["episode_step"][added], np.arange(ROWS))
+        and np.all(labels["is_success"][added])
+        and not np.any(labels["is_hil"][added])
+        and not np.any(labels["hil_chunk"][added])
+        and labels["dones"][start - 1]
+        and labels["dones"][len(buffer) - 1]
+        and not np.any(labels["rewards"][terminal + 1:len(buffer)]),
+        "Original restore changed autonomous labels or timeout reward support",
+    )
+    max_start = len(buffer) - buffer._replan_steps
+    positive_starts = list(range(terminal - buffer._replan_steps + 1, terminal + 1))
+    require(all(start <= index < max_start for index in positive_starts),
+            "The real terminal reward is outside the original sample support")
+    return {"terminal_row": terminal, "max_start_exclusive": max_start,
+            "positive_reward_eligible_starts": positive_starts,
+            "new_actor_eligible_starts": ROWS, "sampling_performed": False,
+            "support_not_observed_sampling": True}
+
+
+def prepare_replay(agent, processor, config, spec, *, before_restore=None):
     import numpy as np
 
     check_routing(processor)
     buffer = processor.replay_buffer
+    if config["fixed_data"]["condition"] == ORDERED_CONDITION:
+        require(before_restore is not None, "Ordered condition must insert before restore")
+        episode = before_restore["episode"]
+        normalized = verify_normalization(agent.actor, buffer, episode, np, start=DEMO_ROWS)
+        eligibility = verify_ordered_eligibility(buffer, np)
+        pools = source_pools(buffer, np, before_timeouts=True)
+        require([p["critic_sampleable_starts"] for p in pools] == [7069, 349, 9891]
+                and [p["actor_sampleable_starts"] for p in pools] == [7069, 349, 0],
+                "Ordered original sampling pools differ")
+        check_routing(processor)
+        return {
+            "condition": ORDERED_CONDITION, "reward_view": REWARD_VIEW,
+            "assembly_order": list(ORDER), "episode": spec["episode"],
+            "rows_before": DEMO_ROWS, "rows_after": len(buffer),
+            "baseline_rows_without_added_episode": BASE_ROWS,
+            "rows_at_autonomous_insertion": DEMO_ROWS,
+            "append": before_restore["append"], "normalization_check": normalized,
+            "source_pools": pools, "eligibility": eligibility,
+            "causal_frames": episode.pins,
+            "causal_pair_rule": "row j uses frame j observation and frame j+1 applied action/reward; j=0..348",
+            "teacher_data": False, "strict_correction_admitted": False,
+            "strict_placement_verified": False, "strict_footprint_pass": False,
+            "new_independent_origin": False, "sample_indices_available": False,
+            "consumed_source_coverage": None,
+            "sampling_limit": "Last eight excluded starts are genuine timeout rows; eligible does not mean sampled",
+        }
+    require(before_restore is None, "Old conditions must retain original restore-then-append order")
     require(len(buffer) == BASE_ROWS, "Require exact original restored replay")
     episode = HistoricalEpisode(spec)
     appended, normalized = None, None

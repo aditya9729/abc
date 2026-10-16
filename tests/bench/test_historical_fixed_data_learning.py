@@ -258,3 +258,141 @@ def test_final_checkpoint_uses_full_author_save_wait_close_nonzero(tmp_path, mon
         assert not result["separate_process_restore_verified"]
         assert len(result["files"]) == 2
     assert events == ["block", "initialize", "save", "wait", "close"]
+
+
+def ordered_processor_double():
+    """Original methods over CPU doubles; rows here are fixture data, not a dataset."""
+    processor = processor_double()
+    buffer = processor.replay_buffer
+    buffer._size = buffer._insert_index = processor._ep_buffer_start = historical.DEMO_ROWS
+    buffer.dataset_dict["dones"][:] = False
+    buffer.dataset_dict["dones"][historical.DEMO_ROWS - 1] = True
+    buffer.dataset_dict["rewards"][historical.DEMO_ROWS - 1] = 1
+    buffer._valids_keep_terminal_windows = True
+    buffer._seed, buffer._discount = 42, 0.99
+    buffer._gather_storage = []
+    buffer._gather = lambda name, values, indices: values[indices].copy()
+    processor.batch_size, processor.utd_ratio, processor.offline_ratio = 64, 20, 0
+    processor.actor_success_only, processor.use_dagger_hil_sampling = True, False
+    processor.offline_iterator = processor.hil_iterator = None
+    processor.offline_replay_buffer = []
+    processor.replay_iterator = (row for row in [])
+    methods = original_methods("expo_ft/data/replay_buffer.py", "PiReplayBuffer",
+                               {"restore_success_marks", "_find_episode_boundaries_from_dones"})
+    buffer._find_episode_boundaries_from_dones = lambda dones, size: methods[
+        "_find_episode_boundaries_from_dones"
+    ](buffer, dones, size)
+    buffer.restore_success_marks = lambda: methods["restore_success_marks"](buffer)
+    return processor
+
+
+def restore_fixture_timeouts(processor):
+    """Run original processor.restore with a declared raw-timeout loader double."""
+    methods = original_methods("expo_ft/data/batch_processor.py", "BatchProcessor", {"restore"})
+
+    def load(parent, buffer, *, up_to_step):
+        assert parent == "explicit-fixture-parent" and up_to_step == 9908
+        assert len(buffer) == historical.DEMO_ROWS + historical.ROWS
+        for index in range(9899):
+            done = (index + 1) % 900 == 0 or index == 9898
+            buffer.insert({"observations": {"state": np.zeros(14, np.float32)},
+                           "actions": np.full(14, -0.25, np.float64),
+                           "rewards": 0.0, "masks": 1.0, "dones": done,
+                           "is_hil": False, "is_success": False})
+
+    methods["restore"].__globals__["restore_replay_buffer"] = load
+    methods["restore"](processor, "explicit-fixture-parent", up_to_step=9908)
+
+
+def original_sample_at(buffer, selected):
+    """Unchanged sample_jax AST; explicit deterministic RNG/device doubles."""
+    method = original_methods("expo_ft/data/replay_buffer.py", "PiReplayBuffer", {"sample_jax"})["sample_jax"]
+
+    def randint(key, shape, *, minval, maxval):
+        assert shape == (len(selected),) and minval == 0
+        assert all(minval <= index < maxval for index in selected)
+        return np.asarray(selected, dtype=np.int32)
+
+    method.__globals__.update(
+        jnp=np,
+        jax=SimpleNamespace(random=SimpleNamespace(PRNGKey=lambda seed: seed,
+                                                  split=lambda key: (key, key + 1),
+                                                  randint=randint),
+                            block_until_ready=lambda value: value),
+    )
+    return method(buffer, len(selected), keys=["rewards", "masks", "dones", "state", "actions"])
+
+
+def test_ordered_hook_original_restore_and_sampler_expose_terminal_reward(monkeypatch):
+    processor = ordered_processor_double()
+    buffer = processor.replay_buffer
+    episode = EpisodeDouble()
+    monkeypatch.setattr(historical, "HistoricalEpisode", lambda spec: episode)
+    config = {"fixed_data": {"condition": historical.ORDERED_CONDITION}}
+    before = historical.prepare_before_restore(None, processor, config, {})
+    assert before["append"]["rows"] == 349 and before["episode"] is episode
+    assert len(buffer) == 7418 and not hasattr(buffer, "rng")
+    last_success_chunk = buffer.dataset_dict["actions"][7417].copy()
+    restore_fixture_timeouts(processor)
+    np.testing.assert_array_equal(buffer.dataset_dict["actions"][7417], last_success_chunk)
+    episode.pins = []  # No files in this explicitly synthetic storage fixture.
+
+    def transform(raw):
+        return {"actions": np.pad(raw["actions"].astype(np.float32), ((0, 0), (0, 18))),
+                "state": np.pad(raw["state"].astype(np.float32), (0, 18))}
+
+    actor = SimpleNamespace(input_transforms=transform, input_model_transforms=lambda value: value)
+    prepared = historical.prepare_replay(SimpleNamespace(actor=actor), processor, config,
+                                         {"episode": {}}, before_restore=before)
+    assert prepared["rows_before"] == 7069 and prepared["rows_after"] == 17317
+    assert prepared["normalization_check"]["rows_checked"] == 349
+    report = prepared["eligibility"]
+    assert report["positive_reward_eligible_starts"] == list(range(7410, 7418))
+    assert report["terminal_row"] == 7417 and report["max_start_exclusive"] == 17309
+    pools = historical.source_pools(buffer, np, before_timeouts=True)
+    assert [row["critic_sampleable_starts"] for row in pools] == [7069, 349, 9891]
+    assert [row["actor_sampleable_starts"] for row in pools] == [7069, 349, 0]
+    assert not hasattr(buffer, "rng")
+    batch = original_sample_at(buffer, report["positive_reward_eligible_starts"])
+    np.testing.assert_allclose(batch["rewards"], 0.99 ** np.arange(7, -1, -1), rtol=1e-6)
+    np.testing.assert_array_equal(batch["masks"], np.zeros(8))
+    np.testing.assert_array_equal(batch["dones"], np.ones(8, dtype=bool))
+    np.testing.assert_array_equal(batch["valids"], np.ones(8))
+
+
+def test_original_tail_append_still_has_no_sampleable_added_terminal_reward():
+    processor = processor_double()
+    buffer = processor.replay_buffer
+    historical.append_episode(processor, EpisodeDouble(), np)
+    buffer._valids_keep_terminal_windows = True
+    buffer._seed, buffer._discount = 42, 0.99
+    buffer._gather_storage = []
+    buffer._gather = lambda name, values, indices: values[indices].copy()
+    batch = original_sample_at(buffer, list(range(16968, 17309)))
+    np.testing.assert_array_equal(batch["rewards"], np.zeros(341))
+    assert buffer.dataset_dict["rewards"][17316] == 1
+
+
+@pytest.mark.parametrize("condition", historical.CONDITIONS[:2])
+def test_old_conditions_skip_pre_restore_without_touching_processor(condition):
+    assert historical.prepare_before_restore(None, object(),
+                                              {"fixed_data": {"condition": condition}}, {}) is None
+
+
+def test_ordered_hook_requires_unadvanced_original_iterator(monkeypatch):
+    processor = ordered_processor_double()
+    next(processor.replay_iterator, None)
+    monkeypatch.setattr(historical, "HistoricalEpisode", lambda spec: pytest.fail("must refuse first"))
+    with pytest.raises(ValueError, match="before the first original sample"):
+        historical.prepare_before_restore(None, processor,
+                                          {"fixed_data": {"condition": historical.ORDERED_CONDITION}}, {})
+    assert len(processor.replay_buffer) == 7069
+
+
+def test_ordered_eligibility_refuses_changed_terminal_labels():
+    processor = ordered_processor_double()
+    historical.append_episode(processor, EpisodeDouble(), np, start=historical.DEMO_ROWS)
+    restore_fixture_timeouts(processor)
+    processor.replay_buffer.dataset_dict["rewards"][7417] = 0
+    with pytest.raises(ValueError, match="labels or timeout reward"):
+        historical.verify_ordered_eligibility(processor.replay_buffer, np)

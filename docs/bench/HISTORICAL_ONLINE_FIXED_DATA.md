@@ -6,11 +6,13 @@ later evaluation. **This source publication establishes no learning gain.** The
 added episode passes the original historical judge but fails the stricter placement
 footprint check. It is not an accepted corrective demonstration.
 
-The four runtime modules and the shared/recovery tests are exact copies of the
-[qualified canonical source](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/historical-online-fixed-data-release-01/canonical/source).
-The historical test adds only a local-artifact availability guard. No original
-EXPO or OpenPI learner source changes. See the
-[architecture](HISTORICAL_ONLINE_FIXED_DATA.mmd).
+The initial publication copied the qualified canonical runtime and tests, with a
+local-artifact availability guard in the historical test. The later
+[corrected replay-order condition](HISTORICAL_ONLINE_FIXED_DATA_ORDER.md) changes
+two helper files and adds six historical cases. It preserves the old A/B paths.
+No original EXPO or OpenPI learner source changes. See the original
+[architecture](HISTORICAL_ONLINE_FIXED_DATA.mmd) and the
+[corrected-order diagram](HISTORICAL_ONLINE_FIXED_DATA_ORDER.mmd).
 
 ## Matched conditions and schedule
 

@@ -1,0 +1,14 @@
+flowchart LR
+    subgraph Sadhana["Sadhana: reviewed data assembly"]
+        D["Original 7069 demo rows"] --> P["Original BatchProcessor"]
+        A["349 actual autonomous rows<br/>original historical reward"] --> P
+        T["Same 9899 timeout rows"] --> P
+        P --> O["Demos → success → timeouts<br/>terminal row7417"]
+    end
+    O --> Q["Root CPU qualification02<br/>real rows + eight original sample windows<br/>accepted"]
+    O --> S["Unchanged original sampler<br/>last8 starts remain excluded"]
+    S -. "root launches separately" .-> L["Original RealTimeEXPOFTLearner<br/>ten fixed-data calls"]
+    L -. "requires actual receipt" .-> C["Full step10 checkpoint"]
+    C -. "requires separate execution" .-> E["Original frozen DEV4 evaluation"]
+    R["Independent source reviewer"] -. "source review" .-> Sadhana
+    N["Strict correction not admitted<br/>CPU support is not learning gain"] -. "scope" .-> Q
