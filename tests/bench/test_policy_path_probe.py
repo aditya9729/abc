@@ -200,11 +200,15 @@ def test_worker_reuses_existing_watcher_and_records_completed_inference(
     monkeypatch.setattr(worker.os, "getpgrp", lambda: os.getpid())
     monkeypatch.setenv("CUDA_VISIBLE_DEVICES", worker.GPU_UUID)
     monkeypatch.setenv("ABC_BENCH_REPO", str(worker.REPO))
-    monkeypatch.setattr(worker, "load_config", lambda path: {"output": str(target)})
+    monkeypatch.setattr(
+        worker,
+        "load_config",
+        lambda path: {"schema": worker.SCHEMA, "output": str(target)},
+    )
     monkeypatch.setattr(
         worker,
         "payload",
-        lambda: (
+        lambda binding: (
             {"caller": {"path": "/fixed/caller.py"}},
             {"python": {"path": "/fixed/python"}, "environment": {}},
         ),

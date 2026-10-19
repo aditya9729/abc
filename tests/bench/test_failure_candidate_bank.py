@@ -396,3 +396,144 @@ def test_result_does_not_admit_task_success_or_updates():
     ):
         with pytest.raises(ValueError):
             bank.validate_result({**value, key: changed})
+
+
+def acquisition_capture(tmp_path):
+    root = tmp_path / "reference"
+    frame = root / "frames/0072.npz"
+    frame.parent.mkdir(parents=True)
+    public = {
+        "index": 72,
+        "time_s": 72 / 15,
+        "state14": [0.0] * 14,
+        "judge": {"success": False},
+        "native_observation": {
+            "left_arm_q": [0.0] * 6,
+            "left_gripper_width": [0.0],
+            "right_arm_q": [0.0] * 6,
+            "right_gripper_width": [0.0],
+        },
+    }
+    np.savez(
+        frame,
+        rgb=np.zeros((360, 640, 3), dtype=np.uint8),
+        integration=np.zeros(437, dtype=np.float64),
+        metadata_utf8=np.frombuffer(
+            json.dumps({"public": public}).encode(), dtype=np.uint8
+        ),
+    )
+    result = {
+        "schema": "sadhana.acquisition_branch_result/1",
+        "status": "completed",
+        "role": "reference",
+        "source_run_id": bank.ACQUISITION_ORIGIN,
+        "seed": 21000,
+        "boundary_control": 72,
+        "window_controls": 8,
+        "end_control": 112,
+        "verified_reference_observations": 113,
+        "native_controls": 112,
+        "files": [pin(frame)],
+    }
+    ref = put(root / "RESULT.json", result)
+    second = put(tmp_path / "second/RESULT.json", result)
+    accepted = put(
+        tmp_path / "ACCEPTED.json",
+        {
+            "status": "accepted_acquisition_reference_pair",
+            "artifact_accepted": True,
+            "source_run_id": bank.ACQUISITION_ORIGIN,
+            "reference_results": [ref, second],
+        },
+    )
+    return {
+        "schema": bank.ACQUISITION_INPUT_SCHEMA,
+        "fixed": bank.ACQUISITION_FIXED,
+        "capture_acceptance": accepted,
+        "capture_result": ref,
+        "boundary_frame": pin(frame),
+    }
+
+
+def test_acquisition_input_excludes_oracle_fields(tmp_path):
+    config = acquisition_capture(tmp_path)
+    bank.validate_fixed(config)
+    raw = bank.capture_observation(config, np)
+    assert set(raw) == {"head_left", "state"}
+    assert raw["state"].shape == (14,)
+    with pytest.raises(ValueError):
+        bank.validate_fixed({**config, "schema": bank.INPUT_SCHEMA})
+
+
+@pytest.mark.parametrize(
+    "mutation", ["one_replay", "duplicate_replay", "wrong_origin", "unjoined", "tamper"]
+)
+def test_acquisition_requires_accepted_causal_frame(tmp_path, mutation):
+    config = acquisition_capture(tmp_path)
+    if mutation == "tamper":
+        Path(config["boundary_frame"]["path"]).write_bytes(b"changed")
+    elif mutation == "unjoined":
+        other = tmp_path / "other/frames/0072.npz"
+        other.parent.mkdir(parents=True)
+        other.write_bytes(Path(config["boundary_frame"]["path"]).read_bytes())
+        config["boundary_frame"] = pin(other)
+    else:
+        path = Path(config["capture_acceptance"]["path"])
+        value = json.loads(path.read_text())
+        if mutation == "one_replay":
+            value["reference_results"] = value["reference_results"][:1]
+        elif mutation == "duplicate_replay":
+            value["reference_results"] = value["reference_results"][:1] * 2
+        else:
+            value["source_run_id"] = bank.ORIGIN
+        config["capture_acceptance"] = put(path, value)
+    with pytest.raises(ValueError):
+        bank.capture_observation(config, np)
+
+
+def test_acquisition_dispatch_does_not_route_to_old_failure_payload(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(worker, "BUILDS", tmp_path)
+    seen = []
+
+    def payload(binding):
+        seen.append(binding)
+        return {}, {
+            "schema": bank.ACQUISITION_INPUT_SCHEMA,
+            "fixed": bank.ACQUISITION_FIXED,
+        }
+
+    monkeypatch.setattr(worker, "payload", payload)
+    config = {
+        "schema": bank.ACQUISITION_CONFIG_SCHEMA,
+        "output": str(tmp_path / "fresh"),
+    }
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps(config))
+    worker.load_config(path)
+    assert seen == [worker.ACQUISITION_PAYLOAD_MANIFEST]
+    command = worker.diagnostic_command(
+        config, {"caller": {"path": "/caller"}}, {"python": {"path": "/python"}}
+    )
+    assert command[6] == worker.ACQUISITION_PAYLOAD_MANIFEST["path"]
+
+
+def test_acquisition_rejects_wrong_payload_profile(tmp_path, monkeypatch):
+    monkeypatch.setattr(worker, "BUILDS", tmp_path)
+    monkeypatch.setattr(
+        worker,
+        "payload",
+        lambda binding: ({}, {"schema": bank.INPUT_SCHEMA, "fixed": bank.FIXED}),
+    )
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema": bank.ACQUISITION_CONFIG_SCHEMA,
+                "output": str(tmp_path / "fresh"),
+            }
+        )
+    )
+    with pytest.raises(ValueError, match="Payload profile"):
+        worker.load_config(path)

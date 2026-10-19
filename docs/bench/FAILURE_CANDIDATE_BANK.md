@@ -162,3 +162,34 @@ algorithms, test all 64 candidates, or prove that missing memory caused failure.
 [Bank result](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-bank-execution-01/bank/RESULT.json) ·
 [Root acceptance](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-bank-execution-01/ROOT_ACCEPTANCE.json) ·
 [Branch descriptors](/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/failure-candidate-branches-preparation-20261016/PREPARATION.json).
+
+## Pre-grasp acquisition profile — 19 October preparation
+
+The separate `sadhana.acquisition_candidate_bank_canonical/1` profile uses O72
+from the accepted normal TRAIN21000 episode `author-subset-20261016T010107-003fa5`.
+It preserves the original candidate and selector calls above. It uses the same
+RTC2000 actor and fresh initialized EXPO heads. It does not restore the recorded
+controller RNG or action queue.
+
+Two independent reference replays must reproduce all 113 source observations
+through control112. The new profile reads only their O72 RGB and measured state.
+The bank requires that acceptance before model initialization. It retains the old
+O128 profile and manifest without changing their data or recorded results.
+
+The Sadhana consumer replaces commands73–80 with each declared choice. It then
+executes the same recorded commands81–112. The exact reference window is the
+control condition. This open-loop continuation isolates a local action-window
+intervention. It is not an on-policy Q evaluation, recovery benchmark, full task
+score, or whole-body controller.
+
+The candidate bank saves no checkpoint and performs no updates. Its existing
+64 MiB output limit remains. The separate WBC/VaM 20 GiB reserve is unchanged.
+The CPU consumer adds an 8 GiB free-space reserve and a 64 MiB output limit for
+this small experiment. Acquisition contact/lift measurements remain separate
+from historical completion reward.
+
+Root owns GPU0 admission and acceptance. The boundary agent owns native replay
+and the consumer. The recipe agent independently reviews original-call fidelity
+and the result claims. See Sadhana's `ACQUISITION_BRANCH.md` and its architecture
+for the native path. This section states the protocol; outcomes follow only after
+execution. The explanation uses STE guidance without a full compliance check.

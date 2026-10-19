@@ -33,6 +33,27 @@ BANK_PAYLOAD_MANIFEST = {
     "sha256": "1fb2d9a5aa3a84ca830503bc8039660785df7324ac89909f54dc1e3c41bff051",
 }
 
+ACQUISITION_PAYLOAD_MANIFEST = {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/acquisition-bank-preparation-20261019/PAYLOAD_MANIFEST.json",
+    "bytes": 1436,
+    "sha256": "2e032980171ff155676caff1466362035b65ec7d1d5bbae9b39986c1c9338667",
+}
+
+
+def payload_binding(schema):
+    if schema == failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA:
+        return ACQUISITION_PAYLOAD_MANIFEST
+    if schema == failure_candidate_bank.CONFIG_SCHEMA:
+        return BANK_PAYLOAD_MANIFEST
+    return PAYLOAD_MANIFEST
+
+
+def bank_mode(schema):
+    return schema in (
+        failure_candidate_bank.CONFIG_SCHEMA,
+        failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA,
+    )
+
 
 def require(condition, message):
     if not condition:
@@ -79,14 +100,27 @@ def load_config(path):
     config = json.loads(path.read_text())
     require(
         set(config) == {"schema", "output"}
-        and config["schema"] in (SCHEMA, failure_candidate_bank.CONFIG_SCHEMA)
+        and config["schema"]
+        in (
+            SCHEMA,
+            failure_candidate_bank.CONFIG_SCHEMA,
+            failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA,
+        )
         and isinstance(config["output"], str),
         "Only the fixed identity diagnostic or fixed failure bank is admitted",
     )
     fresh_output(config["output"])
-    if config["schema"] == failure_candidate_bank.CONFIG_SCHEMA:
-        _, inputs = payload(BANK_PAYLOAD_MANIFEST)
+    if bank_mode(config["schema"]):
+        _, inputs = payload(payload_binding(config["schema"]))
         failure_candidate_bank.validate_fixed(inputs)
+        expected = (
+            failure_candidate_bank.ACQUISITION_INPUT_SCHEMA
+            if config["schema"] == failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA
+            else failure_candidate_bank.INPUT_SCHEMA
+        )
+        require(
+            inputs["schema"] == expected, "Payload profile differs from requested mode"
+        )
     else:
         payload()
     return config
@@ -132,11 +166,7 @@ def validate_job(job, effective_seconds=None):
 
 
 def diagnostic_command(config, manifest, inputs):
-    binding = (
-        BANK_PAYLOAD_MANIFEST
-        if config.get("schema") == failure_candidate_bank.CONFIG_SCHEMA
-        else PAYLOAD_MANIFEST
-    )
+    binding = payload_binding(config.get("schema"))
     return [
         inputs["python"]["path"],
         "-I",
@@ -153,10 +183,19 @@ def diagnostic_command(config, manifest, inputs):
 
 
 def validate_result(value, mode=SCHEMA):
-    if mode == failure_candidate_bank.CONFIG_SCHEMA:
+    if bank_mode(mode):
         failure_candidate_bank.validate_result(value)
         require(
-            value.get("source_manifest") == BANK_PAYLOAD_MANIFEST,
+            value.get("schema")
+            == (
+                failure_candidate_bank.ACQUISITION_RESULT_SCHEMA
+                if mode == failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA
+                else failure_candidate_bank.RESULT_SCHEMA
+            ),
+            "Result profile differs",
+        )
+        require(
+            value.get("source_manifest") == payload_binding(mode),
             "Failure-bank payload differs",
         )
         return
@@ -187,19 +226,26 @@ def run(config_path, output):
         "Require leased GPU0 and canonical process group",
     )
     config = load_config(config_path)
-    bank_mode = config.get("schema") == failure_candidate_bank.CONFIG_SCHEMA
-    manifest, inputs = payload(BANK_PAYLOAD_MANIFEST) if bank_mode else payload()
+    is_bank = bank_mode(config["schema"])
+    binding = payload_binding(config["schema"])
+    manifest, inputs = payload(binding)
     result = {
         "schema_version": 1,
         "status": "failed",
-        "phase": failure_candidate_bank.PROFILE if bank_mode else PROFILE,
+        "phase": (
+            failure_candidate_bank.ACQUISITION_PROFILE
+            if config["schema"] == failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA
+            else failure_candidate_bank.PROFILE
+            if is_bank
+            else PROFILE
+        ),
         "task": "r1lite_remote_into_organizer",
         "embodiment": "r1lite_2025",
         "experiment_accepted": False,
         "benchmark_accepted": False,
         "metrics": {},
         "config": supervision.file_pin(config_path),
-        "payload_manifest": BANK_PAYLOAD_MANIFEST if bank_mode else PAYLOAD_MANIFEST,
+        "payload_manifest": binding,
         "worker_seconds": WORKER_SECONDS,
         "parent_seconds": PARENT_SECONDS,
         "optimizer_steps_performed": 0,
@@ -234,20 +280,18 @@ def run(config_path, output):
         )
         result_path = Path(config["output"]) / "RESULT.json"
         value = json.loads(result_path.read_text())
-        validate_result(
-            value, failure_candidate_bank.CONFIG_SCHEMA
-        ) if bank_mode else validate_result(value)
+        validate_result(value, config["schema"])
         for expected in value["arrays"].values():
             if expected is not None:
                 supervision.authenticate(
                     {key: expected[key] for key in ("path", "bytes", "sha256")}
                 )
-        payload(BANK_PAYLOAD_MANIFEST) if bank_mode else payload()
+        payload(binding)
         result.update(
             status="completed",
             diagnostic_result=supervision.file_pin(result_path),
             scope="Failure-bank inference completed; branch outcomes remain unexecuted."
-            if bank_mode
+            if is_bank
             else "Inference completed; root must assess identity discrepancies. No task outcome.",
         )
     except BaseException as error:

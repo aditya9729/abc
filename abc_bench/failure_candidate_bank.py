@@ -1,4 +1,4 @@
-"""Capture original EXPO proposals at the accepted TRAIN21000 control128 boundary.
+"""Capture original EXPO proposals at qualified TRAIN21000 boundaries.
 
 Numerical imports occur only inside run(), after fixed input and lease checks.
 No training, simulator operation, or policy continuation is implemented here.
@@ -36,6 +36,12 @@ FIXED = {
     "edit_scale": 0.1,
     "prefix_padded": None,
 }
+ACQUISITION_CONFIG_SCHEMA = "sadhana.acquisition_candidate_bank_canonical/1"
+ACQUISITION_INPUT_SCHEMA = "sadhana.acquisition_candidate_bank_inputs/1"
+ACQUISITION_RESULT_SCHEMA = "sadhana.acquisition_candidate_bank_result/1"
+ACQUISITION_PROFILE = "r1lite-acquisition-candidate-bank"
+ACQUISITION_ORIGIN = "author-subset-20261016T010107-003fa5"
+ACQUISITION_FIXED = {**FIXED, "episode_control": 72}
 MAX_OUTPUT_BYTES = 64 * 1024 * 1024
 
 
@@ -73,11 +79,15 @@ def read_json(item):
 
 
 def validate_fixed(config):
-    require(
-        config["schema"] == INPUT_SCHEMA and config["fixed"] == FIXED,
-        "Only accepted O128 fresh boot is supported",
+    expected_fixed = (
+        ACQUISITION_FIXED if config["schema"] == ACQUISITION_INPUT_SCHEMA else FIXED
     )
-    for key, expected in FIXED.items():
+    require(
+        config["schema"] in (INPUT_SCHEMA, ACQUISITION_INPUT_SCHEMA)
+        and config["fixed"] == expected_fixed,
+        "Only accepted O128 or qualified O72 fresh boot is supported",
+    )
+    for key, expected in expected_fixed.items():
         require(
             type(config["fixed"][key]) is type(expected),
             f"Wrong fixed field type: {key}",
@@ -85,6 +95,8 @@ def validate_fixed(config):
 
 
 def capture_observation(config, np):
+    if config.get("schema") == ACQUISITION_INPUT_SCHEMA:
+        return acquisition_observation(config, np)
     acceptance = read_json(config["capture_acceptance"])
     capture = read_json(config["capture_result"])
     require(
@@ -148,6 +160,77 @@ def capture_observation(config, np):
         "Wrong raw image or measured state14",
     )
     return {"head_left": image.copy(), "state": state.copy()}
+
+
+def acquisition_observation(config, np):
+    """Read only causal RGB and measured state from a verified reference replay."""
+    accepted = read_json(config["capture_acceptance"])
+    result = read_json(config["capture_result"])
+    require(
+        accepted.get("status") == "accepted_acquisition_reference_pair"
+        and accepted.get("artifact_accepted") is True
+        and accepted.get("source_run_id") == ACQUISITION_ORIGIN
+        and len(accepted.get("reference_results", [])) == 2
+        and len({item["path"] for item in accepted["reference_results"]}) == 2
+        and config["capture_result"] in accepted["reference_results"],
+        "Require two accepted acquisition reference replays",
+    )
+    require(
+        result.get("schema") == "sadhana.acquisition_branch_result/1"
+        and result.get("status") == "completed"
+        and result.get("role") == "reference"
+        and result.get("source_run_id") == ACQUISITION_ORIGIN
+        and result.get("seed") == 21000
+        and result.get("boundary_control") == 72
+        and result.get("window_controls") == 8
+        and result.get("end_control") == 112
+        and result.get("verified_reference_observations") == 113
+        and result.get("native_controls") == 112,
+        "Wrong acquisition reference result",
+    )
+    item = config["boundary_frame"]
+    frame = authenticate(item)
+    require(
+        item in result["files"]
+        and frame.name == "0072.npz"
+        and frame.parent.name == "frames"
+        and frame.parent.parent == Path(config["capture_result"]["path"]).parent,
+        "Acquisition frame is not joined to accepted reference",
+    )
+    with np.load(frame, allow_pickle=False) as values:
+        metadata = json.loads(values["metadata_utf8"].tobytes().decode("utf-8"))
+        image = values["rgb"].copy()
+        integration = values["integration"]
+        require(
+            integration.shape == (437,) and np.isfinite(integration).all(),
+            "Invalid saved integration state",
+        )
+    public = metadata["public"]
+    require(
+        public["index"] == 72 and public["judge"]["success"] is False,
+        "Wrong acquisition time or terminal state",
+    )
+    state = np.asarray(public["state14"], dtype=np.float32)
+    measured = np.concatenate(
+        [
+            public["native_observation"][key]
+            for key in (
+                "left_arm_q",
+                "left_gripper_width",
+                "right_arm_q",
+                "right_gripper_width",
+            )
+        ]
+    ).astype(np.float32)
+    require(
+        image.shape == (360, 640, 3)
+        and image.dtype == np.uint8
+        and state.shape == (14,)
+        and np.isfinite(state).all()
+        and state.tobytes() == measured.tobytes(),
+        "Wrong acquisition RGB or measured state14",
+    )
+    return {"head_left": image, "state": state.copy()}
 
 
 def physical_windows(actor, windows, jnp):
@@ -216,12 +299,25 @@ def require_parity(record, name, left, right):
 
 
 def validate_result(value):
-    validate_fixed({"schema": INPUT_SCHEMA, "fixed": value.get("fixed")})
+    acquisition = value.get("schema") == ACQUISITION_RESULT_SCHEMA
+    validate_fixed(
+        {
+            "schema": ACQUISITION_INPUT_SCHEMA if acquisition else INPUT_SCHEMA,
+            "fixed": value.get("fixed"),
+        }
+    )
     require(
-        value.get("schema") == RESULT_SCHEMA
-        and value.get("status") == "failure_candidate_bank_complete"
-        and value.get("origin_run_id") == ORIGIN
-        and value.get("fixed") == FIXED
+        value.get("schema")
+        == (ACQUISITION_RESULT_SCHEMA if acquisition else RESULT_SCHEMA)
+        and value.get("status")
+        == (
+            "acquisition_candidate_bank_complete"
+            if acquisition
+            else "failure_candidate_bank_complete"
+        )
+        and value.get("origin_run_id")
+        == (ACQUISITION_ORIGIN if acquisition else ORIGIN)
+        and value.get("fixed") == (ACQUISITION_FIXED if acquisition else FIXED)
         and value.get("artifact_accepted") is False
         and value.get("benchmark_accepted") is False
         and type(value.get("optimizer_steps_performed")) is int
@@ -259,7 +355,7 @@ def load_helper(item):
     return helper
 
 
-def capture_candidates(agent, raw, record, full_api, jax, jnp, np):
+def capture_candidates(agent, raw, record, full_api, jax, jnp, np, boundary=128):
     """Original calls, with explicit dependencies for CPU boundary doubles."""
     record.array("rng/constructor", agent.rng)
     bank, selector_agent = agent.sample_pre_cache(
@@ -269,7 +365,7 @@ def capture_candidates(agent, raw, record, full_api, jax, jnp, np):
     bank_before = record.array("base_normalized_h16", bank).copy()
     record.array("rng/selector_start", selector_agent.rng)
     transformed = agent.actor.process_raw_inputs(copy.deepcopy(raw), 14, 224)
-    record.tree("transformed/O128", transformed)
+    record.tree(f"transformed/O{boundary}", transformed)
     cache = agent._infer_cache
     selections = {}
     for label, edits in (("no_edit", 0), ("full", 32)):
@@ -346,6 +442,8 @@ def capture_candidates(agent, raw, record, full_api, jax, jnp, np):
 
 def run(config, output):
     validate_fixed(config)
+    acquisition = config["schema"] == ACQUISITION_INPUT_SCHEMA
+    fixed = ACQUISITION_FIXED if acquisition else FIXED
     helper = load_helper(config["identity_helpers"])
     pins = config["inputs"] + config["installed_sources"] + config["checkpoint_files"]
     for expected in pins:
@@ -447,9 +545,9 @@ def run(config, output):
 
     params_before = parameters(agent)
     record = helper.Recorder(output, np, jax)
-    record.tree("raw/O128", raw)
+    record.tree(f"raw/O{fixed['episode_control']}", raw)
     physical_np, full_index, no_edit_index = capture_candidates(
-        agent, raw, record, full_api, jax, jnp, np
+        agent, raw, record, full_api, jax, jnp, np, boundary=fixed["episode_control"]
     )
     after = counters(agent, jax, np)
     params_after = parameters(agent)
@@ -465,10 +563,12 @@ def run(config, output):
         "Bank output exceeds bounded artifact cap",
     )
     result = {
-        "schema": RESULT_SCHEMA,
-        "status": "failure_candidate_bank_complete",
-        "fixed": FIXED,
-        "origin_run_id": ORIGIN,
+        "schema": ACQUISITION_RESULT_SCHEMA if acquisition else RESULT_SCHEMA,
+        "status": "acquisition_candidate_bank_complete"
+        if acquisition
+        else "failure_candidate_bank_complete",
+        "fixed": fixed,
+        "origin_run_id": ACQUISITION_ORIGIN if acquisition else ORIGIN,
         "artifact_accepted": False,
         "benchmark_accepted": False,
         "optimizer_steps_performed": 0,
@@ -495,6 +595,17 @@ def run(config, output):
             "only_base_actions": True,
         },
     }
+    if acquisition:
+        result["scope"] = (
+            "Fresh initialized inference at verified pre-grasp TRAIN O72; "
+            "no historical controller restart, on-policy Q or learned performance claim."
+        )
+        result["continuation_proposal"] = {
+            "implemented_here": False,
+            "forced_controls": 8,
+            "recorded_reference_controls": [81, 112],
+            "policy_feedback_after_window": False,
+        }
     validate_result(result)
     return result
 
