@@ -46,3 +46,14 @@ The R1Lite tracking policy controls nine joint positions and three base velociti
 The focused CPU tests use explicit subprocess fixtures, with no learner, simulator or GPU. They exercise source and input rejection, lease refusal, finite deadlines, parent cleanup margin, actual child exit and timeout, disk refusal, post-execution checks, and summary acceptance.
 
 [Architecture source](R1LITE_WBC_PROGRAM.mmd). Root selects the experiment and owns the GPU job. The adapter runs the original program and records evidence. A separate reviewer checks that evidence. Root accepts the result only after the control comparison is complete. This explanation uses simple technical English; no formal ASD-STE100 compliance check was performed.
+## Concurrent compiler cleanup during storage scans
+
+The author can remove compiler temporary files while the supervisor counts output bytes.
+The storage scan skips files that disappear between discovery and `lstat`.
+Other filesystem errors still fail the scan. The disk floor and output cap remain unchanged.
+Separate input and final-artifact checks still reject missing required files.
+
+Run `author-subset-20261019T080909-383d7f` exposed this race after all four PPO iterations.
+Its failed producer receipt is preserved. A separate artifact check and frozen evaluation
+are required before using its saved policy. This fix does not change the author learner,
+training settings, action interface or saved policy.

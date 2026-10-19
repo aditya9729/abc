@@ -14,6 +14,13 @@ from abc_bench.subset import load_job
 
 @pytest.fixture
 def setup(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    # Process fixtures must not depend on free space on the shared host.
+    # Dedicated storage-bound tests override this explicit CPU double.
+    monkeypatch.setattr(
+        wbc.shutil, "disk_usage", lambda _: SimpleNamespace(free=30 * wbc.GIB)
+    )
     source = tmp_path / "source"
     script = source / "scripts/train_feedback_residual.py"
     script.parent.mkdir(parents=True)
@@ -484,6 +491,49 @@ def test_real_disk_and_output_guards_at_exact_boundaries(tmp_path, monkeypatch, 
         stream.truncate(cap + 1)
     with pytest.raises(RuntimeError, match="output ceiling"):
         wbc.storage_check(tmp_path, limits)
+
+
+def test_storage_scan_tolerates_removed_compiler_file(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        wbc.shutil, "disk_usage", lambda _: SimpleNamespace(free=30 * wbc.GIB)
+    )
+    retained = tmp_path / "policy.pt"
+    retained.write_bytes(b"retained artifact")
+    temporary = tmp_path / "compiler-header.cuh"
+    temporary.write_bytes(b"temporary")
+    original = Path.lstat
+
+    def remove_before_stat(path):
+        if path == temporary:
+            path.unlink()
+        return original(path)
+
+    monkeypatch.setattr(Path, "lstat", remove_before_stat)
+    result = wbc.storage_check(tmp_path)
+    assert result["output_bytes"] == len(b"retained artifact")
+    assert retained.read_bytes() == b"retained artifact"
+
+
+def test_storage_scan_does_not_hide_permission_error(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        wbc.shutil, "disk_usage", lambda _: SimpleNamespace(free=30 * wbc.GIB)
+    )
+    artifact = tmp_path / "policy.pt"
+    artifact.write_bytes(b"retained")
+    original = Path.lstat
+
+    def deny_stat(path):
+        if path == artifact:
+            raise PermissionError("test unreadable metadata")
+        return original(path)
+
+    monkeypatch.setattr(Path, "lstat", deny_stat)
+    with pytest.raises(PermissionError, match="unreadable metadata"):
+        wbc.storage_check(tmp_path)
 
 
 def test_explicit_pilot_bounds_allow_cpu_child_below_old_floor(

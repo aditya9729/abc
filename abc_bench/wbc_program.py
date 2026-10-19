@@ -228,7 +228,15 @@ def storage_limits(cfg=None):
 def storage_check(root, cfg=None):
     reserve, cap = storage_limits(cfg)
     free = shutil.disk_usage(root).free
-    size = sum(p.lstat().st_size for p in root.rglob("*") if p.is_file())
+    size = 0
+    for path in root.rglob("*"):
+        try:
+            if path.is_file():
+                size += path.lstat().st_size
+        except FileNotFoundError:
+            # The author can remove compiler temporary files during this scan.
+            # Required inputs and final artifacts have separate integrity checks.
+            continue
     if free < reserve or size > cap:
         raise RuntimeError(
             f"WBC disk floor {reserve} bytes or output ceiling {cap} bytes reached"
