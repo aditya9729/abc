@@ -79,9 +79,25 @@ The preparation artifacts are under
 - `fixed-data-100-release-01/`: new normally installed runtimes and bound inputs.
 - `fixed-data-100-operator-preparation-20261019/`: resource contract and supervisor.
 
-The source preparation passed79 CPU tests. Installed release verification and
-actual execution are separate stages. See their receipts before claiming they
-passed. No100-call task result is established by this document.
+The first release passed79 tests in each installed prefix. Its first launch
+failed before GPU admission. The generic job loader rejected7300 seconds,
+although the phase validator accepted that parent limit. The corrected release
+adds an exception for this sealed phase only. It passes103 tests per installed
+prefix, including the actual outer loader and effective parent validation.
+Full input authentication also passes. See `RELEASE_V2.json` and
+`CPU_INPUT_AUTHENTICATION_V2.json` in the release directory.
+
+Root launched `author-subset-20261019T044009-4af3af` at04:40UTC on19October2026.
+The job uses `fixed-data-100-execution-02/plus_autonomous_349_before_timeouts`.
+The first failed admission remains in `fixed-data-100-execution-01`.
+Read the current process receipt before interpreting this launch record.
+A launch is not a completed learning or task-performance result.
+
+The independent result checker hashes and decodes saved selector tensors. It
+checks repeated outputs, the archived candidate bank, and reported scores.
+Ten checker tests and seven operator tests pass. Actual training acceptance
+requires100 completed calls, finite measurements, a full checkpoint, and cleanup.
+No100-call task result is established by this document.
 
 The task uses fixed-base R1 Lite arms and grippers. It does not test whole-body
 control. The [architecture](HISTORICAL_FIXED_DATA_100.mmd) marks the pending
