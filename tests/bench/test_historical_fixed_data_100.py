@@ -299,3 +299,83 @@ def test_long_run_dispatch_does_not_change_shared_defaults(monkeypatch, tmp_path
     assert kwargs["extra_measure"] == "read_only_hook"
     assert fixed.CALLS == historical.CALLS == 10
     assert fixed.MEASURE_AT == historical.MEASURE_AT == (0, 1, 10)
+
+
+def bound_job_path():
+    release = PREPARATION.parent / "fixed-data-100-release-01"
+    path = release / "JOB_V2.json"
+    if not path.exists():
+        path = release / "JOB.json"
+    if not path.exists():
+        pytest.skip("The local normally installed hundred-call job is unavailable")
+    return path
+
+
+def test_actual_outer_loader_admits_sealed100_then_checks_effective_parent(monkeypatch):
+    from abc_bench import subset
+
+    # Exercise the actual route missed by the original standalone validator test.
+    path = bound_job_path()
+    job = subset.load_job(path)
+    assert job == json.loads(path.read_text()) and job["max_wall_s"] == 7300
+    config = probe.load_config(Path(job["arguments"][1]))
+    assert config["phase"] == hundred.PHASE
+    assert probe.phase_deadlines(config) == (7200, 7300)
+    # Only host capacity is a fixture; both production admission functions run.
+    monkeypatch.setattr(probe, "host_available", lambda: probe.MIN_START_BYTES)
+    probe.validate_job(job, 7300)
+    with pytest.raises(ValueError, match="cleanup"):
+        probe.validate_job(job, 7299)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"module": "abc_author_subset.host"},
+        {"max_wall_s": 7400},
+        {"max_wall_s": 7300.0},
+        {"task": "different_task"},
+        {"python": "/usr/bin/python3"},
+    ],
+)
+def test_outer7300_exception_refuses_unrelated_or_misbound_jobs(tmp_path, change):
+    from abc_bench import subset
+
+    job = {**json.loads(bound_job_path().read_text()), **change}
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(job))
+    with pytest.raises(ValueError):
+        subset.load_job(path)
+
+
+def test_outer7300_exception_requires_authenticated_sealed_phase(tmp_path):
+    from abc_bench import subset
+
+    job = json.loads(bound_job_path().read_text())
+    config = json.loads(Path(job["arguments"][1]).read_text())
+    config["fixed_data"]["spec"]["sha256"] = "0" * 64
+    config_path = tmp_path / "config.json"
+    config_path.write_text(json.dumps(config))
+    job["arguments"] = ["--config", str(config_path)]
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(job))
+    with pytest.raises(ValueError, match="specification differs"):
+        subset.load_job(path)
+
+
+def test_old_ten_phase_retains2400_parent_and_cannot_take7300_exception(tmp_path):
+    from abc_bench import subset
+
+    old = (
+        PREPARATION.parent
+        / "historical-online-fixed-data-order-release-01/bound-01/plus_autonomous_349_before_timeouts.JOB.json"
+    )
+    if not old.exists():
+        pytest.skip("Historical sealed ten-call job is unavailable")
+    assert subset.load_job(old)["max_wall_s"] == 2400
+    job = json.loads(old.read_text())
+    job["max_wall_s"] = 7300
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(job))
+    with pytest.raises(ValueError, match="parent deadline"):
+        subset.load_job(path)
