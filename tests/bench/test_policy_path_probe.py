@@ -227,3 +227,46 @@ def test_worker_reuses_existing_watcher_and_records_completed_inference(
     assert observed[0][1]["ABC_BENCH_REPO"] == str(worker.REPO)
     assert value["status"] == "completed" and value["experiment_accepted"] is False
     assert json.loads((out / "receipt.json").read_text())["native_controls"] == 0
+
+
+def test_fixed_bank_scoring_has_separate_admission(tmp_path, monkeypatch):
+    from abc_bench import fixed_bank_scoring as scoring
+
+    monkeypatch.setattr(worker, "BUILDS", tmp_path)
+    observed = []
+
+    def payload(binding):
+        observed.append(binding)
+        return {}, {"schema": scoring.INPUT_SCHEMA, "fixed": scoring.FIXED}
+
+    monkeypatch.setattr(worker, "payload", payload)
+    config = {"schema": scoring.CONFIG_SCHEMA, "output": str(tmp_path / "fresh")}
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps(config))
+    assert worker.load_config(path) == config
+    assert observed == [worker.SCORING_PAYLOAD_MANIFEST]
+    command = worker.diagnostic_command(
+        config, {"caller": {"path": "/scorer"}}, {"python": {"path": "/python"}}
+    )
+    assert command[6] == worker.SCORING_PAYLOAD_MANIFEST["path"]
+
+
+def test_fixed_bank_scoring_rejects_an_inference_bank_payload(tmp_path, monkeypatch):
+    from abc_bench import failure_candidate_bank as bank
+    from abc_bench import fixed_bank_scoring as scoring
+
+    monkeypatch.setattr(worker, "BUILDS", tmp_path)
+    monkeypatch.setattr(
+        worker,
+        "payload",
+        lambda binding: (
+            {},
+            {"schema": bank.ACQUISITION_INPUT_SCHEMA, "fixed": bank.ACQUISITION_FIXED},
+        ),
+    )
+    path = tmp_path / "config.json"
+    path.write_text(
+        json.dumps({"schema": scoring.CONFIG_SCHEMA, "output": str(tmp_path / "fresh")})
+    )
+    with pytest.raises(ValueError):
+        worker.load_config(path)

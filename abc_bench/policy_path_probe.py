@@ -11,7 +11,7 @@ import sys
 import time
 from pathlib import Path
 
-from abc_bench import failure_candidate_bank
+from abc_bench import failure_candidate_bank, fixed_bank_scoring
 from abc_bench import realtime_update_probe as supervision
 
 MODULE = "abc_bench.policy_path_probe"
@@ -39,8 +39,16 @@ ACQUISITION_PAYLOAD_MANIFEST = {
     "sha256": "2e032980171ff155676caff1466362035b65ec7d1d5bbae9b39986c1c9338667",
 }
 
+SCORING_PAYLOAD_MANIFEST = {
+    "path": "/home/user/aditya/RL/builds/r1lite-realtime-expo-20261014/fixed-bank-scoring-preparation-20261019-05/PAYLOAD_MANIFEST.json",
+    "bytes": 1710,
+    "sha256": "4c5fdbebe20e84d4c38b361734741513ea0cdc7d3c6ef7acaaf423c03668a8f1",
+}
+
 
 def payload_binding(schema):
+    if schema == fixed_bank_scoring.CONFIG_SCHEMA:
+        return SCORING_PAYLOAD_MANIFEST
     if schema == failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA:
         return ACQUISITION_PAYLOAD_MANIFEST
     if schema == failure_candidate_bank.CONFIG_SCHEMA:
@@ -105,12 +113,16 @@ def load_config(path):
             SCHEMA,
             failure_candidate_bank.CONFIG_SCHEMA,
             failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA,
+            fixed_bank_scoring.CONFIG_SCHEMA,
         )
         and isinstance(config["output"], str),
         "Only the fixed identity diagnostic or fixed failure bank is admitted",
     )
     fresh_output(config["output"])
-    if bank_mode(config["schema"]):
+    if config["schema"] == fixed_bank_scoring.CONFIG_SCHEMA:
+        _, inputs = payload(SCORING_PAYLOAD_MANIFEST)
+        fixed_bank_scoring.validate_fixed(inputs)
+    elif bank_mode(config["schema"]):
         _, inputs = payload(payload_binding(config["schema"]))
         failure_candidate_bank.validate_fixed(inputs)
         expected = (
@@ -183,6 +195,13 @@ def diagnostic_command(config, manifest, inputs):
 
 
 def validate_result(value, mode=SCHEMA):
+    if mode == fixed_bank_scoring.CONFIG_SCHEMA:
+        fixed_bank_scoring.validate_result(value)
+        require(
+            value.get("source_manifest") == SCORING_PAYLOAD_MANIFEST,
+            "Scoring payload differs",
+        )
+        return
     if bank_mode(mode):
         failure_candidate_bank.validate_result(value)
         require(
@@ -233,7 +252,9 @@ def run(config_path, output):
         "schema_version": 1,
         "status": "failed",
         "phase": (
-            failure_candidate_bank.ACQUISITION_PROFILE
+            fixed_bank_scoring.PROFILE
+            if config["schema"] == fixed_bank_scoring.CONFIG_SCHEMA
+            else failure_candidate_bank.ACQUISITION_PROFILE
             if config["schema"] == failure_candidate_bank.ACQUISITION_CONFIG_SCHEMA
             else failure_candidate_bank.PROFILE
             if is_bank
@@ -290,7 +311,9 @@ def run(config_path, output):
         result.update(
             status="completed",
             diagnostic_result=supervision.file_pin(result_path),
-            scope="Failure-bank inference completed; branch outcomes remain unexecuted."
+            scope="Fixed-bank scoring completed; root must assess ranking changes."
+            if config["schema"] == fixed_bank_scoring.CONFIG_SCHEMA
+            else "Failure-bank inference completed; branch outcomes remain unexecuted."
             if is_bank
             else "Inference completed; root must assess identity discrepancies. No task outcome.",
         )
