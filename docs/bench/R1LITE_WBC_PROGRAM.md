@@ -28,7 +28,18 @@ Supported programs are `feedback-fit`, `feedback-evaluate`, `pose-ppo`, and `exp
 
 PPO jobs may also set `warp_cache_seed` to a completed PPO run's absolute `cache/warp_cache_path` directory. Omit this field for an empty cache. The seed needs matching successful canonical and worker receipts with a stopped child, the same original interpreter and source commit, and only regular files and directories. Pin both receipts and every seed file in `INPUTS.json`. The worker reads the seed without changing its contents or permissions. It copies bytes into the new job's private cache; it creates no shared writable cache or hard links. Copying uses the worker deadline and the same disk/output limits. The receipt records the copied file and byte counts. Warp still checks its cache version, module hashes, and target architecture. Cache reuse does not change training parameters or establish a training result.
 
-The worker checks 20GiB minimum free space and a 5GiB combined result/cache ceiling before launch, every 0.2 seconds, and after completion. This is a sampled guard, not an atomic quota. A violation cancels the direct child; the canonical parent reaps the whole process group. Caches remain inside the run. Failed exits, timeouts, input mutation and summary mismatches remain failed receipts. A completed receipt means the original process and expected update accounting completed; it does not assert a control or task improvement.
+The default storage limits remain 20 GiB minimum free space and a 5 GiB combined result/cache ceiling. Two optional schema1 fields permit explicit limits for a bounded job:
+
+```json
+{
+  "disk_reserve_bytes": 8589934592,
+  "output_cap_bytes": 1073741824
+}
+```
+
+This example retains 8 GiB free and caps output at 1 GiB. Both values must be integers. The reserve must be at least 8 GiB. The cap must be positive and at most 5 GiB. An omitted field keeps its original default. These limits affect process supervision only. They do not change the author command, learner, reward, or controller.
+
+The worker checks these limits before launch, every 0.2 seconds, and after completion. The private Warp-cache copy uses the same limits. Receipts record the resolved bounds. This is a sampled guard, not an atomic quota or disk reservation. Other processes and writes between samples can cross a bound. A violation cancels the direct child; the canonical parent reaps the whole process group. Caches remain inside the run. Failed exits, timeouts, input mutation and summary mismatches remain failed receipts. A completed receipt means the original process and expected update accounting completed; it does not assert a control or task improvement.
 
 The R1Lite tracking policy controls nine joint positions and three base velocities at 50Hz. This is a distinct interface from EXPO's fixed-base bilateral14D manipulation policy. Connecting them requires a declared adapter and matched evaluation. The supervisor does not add smoothing, interpolate chunks, or alter either interface.
 

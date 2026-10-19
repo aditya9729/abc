@@ -223,17 +223,22 @@ def test_changed_seed_refuses_and_copy_checks_its_bytes(tmp_path, setup, cache_s
         wbc.copy_cache_seed(cfg, destination, destination, wbc.time.monotonic())
 
 
+@pytest.mark.parametrize(
+    "limits", [{}, {"disk_reserve_bytes": 8 * wbc.GIB, "output_cap_bytes": wbc.GIB}]
+)
 @pytest.mark.parametrize("limit", ["disk", "output"])
 def test_seed_capacity_failure_never_launches_child(
-    tmp_path, setup, cache_seed, monkeypatch, limit
+    tmp_path, setup, cache_seed, monkeypatch, limit, limits
 ):
+    setup[0].update(limits)
     cfg = load(setup)
+    reserve, cap = wbc.storage_limits(cfg)
     monkeypatch.setattr(
         wbc,
         "storage_check",
-        lambda _: {
-            "free_bytes": (20 if limit == "disk" else 100) * wbc.GIB,
-            "output_bytes": 5 * wbc.GIB if limit == "output" else 0,
+        lambda _, cfg=None: {
+            "free_bytes": reserve if limit == "disk" else 100 * wbc.GIB,
+            "output_bytes": cap if limit == "output" else 0,
         },
     )
     # Input verification uses git subprocesses. Reject only an attempted author.
@@ -385,6 +390,170 @@ def test_disk_guard(tmp_path, monkeypatch):
         wbc.storage_check(tmp_path)
 
 
+@pytest.mark.parametrize(
+    "limits,expected",
+    [
+        ({}, (20 * wbc.GIB, 5 * wbc.GIB)),
+        ({"disk_reserve_bytes": 8 * wbc.GIB}, (8 * wbc.GIB, 5 * wbc.GIB)),
+        ({"output_cap_bytes": wbc.GIB}, (20 * wbc.GIB, wbc.GIB)),
+        (
+            {"disk_reserve_bytes": 8 * wbc.GIB, "output_cap_bytes": wbc.GIB},
+            (8 * wbc.GIB, wbc.GIB),
+        ),
+    ],
+)
+def test_actual_loader_resolves_resources_without_changing_author_command(
+    tmp_path, setup, limits, expected
+):
+    before = wbc.command(setup[0], tmp_path / "author")
+    setup[0].update(limits)
+    cfg = load(setup)
+    assert wbc.storage_limits(cfg) == expected
+    assert wbc.command(cfg, tmp_path / "author") == before
+    job = {
+        "schema_version": 1,
+        "label": "Explicit CPU resource fixture",
+        "method": "WBC",
+        "task": "fixture",
+        "embodiment": "r1lite",
+        "python": sys.executable,
+        "module": "abc_bench.wbc_program",
+        "arguments": ["--config", str(setup[1])],
+        "max_wall_s": 103,
+    }
+    path = tmp_path / "job.json"
+    path.write_text(json.dumps(job))
+    assert load_job(path) == job
+
+
+@pytest.mark.parametrize(
+    "key,value",
+    [
+        ("disk_reserve_bytes", 8 * wbc.GIB - 1),
+        ("disk_reserve_bytes", 0),
+        ("disk_reserve_bytes", -1),
+        ("output_cap_bytes", 5 * wbc.GIB + 1),
+        ("output_cap_bytes", 0),
+        ("output_cap_bytes", -1),
+        *(
+            (key, value)
+            for key in ("disk_reserve_bytes", "output_cap_bytes")
+            for value in (
+                True,
+                False,
+                None,
+                "8589934592",
+                8589934592.0,
+                float("nan"),
+                float("inf"),
+            )
+        ),
+    ],
+)
+def test_invalid_resource_limits_are_rejected_at_config_boundary(setup, key, value):
+    setup[0][key] = value
+    with pytest.raises(ValueError, match=key):
+        load(setup)
+
+
+@pytest.mark.parametrize(
+    "limits", [{}, {"disk_reserve_bytes": 8 * wbc.GIB, "output_cap_bytes": wbc.GIB}]
+)
+def test_real_disk_and_output_guards_at_exact_boundaries(tmp_path, monkeypatch, limits):
+    from types import SimpleNamespace
+
+    reserve, cap = wbc.storage_limits(limits)
+    free = reserve
+    monkeypatch.setattr(wbc.shutil, "disk_usage", lambda _: SimpleNamespace(free=free))
+    output = tmp_path / "sparse-output-fixture"
+    # Sparse metadata exercises the real size census without allocating GiB.
+    with output.open("wb") as stream:
+        stream.truncate(cap)
+    result = wbc.storage_check(tmp_path, limits)
+    assert result == {
+        "free_bytes": reserve,
+        "output_bytes": cap,
+        "disk_reserve_bytes": reserve,
+        "output_cap_bytes": cap,
+    }
+    free -= 1
+    with pytest.raises(RuntimeError, match="disk floor"):
+        wbc.storage_check(tmp_path, limits)
+    free = reserve
+    with output.open("ab") as stream:
+        stream.truncate(cap + 1)
+    with pytest.raises(RuntimeError, match="output ceiling"):
+        wbc.storage_check(tmp_path, limits)
+
+
+def test_explicit_pilot_bounds_allow_cpu_child_below_old_floor(
+    tmp_path, setup, monkeypatch
+):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        wbc.shutil, "disk_usage", lambda _: SimpleNamespace(free=12 * wbc.GIB)
+    )
+    with pytest.raises(RuntimeError, match="disk floor"):
+        wbc.run(load(setup), tmp_path / "default-refusal")
+    assert not (tmp_path / "default-refusal/receipt.json").exists()
+    setup[0].update(disk_reserve_bytes=8 * wbc.GIB, output_cap_bytes=wbc.GIB)
+    result = wbc.run(load(setup), tmp_path / "pilot")
+    assert result["status"] == "completed" and result["direct_child_stopped"]
+    assert result["storage"]["disk_reserve_bytes"] == 8 * wbc.GIB
+    assert result["storage"]["output_cap_bytes"] == wbc.GIB
+
+
+def test_pilot_final_resource_recheck_rejects_completed_child(
+    tmp_path, setup, monkeypatch
+):
+    from types import SimpleNamespace
+
+    setup[0].update(disk_reserve_bytes=8 * wbc.GIB, output_cap_bytes=wbc.GIB)
+    cfg = load(setup)
+    free = 12 * wbc.GIB
+    original = wbc.verify_inputs
+    calls = 0
+
+    def after_child(value):
+        nonlocal free, calls
+        calls += 1
+        result = original(value)
+        if calls == 2:
+            free = 8 * wbc.GIB - 1
+        return result
+
+    monkeypatch.setattr(wbc, "verify_inputs", after_child)
+    monkeypatch.setattr(wbc.shutil, "disk_usage", lambda _: SimpleNamespace(free=free))
+    with pytest.raises(RuntimeError, match="disk floor"):
+        wbc.run(cfg, tmp_path / "out")
+    result = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert result["status"] == "failed" and result["direct_child_stopped"]
+    assert result["author_exit_code"] == 0
+
+
+def test_pilot_live_resource_guard_reaps_cpu_child(tmp_path, setup, monkeypatch):
+    from types import SimpleNamespace
+
+    setup[0].update(disk_reserve_bytes=8 * wbc.GIB, output_cap_bytes=wbc.GIB)
+    cfg = load(setup)
+    monkeypatch.setattr(wbc, "verify_inputs", lambda _: {"fixture": True})
+    setup[2].write_text("import time\ntime.sleep(30)\n")
+    calls = 0
+
+    def disk_usage(_):
+        nonlocal calls
+        calls += 1
+        return SimpleNamespace(free=(12 if calls == 1 else 7) * wbc.GIB)
+
+    monkeypatch.setattr(wbc.shutil, "disk_usage", disk_usage)
+    with pytest.raises(RuntimeError, match="disk floor"):
+        wbc.run(cfg, tmp_path / "out")
+    result = json.loads((tmp_path / "out/receipt.json").read_text())
+    assert result["status"] == "failed" and result["direct_child_stopped"]
+    assert not Path(f"/proc/{result['author_pid']}").exists()
+
+
 def test_pins_rechecked_after_success(tmp_path, setup, monkeypatch):
     cfg = load(setup)
     original = wbc.verify_inputs
@@ -521,7 +690,7 @@ def test_live_disk_refusal_cancels_child(tmp_path, setup, monkeypatch):
     setup[2].write_text("import time\ntime.sleep(30)\n")
     calls = []
 
-    def check(path):
+    def check(path, cfg=None):
         calls.append(1)
         if len(calls) > 1:
             raise RuntimeError("Live disk refusal fixture")

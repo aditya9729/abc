@@ -97,11 +97,16 @@ def load_config(path):
     }
     if (
         not required.issubset(cfg)
-        or set(cfg) - required - {"warp_cache_seed"}
+        or set(cfg)
+        - required
+        - {"warp_cache_seed", "disk_reserve_bytes", "output_cap_bytes"}
         or type(cfg["schema_version"]) is not int
         or cfg["schema_version"] != 1
     ):
-        raise ValueError("Require WBC schema1 fields and only optional warp_cache_seed")
+        raise ValueError(
+            "Require WBC schema1 fields and supported optional resource/cache fields"
+        )
+    storage_limits(cfg)
     if (
         cfg["python"] != str(AUTHOR_PYTHON)
         or cfg["source_root"] != str(AUTHOR_ROOT)
@@ -208,12 +213,32 @@ def verify_inputs(cfg):
     return {"manifest_sha256": digest(manifest), "files": len(rows)}
 
 
-def storage_check(root):
+def storage_limits(cfg=None):
+    """Resolve operational byte limits without changing the original program."""
+    cfg = {} if cfg is None else cfg
+    reserve = cfg.get("disk_reserve_bytes", 20 * GIB)
+    cap = cfg.get("output_cap_bytes", 5 * GIB)
+    if type(reserve) is not int or reserve < 8 * GIB:
+        raise ValueError("WBC disk_reserve_bytes must be an integer of at least 8GiB")
+    if type(cap) is not int or not 0 < cap <= 5 * GIB:
+        raise ValueError("WBC output_cap_bytes must be an integer within (0,5GiB]")
+    return reserve, cap
+
+
+def storage_check(root, cfg=None):
+    reserve, cap = storage_limits(cfg)
     free = shutil.disk_usage(root).free
     size = sum(p.lstat().st_size for p in root.rglob("*") if p.is_file())
-    if free < 20 * GIB or size > 5 * GIB:
-        raise RuntimeError("WBC disk floor20GiB or output ceiling5GiB reached")
-    return {"free_bytes": free, "output_bytes": size}
+    if free < reserve or size > cap:
+        raise RuntimeError(
+            f"WBC disk floor {reserve} bytes or output ceiling {cap} bytes reached"
+        )
+    return {
+        "free_bytes": free,
+        "output_bytes": size,
+        "disk_reserve_bytes": reserve,
+        "output_cap_bytes": cap,
+    }
 
 
 def cache_seed_info(cfg):
@@ -282,10 +307,11 @@ def copy_cache_seed(cfg, destination, output, started):
     destination = Path(destination)
     if any(destination.iterdir()):
         raise FileExistsError("Warp destination cache must be new and empty")
-    usage = storage_check(output)
+    reserve, cap = storage_limits(cfg)
+    usage = storage_check(output, cfg)
     if (
-        usage["free_bytes"] - seed["bytes"] < 20 * GIB
-        or usage["output_bytes"] + seed["bytes"] > 5 * GIB
+        usage["free_bytes"] - seed["bytes"] < reserve
+        or usage["output_bytes"] + seed["bytes"] > cap
     ):
         raise RuntimeError("Warp seed would exceed WBC disk/output limits")
     pins = {
@@ -303,7 +329,7 @@ def copy_cache_seed(cfg, destination, output, started):
                     raise subprocess.TimeoutExpired(
                         "Warp cache seed copy", cfg["timeout_s"]
                     )
-                storage_check(output)
+                storage_check(output, cfg)
                 chunk = incoming.read(min(1024**2, remaining))
                 if not chunk:
                     raise ValueError("Warp seed changed during bounded copy")
@@ -314,7 +340,7 @@ def copy_cache_seed(cfg, destination, output, started):
                 raise ValueError("Warp seed grew during bounded copy")
         if digest(target) != pins.get(str(source)):
             raise ValueError("Copied Warp seed differs from pinned input")
-    storage_check(output)
+    storage_check(output, cfg)
     return {
         "source": str(seed["source"]),
         "source_receipt_sha256": digest(seed["receipt"]),
@@ -361,7 +387,7 @@ def run(cfg, output):
     author = output / "author-output"
     if author.exists() or (output / "receipt.json").exists():
         raise FileExistsError("Preserve the existing WBC execution")
-    storage_check(output)
+    storage_check(output, cfg)
     env = {k: v for k, v in os.environ.items() if k not in {"PYTHONPATH", "PYTHONHOME"}}
     env.update(WANDB_MODE="offline", WANDB_DISABLED="true", PYTHONDONTWRITEBYTECODE="1")
     for key in (
@@ -412,7 +438,7 @@ def run(cfg, output):
             )
             receipt["author_pid"] = child.pid
             while child.poll() is None:
-                receipt["storage"] = storage_check(output)
+                receipt["storage"] = storage_check(output, cfg)
                 if time.monotonic() - started > cfg["timeout_s"]:
                     raise subprocess.TimeoutExpired(
                         receipt["command"], cfg["timeout_s"]
@@ -433,7 +459,7 @@ def run(cfg, output):
             status="completed",
             summary_sha256=digest(path),
             summary=summary,
-            storage=storage_check(output),
+            storage=storage_check(output, cfg),
         )
         return receipt
     except BaseException as error:

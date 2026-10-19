@@ -3,6 +3,7 @@ flowchart LR
   Parent -->|same process group| Worker["WBC process adapter: verify source, inputs, storage and summary"]
   Source["Pristine R1 controller source + installed WBC runtime"] -->|authenticated original code| Worker
   Data["TRAIN references, teacher data and frozen nominal"] -->|immutable paths and hashes| Worker
+  Bounds["Job storage bounds: defaults 20 GiB reserve / 5 GiB cap; explicit limits validated"] -->|sampled operational checks| Worker
   Seed["Optional completed PPO Warp cache + receipt"] -->|pinned read-only source| Worker
   Worker -->|bounded byte copy| Cache["Fresh job private Warp cache"]
   Cache -->|Warp validates cached kernels| Original
