@@ -1,0 +1,11 @@
+flowchart LR
+    A[Coordinator reserves TRAIN starts] --> B[Unchanged original base evaluator]
+    B --> C[Existing native task adapter]
+    C --> D[Existing lossless frame writer]
+    D --> E[T plus 1 frames and actual applied commands]
+    E --> F[Causal transition validation]
+    F --> G[Original EXPO replay serializer]
+    G --> H[New replay artifact with lineage]
+    H --> I[Original learner in a later bounded job]
+    J[DEV and FINAL starts] --> K[Excluded from collection]
+    D --> L[Keep success, failure and timeout]
