@@ -109,11 +109,17 @@ def fixed_phase_module(config):
         from abc_bench import historical_fixed_data_100
 
         return historical_fixed_data_100
+    if config.get("phase") == "historical_online_fixed_data_100_training":
+        from abc_bench import historical_fixed_data_100_training
+
+        return historical_fixed_data_100_training
     raise ValueError("Unknown fixed-data phase")
 
 
 def phase_deadlines(config):
     """Only the separately sealed hundred-call phase extends the old deadlines."""
+    if config.get("phase") == "historical_online_fixed_data_100_training":
+        return 9000, 9100
     if config.get("phase") == "historical_online_fixed_data_100":
         return 7200, 7300
     return WORKER_SECONDS, PARENT_SECONDS

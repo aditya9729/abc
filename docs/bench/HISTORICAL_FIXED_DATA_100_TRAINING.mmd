@@ -1,0 +1,15 @@
+flowchart TD
+    I[Same pinned RTC2000 and original EXPO initialization] --> A[Initial integrity check]
+    D[Same corrected TRAIN replay pool\nOriginal reward and sampling rules] --> U
+    A --> U[Original learner update API\n100 calls, batch64, UTD20]
+    U --> C[Per-call scalar finite metrics and optimizer counters]
+    C --> S[Original full step100 checkpoint saver]
+    S --> F[Final integrity and source checks]
+    F --> R[Training receipt]
+    R --> P[Planner: independent acceptance]
+    P -. separate job after accepted save .-> Q[Frozen-bank and terminal diagnostics]
+    P -. separate job after accepted save .-> E[Original frozen DEV evaluation]
+    T[Recipe agent: adapter and CPU tests] --> U
+    V[Boundary agent: independent source review] --> P
+    B[Storage agent: capacity receipt] --> P
+    X[Preserved cancelled diagnostic100 attempt\n14 completed calls, no full save]

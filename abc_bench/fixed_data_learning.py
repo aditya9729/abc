@@ -182,22 +182,22 @@ def update_sequence(
     """Original next_batch/one-ahead/update routing, with explicit quiescent measurements."""
     require(
         type(calls) is int
-        and (calls, measure_at) in ((CALLS, MEASURE_AT), (100, (0, 10, 30, 100))),
+        and (calls, measure_at) in ((CALLS, MEASURE_AT), (100, (0, 10, 30, 100)), (100, ())),
         "Unknown bounded fixed-data schedule",
     )
     agent = (
         agent_holder.pop()
     )  # Transfer ownership; callers must not retain old states.
-    measurements = {
-        0: isolated_measure(
+    measurements = {}
+    if 0 in measure_at:
+        measurements[0] = isolated_measure(
             agent,
             lambda a: measure(a, 0),
             lambda a, p: snapshot(a, combine_rng, p),
             None,
             None,
         )
-    }
-    emit("measurement-00.json", measurements[0])
+        emit("measurement-00.json", measurements[0])
     consumed = []
     with ThreadPoolExecutor(max_workers=1) as pool:
         pending = pool.submit(processor.next_batch, combine_rng)
@@ -235,6 +235,25 @@ def update_sequence(
             "internal_critics": [labels(x, 1280) for x in internal],
         }
     return agent, measurements, consumed, unconsumed
+
+
+def finalize_training(agent, optimizer_state, parameters_state, save, *, calls, save_first=False):
+    """Keep legacy ordering; the training-only phase persists before final scans."""
+    from abc_bench.realtime_update_probe import COUNTERS
+
+    checkpoint = save(agent) if save_first else None
+    after = optimizer_state(agent)
+    for name, multiplier in COUNTERS.items():
+        require(
+            after[name]["step"] == calls * multiplier
+            and after[name]["counts"]
+            and all(x == calls * multiplier for x in after[name]["counts"].values()),
+            "Final optimizer counters differ",
+        )
+    parameters = parameters_state(agent)
+    if not save_first:
+        checkpoint = save(agent)
+    return after, parameters, checkpoint
 
 
 def rank_record(values, reference_index=31):
@@ -278,6 +297,8 @@ def run(
     calls=CALLS,
     measure_at=MEASURE_AT,
     extra_measure=None,
+    collect_diagnostics=True,
+    initial_integrity=None,
 ):
     """No model implementation here: original builders, sampler, update and Q helpers only."""
     import jax
@@ -295,6 +316,16 @@ def run(
 
     from abc_bench import realtime_update_probe as probe
 
+    require(
+        type(collect_diagnostics) is bool
+        and (collect_diagnostics or (
+            config.get("phase") == "historical_online_fixed_data_100_training"
+            and calls == 100 and measure_at == () and extra_measure is None
+            and checkpoint_writer is not None and initial_integrity is not None
+        )),
+        "Only the sealed training-only phase may omit diagnostics",
+    )
+    require(collect_diagnostics or not measure_at, "Training-only phase cannot measure")
     agent = agent_holder.pop()
     started = time.monotonic()
     spec = load_spec(config) if recovery is None else recovery.load_spec(config)
@@ -379,7 +410,7 @@ def run(
     offset = 0
     freeze_start = time.monotonic()
     freeze_rng = array_digest(agent.rng)
-    for ordinal, episode in enumerate(dataset.episodes):
+    for ordinal, episode in enumerate(dataset.episodes if collect_diagnostics else ()):
         t = episode.steps - 8
         require(t >= 5, "Logged window lacks the preceding five actions")
         slow = agent.actor.process_raw_inputs(
@@ -480,7 +511,7 @@ def run(
             flush=True,
         )
     require(
-        len(banks) == 21 and len(terminal_batches) == 168,
+        (len(banks), len(terminal_batches)) == ((21, 168) if collect_diagnostics else (0, 0)),
         "Fixed measurement pool differs",
     )
     require(
@@ -488,21 +519,22 @@ def run(
         "Frozen-input preparation advanced training RNG",
     )
     freeze_seconds = time.monotonic() - freeze_start
-    probe.write_json(
-        output / "frozen-inputs.json",
-        {
-            "arrays": arrays,
-            "seconds": freeze_seconds,
-            "terminal_batches": [
-                {
-                    k: v
-                    for k, v in x.items()
-                    if k not in ("observations", "states", "actions")
-                }
-                for x in terminal_batches
-            ],
-        },
-    )
+    if collect_diagnostics:
+        probe.write_json(
+            output / "frozen-inputs.json",
+            {
+                "arrays": arrays,
+                "seconds": freeze_seconds,
+                "terminal_batches": [
+                    {
+                        k: v
+                        for k, v in x.items()
+                        if k not in ("observations", "states", "actions")
+                    }
+                    for x in terminal_batches
+                ],
+            },
+        )
 
     def counter_steps(a):
         return {
@@ -739,26 +771,17 @@ def run(
         processor,
         jax.random.PRNGKey(142),
         update,
-        measure,
-        snapshot,
+        measure if collect_diagnostics else None,
+        snapshot if collect_diagnostics else None,
         labels,
         lambda name, value: probe.write_json(output / name, value),
         calls=calls,
         measure_at=measure_at,
     )
-    after = optimizer_state(agent)
-    for name, multiplier in probe.COUNTERS.items():
-        require(
-            after[name]["step"] == calls * multiplier
-            and after[name]["counts"]
-            and all(x == calls * multiplier for x in after[name]["counts"].values()),
-            "Final optimizer counters differ",
-        )
-    final_parameters = parameters_state(agent)
-    checkpoint = (
-        None
-        if checkpoint_writer is None
-        else checkpoint_writer(agent, config, output)
+    after, final_parameters, checkpoint = finalize_training(
+        agent, optimizer_state, parameters_state,
+        lambda a: None if checkpoint_writer is None else checkpoint_writer(a, config, output),
+        calls=calls, save_first=not collect_diagnostics,
     )
     immutability_started = time.monotonic()
     authenticated = (
@@ -777,7 +800,8 @@ def run(
         "update_calls": calls,
         "batch_size": 64,
         "utd_ratio": 20,
-        "before": measurements[0]["result"]["optimizers"],
+        "before": (measurements[0]["result"]["optimizers"] if collect_diagnostics
+                   else initial_integrity["optimizers"]),
         "after": after,
         "parameters_after": final_parameters,
         "measurements": measurements,
@@ -813,5 +837,19 @@ def run(
         )
     if checkpoint is not None:
         result["checkpoint"] = checkpoint
+    if not collect_diagnostics:
+        result.update(
+            diagnostics_in_training=False,
+            checkpoint_saved_before_final_integrity=True,
+            parameters_before=initial_integrity["parameters"],
+            scope="Fresh original learner; fixed TRAIN updates and original full save; separate posthoc diagnostics and frozen DEV evaluation remain pending",
+            limits=[
+                "One source lineage; timeout rows are not negative-action labels.",
+                "Original update metrics expose only the last of20 critic minibatches.",
+                "No online collection, exact training resume, independent recovery or task-success claim.",
+                "No generalization-based early stopping; hard100-call ceiling and no automatic extension.",
+                "Frozen-bank scoring, terminal calibration and policy evaluation require separate jobs after accepted save.",
+            ],
+        )
     probe.write_json(output / "update.json", result)
     return result

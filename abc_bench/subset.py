@@ -483,18 +483,22 @@ def load_job(path: Path) -> dict[str, Any]:
     if (
         job["module"] == "abc_bench.realtime_update_probe"
         and type(maximum) is int
-        and maximum == 7300
+        and maximum in (7300, 9100)
     ):
         from abc_bench.realtime_update_probe import load_config, validate_job
 
-        # The sealed100-call phase needs7200 worker seconds plus100 for cleanup.
+        # Each sealed100-call phase has its own worker bound plus100 for cleanup.
         # Authenticate its full phase/interpreter/deadline contract before raising
         # this job's cap; unrelated workers and the old ten-call phase stay bounded.
         validate_job(job)
         config = load_config(Path(arguments[1]))
-        if config.get("phase") != "historical_online_fixed_data_100":
-            raise ValueError("The7300s exception requires the sealed hundred-call phase")
-        maximum_allowed = 7300
+        expected_phase = {
+            7300: "historical_online_fixed_data_100",
+            9100: "historical_online_fixed_data_100_training",
+        }[maximum]
+        if config.get("phase") != expected_phase:
+            raise ValueError("Extended exception requires its exact sealed hundred-call phase")
+        maximum_allowed = maximum
     if (
         type(maximum) not in (int, float)
         or not math.isfinite(maximum)

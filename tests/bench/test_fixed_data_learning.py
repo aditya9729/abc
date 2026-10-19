@@ -107,7 +107,7 @@ class ExplicitProcessor:
         return result
 
 
-@pytest.mark.parametrize("calls,schedule", [(10, (0, 1, 10)), (100, (0, 10, 30, 100))])
+@pytest.mark.parametrize("calls,schedule", [(10, (0, 1, 10)), (100, (0, 10, 30, 100)), (100, ())])
 def test_actual_orchestration_retains_pending_and_quiesces_measurement(calls, schedule):
     processor = ExplicitProcessor()
     updates, measurements, emitted = [], [], {}
@@ -148,7 +148,8 @@ def test_actual_orchestration_retains_pending_and_quiesces_measurement(calls, sc
     assert result[0] == calls
     assert updates == [(i, i) for i in range(1, calls + 1)]
     assert [row[0] for row in measurements] == list(schedule)
-    assert measurements[-1] == (calls, calls + 3, calls + 1)
+    if schedule:
+        assert measurements[-1] == (calls, calls + 3, calls + 1)
     assert result[3]["returned_critic"]["critic_id"] == calls + 1
     assert [x["critic_id"] for x in result[3]["internal_critics"]] == [calls + 2, calls + 3]
     assert len(result[2]) == calls and len(emitted) == calls + len(schedule)
@@ -209,7 +210,7 @@ def test_measurement_rng_mutation_is_refused():
         fixed.isolated_measure(0, bad_measure, lambda *_: state["rng"], None, None)
 
 
-@pytest.mark.parametrize("calls,schedule", [(10, (0, 1, 10)), (100, (0, 10, 30, 100))])
+@pytest.mark.parametrize("calls,schedule", [(10, (0, 1, 10)), (100, (0, 10, 30, 100)), (100, ())])
 def test_consumed_states_and_batches_are_released_without_losing_prefetch(calls, schedule):
     class Tracked:
         def __init__(self, kind, number):
