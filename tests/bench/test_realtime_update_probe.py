@@ -71,6 +71,23 @@ def test_exact_parent_bound_accepts(valid_job):
     probe.validate_job(valid_job, 2400)
 
 
+def test_hundred_phase_requires_separate_deadline_without_changing_old(valid_job, monkeypatch):
+    old_loader = probe.load_config
+    monkeypatch.setattr(probe, "load_config", lambda path: {
+        **old_loader(path), "phase": "historical_online_fixed_data_100",
+        "fixed_data": {"python": {"path": sys.executable}},
+    })
+    assert probe.phase_deadlines({}) == (2300, 2400)
+    assert probe.phase_deadlines({"phase": "historical_online_fixed_data_10"}) == (2300, 2400)
+    assert probe.phase_deadlines({"phase": "historical_online_fixed_data_100"}) == (7200, 7300)
+    with pytest.raises(ValueError, match="parent deadline"):
+        probe.validate_job(valid_job, 7300)
+    valid_job["max_wall_s"] = 7300
+    probe.validate_job(valid_job, 7300)
+    with pytest.raises(ValueError, match="cleanup"):
+        probe.validate_job(valid_job, 7299)
+
+
 @pytest.mark.parametrize("seconds", [2399, float("nan"), float("inf"), True])
 def test_effective_parent_bound_rejects(valid_job, seconds):
     with pytest.raises(ValueError):

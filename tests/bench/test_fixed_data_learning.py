@@ -107,7 +107,8 @@ class ExplicitProcessor:
         return result
 
 
-def test_actual_orchestration_retains_pending_and_quiesces_measurement():
+@pytest.mark.parametrize("calls,schedule", [(10, (0, 1, 10)), (100, (0, 10, 30, 100))])
+def test_actual_orchestration_retains_pending_and_quiesces_measurement(calls, schedule):
     processor = ExplicitProcessor()
     updates, measurements, emitted = [], [], {}
 
@@ -142,14 +143,60 @@ def test_actual_orchestration_retains_pending_and_quiesces_measurement():
         snapshot,
         lambda batch, rows: {**batch, "rows": rows},
         emitted.__setitem__,
+        **({} if calls == 10 else {"calls": calls, "measure_at": schedule}),
     )
-    assert result[0] == 10
-    assert updates == [(i, i) for i in range(1, 11)]
-    assert [row[0] for row in measurements] == [0, 1, 10]
-    assert measurements[-1] == (10, 13, 11)
-    assert result[3]["returned_critic"]["critic_id"] == 11
-    assert [x["critic_id"] for x in result[3]["internal_critics"]] == [12, 13]
-    assert len(result[2]) == 10 and len(emitted) == 13
+    assert result[0] == calls
+    assert updates == [(i, i) for i in range(1, calls + 1)]
+    assert [row[0] for row in measurements] == list(schedule)
+    assert measurements[-1] == (calls, calls + 3, calls + 1)
+    assert result[3]["returned_critic"]["critic_id"] == calls + 1
+    assert [x["critic_id"] for x in result[3]["internal_critics"]] == [calls + 2, calls + 3]
+    assert len(result[2]) == calls and len(emitted) == calls + len(schedule)
+
+
+@pytest.mark.parametrize("calls,schedule", [(101, (0, 10, 30, 101)), (100, (0, 1, 100)), (True, (0, 1, 10))])
+def test_unsupported_schedule_fails_before_agent_or_sampler_access(calls, schedule):
+    with pytest.raises(ValueError, match="schedule"):
+        fixed.update_sequence(None, None, None, None, None, None, None, None,
+                              calls=calls, measure_at=schedule)
+
+
+def test_hundred_call_accounting_preserves_three_unconsumed_critic_batches():
+    result = fixed.accounting(100, 101, calls=100)
+    assert result["consumed_critic_rows"] == 128000
+    assert result["consumed_actor_rows"] == 6400
+    assert result["generated_critic_batches"] == 103
+    assert result["generated_actor_batches"] == 101
+    with pytest.raises(ValueError):
+        fixed.accounting(101, 102, calls=100)
+
+
+def test_hundred_call_probes_preserve_stream_against_serial_no_probe_reference():
+    reference, measured = ExplicitProcessor(), ExplicitProcessor()
+    expected, combine = [], 142
+    # Reference consumes the same stream without invoking any measurement.
+    for call in range(101):
+        critic, actor, combine = reference.next_batch(combine)
+        if call < 100:
+            expected.append((critic["critic_id"], actor["actor_id"]))
+    actual, measurements = [], []
+
+    def update(agent, critic, actor, call):
+        actual.append((critic["critic_id"], actor["actor_id"]))
+        return call, {}
+
+    fixed.update_sequence(
+        [0], measured, 142, update,
+        lambda agent, call: measurements.append(call),
+        lambda agent, combine, pending: (agent, measured.replay_rng, combine),
+        lambda batch, rows: dict(batch), lambda *_: None,
+        calls=100, measure_at=(0, 10, 30, 100),
+    )
+    assert actual == expected
+    assert measurements == [0, 10, 30, 100]
+    assert measured.replay_rng == reference.replay_rng
+    assert measured.generated == reference.generated == 103
+    assert measured.actor_generated == reference.actor_generated == 101
 
 
 def test_measurement_rng_mutation_is_refused():
@@ -162,7 +209,8 @@ def test_measurement_rng_mutation_is_refused():
         fixed.isolated_measure(0, bad_measure, lambda *_: state["rng"], None, None)
 
 
-def test_consumed_states_and_batches_are_released_without_losing_prefetch():
+@pytest.mark.parametrize("calls,schedule", [(10, (0, 1, 10)), (100, (0, 10, 30, 100))])
+def test_consumed_states_and_batches_are_released_without_losing_prefetch(calls, schedule):
     class Tracked:
         def __init__(self, kind, number):
             self.kind = kind
@@ -250,15 +298,16 @@ def test_consumed_states_and_batches_are_released_without_losing_prefetch():
             "rows": rows,
         },
         emitted.__setitem__,
+        **({} if calls == 10 else {"calls": calls, "measure_at": schedule}),
     )
     assert not holder and initial() is None
-    assert result[0].number == 10
-    assert updates == [(i, i) for i in range(1, 11)]
-    assert measurements == [0, 1, 10]
-    assert processor.generated == {"critic": 13, "actor": 11}
-    assert result[3]["returned_critic"]["number"] == 11
-    assert [batch["number"] for batch in result[3]["internal_critics"]] == [12, 13]
-    assert len(result[2]) == 10 and len(emitted) == 13
+    assert result[0].number == calls
+    assert updates == [(i, i) for i in range(1, calls + 1)]
+    assert measurements == list(schedule)
+    assert processor.generated == {"critic": calls + 3, "actor": calls + 1}
+    assert result[3]["returned_critic"]["number"] == calls + 1
+    assert [batch["number"] for batch in result[3]["internal_critics"]] == [calls + 2, calls + 3]
+    assert len(result[2]) == calls and len(emitted) == calls + len(schedule)
 
 
 def test_measurement_pending_queue_replacement_is_refused():

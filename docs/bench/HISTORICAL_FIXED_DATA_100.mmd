@@ -1,0 +1,29 @@
+flowchart LR
+  subgraph inputs[Existing immutable TRAIN inputs]
+    rtc[RTC2000 policy]
+    replay[Corrected17317-row replay]
+    bank[Accepted O72 action bank]
+  end
+  subgraph sadhana[Sadhana RL harness]
+    root[Root: admission and process cleanup]
+    caller[Recipe agent: bounded100-call caller]
+    author[Original RealTimeEXPOFTLearner]
+    probe[Isolated call0/10/30/100 probes]
+    ckpt[Original full checkpoint at100]
+    checks[Boundary agent: independent review]
+    space[Storage agent: exact retirement proposal]
+  end
+  eval[Pending: frozen native DEV evaluation]
+  report[Root: execution and performance report]
+  rtc -->|initial parameters| author
+  replay -->|original batch processor| author
+  caller -->|control:100 calls| author
+  author -->|current learner| probe
+  bank -->|fixed data| probe
+  author -->|original save API| ckpt
+  ckpt -.->|pending restore and control| eval
+  eval -.->|measured outcomes| report
+  probe -->|diagnostic records| report
+  space -->|capacity evidence| root
+  root -->|control: exclusive GPU0 lease| caller
+  checks -->|source and boundary evidence| root

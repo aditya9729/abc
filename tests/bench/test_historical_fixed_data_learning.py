@@ -211,7 +211,8 @@ def test_actor_and_replay_current_transform_check_detects_wrong_action():
 
 
 @pytest.mark.parametrize("wait_failure", [False, True])
-def test_final_checkpoint_uses_full_author_save_wait_close_nonzero(tmp_path, monkeypatch, wait_failure):
+@pytest.mark.parametrize("step", [10, 100])
+def test_final_checkpoint_uses_full_author_save_wait_close_nonzero(tmp_path, monkeypatch, wait_failure, step):
     events = []
     agent = object()
     checkpoint = tmp_path / "learned-checkpoints"
@@ -222,12 +223,12 @@ def test_final_checkpoint_uses_full_author_save_wait_close_nonzero(tmp_path, mon
             if wait_failure:
                 raise RuntimeError("original asynchronous save failed")
             for name in ("agent", "params"):
-                item = checkpoint / "10" / name
+                item = checkpoint / str(step) / name
                 item.mkdir(parents=True)
                 (item / "_METADATA").write_text("explicit test double")
 
         def all_steps(self):
-            return [10]
+            return [step]
 
         def close(self):
             events.append("close")
@@ -239,8 +240,8 @@ def test_final_checkpoint_uses_full_author_save_wait_close_nonzero(tmp_path, mon
         events.append("initialize")
         return manager, False
 
-    def save(actual_manager, actual_agent, step):
-        assert actual_manager is manager and actual_agent is agent and step == 10
+    def save(actual_manager, actual_agent, actual_step):
+        assert actual_manager is manager and actual_agent is agent and actual_step == step
         events.append("save")
 
     modules = {"expo_ft.agents.alg.agent": SimpleNamespace(initialize_checkpoint_dir=initialize),
@@ -248,13 +249,14 @@ def test_final_checkpoint_uses_full_author_save_wait_close_nonzero(tmp_path, mon
     monkeypatch.setattr(probe, "checked_import", lambda name, config: modules[name])
     monkeypatch.setitem(sys.modules, "jax", SimpleNamespace(block_until_ready=lambda actual: events.append("block") if actual is agent else None))
     config = {"fixed_data": {"condition": historical.CONDITIONS[0]}}
+    kwargs = {} if step == 10 else {"step": step}
     if wait_failure:
         with pytest.raises(RuntimeError, match="save failed"):
-            historical.save_final_checkpoint(agent, config, tmp_path)
+            historical.save_final_checkpoint(agent, config, tmp_path, **kwargs)
         assert not (tmp_path / "checkpoint.json").exists()
     else:
-        result = historical.save_final_checkpoint(agent, config, tmp_path)
-        assert result["step"] == 10 and result["manager_closed"]
+        result = historical.save_final_checkpoint(agent, config, tmp_path, **kwargs)
+        assert result["step"] == step and result["manager_closed"]
         assert not result["separate_process_restore_verified"]
         assert len(result["files"]) == 2
     assert events == ["block", "initialize", "save", "wait", "close"]

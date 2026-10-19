@@ -117,10 +117,10 @@ def episode_inputs(spec):
     return [by_path[str(path)] for path in expected], pins
 
 
-def authenticate_data(config):
+def authenticate_data(config, *, spec=None):
     from abc_bench import fixed_data_learning as fixed
 
-    spec = load_spec(config)
+    spec = load_spec(config) if spec is None else spec
     result = fixed.authenticate_data(config, spec=spec)
     _, pins = episode_inputs(spec)
     result["recovery_inputs"] = {
@@ -456,12 +456,13 @@ def prepare_replay(agent, processor, config, spec, *, before_restore=None):
     }
 
 
-def save_final_checkpoint(agent, config, output):
+def save_final_checkpoint(agent, config, output, *, step=CALLS):
     """Original full saver, completed before the worker reports a finished phase."""
     import jax
 
     from abc_bench.realtime_update_probe import checked_import, file_pin, write_json
 
+    require(type(step) is int and step in (CALLS, 100), "Unknown final checkpoint step")
     base = checked_import("expo_ft.agents.alg.agent", config)
     learner = checked_import("expo_ft.agents.alg.realtime_expo_ft", config)
     destination = Path(output) / "learned-checkpoints"
@@ -471,10 +472,10 @@ def save_final_checkpoint(agent, config, output):
     manager, resuming = base.initialize_checkpoint_dir(destination, keep_period=None, overwrite=False, resume=False)
     try:
         require(not resuming, "Final snapshot is not a training resume")
-        learner.save_checkpoint(manager, agent, CALLS)
+        learner.save_checkpoint(manager, agent, step)
         manager.wait_until_finished()
-        require(tuple(manager.all_steps()) == (CALLS,), "Original save did not complete at nonzero step10")
-        require(all((destination / str(CALLS) / name).is_dir() for name in ("agent", "params")), "Missing full original agent/params items")
+        require(tuple(manager.all_steps()) == (step,), "Original save did not complete at the declared nonzero step")
+        require(all((destination / str(step) / name).is_dir() for name in ("agent", "params")), "Missing full original agent/params items")
     finally:
         manager.close()
     paths = sorted(destination.rglob("*"))
@@ -483,7 +484,7 @@ def save_final_checkpoint(agent, config, output):
     require(bool(files), "Empty completed checkpoint")
     result = {
         "schema": "sadhana.original_expo_final_checkpoint/1", "directory": str(destination),
-        "step": CALLS, "condition": config["fixed_data"]["condition"],
+        "step": step, "condition": config["fixed_data"]["condition"],
         "original_full_saver": True, "wait_completed": True, "manager_closed": True,
         "files": files, "bytes": sum(p["bytes"] for p in files),
         "elapsed_seconds": time.monotonic() - started,

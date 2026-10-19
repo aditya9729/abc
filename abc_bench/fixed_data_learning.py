@@ -119,9 +119,10 @@ def authenticate_data(config, *, spec=None):
     }
 
 
-def accounting(consumed_calls, returned_batches):
+def accounting(consumed_calls, returned_batches, *, calls=CALLS):
+    require(type(calls) is int and calls in (CALLS, 100), "Unknown fixed-data limit")
     require(
-        type(consumed_calls) is int and 0 <= consumed_calls <= CALLS,
+        type(consumed_calls) is int and 0 <= consumed_calls <= calls,
         "Invalid consumed calls",
     )
     require(
@@ -175,9 +176,15 @@ def isolated_measure(agent, measure, snapshot, pending, iterator):
 
 
 def update_sequence(
-    agent_holder, processor, combine_rng, update, measure, snapshot, labels, emit
+    agent_holder, processor, combine_rng, update, measure, snapshot, labels, emit,
+    *, calls=CALLS, measure_at=MEASURE_AT,
 ):
     """Original next_batch/one-ahead/update routing, with explicit quiescent measurements."""
+    require(
+        type(calls) is int
+        and (calls, measure_at) in ((CALLS, MEASURE_AT), (100, (0, 10, 30, 100))),
+        "Unknown bounded fixed-data schedule",
+    )
     agent = (
         agent_holder.pop()
     )  # Transfer ownership; callers must not retain old states.
@@ -194,7 +201,7 @@ def update_sequence(
     consumed = []
     with ThreadPoolExecutor(max_workers=1) as pool:
         pending = pool.submit(processor.next_batch, combine_rng)
-        for call in range(1, CALLS + 1):
+        for call in range(1, calls + 1):
             batch, actor_batch, combine_rng = pending.result()
             pending = pool.submit(processor.next_batch, combine_rng)
             consumed.append(
@@ -206,7 +213,7 @@ def update_sequence(
             )
             agent, detail = update(agent, batch, actor_batch, call)
             emit(f"update-{call:02d}.json", {**consumed[-1], **detail})
-            if call in MEASURE_AT:
+            if call in measure_at:
                 exact_pending = (
                     pending.result()
                 )  # Quiesce; retain this Future/result for next call.
@@ -217,7 +224,7 @@ def update_sequence(
                     exact_pending,
                     processor.replay_iterator,
                 )
-                measurements[call]["sampling"] = accounting(call, call + 1)
+                measurements[call]["sampling"] = accounting(call, call + 1, calls=calls)
                 emit(f"measurement-{call:02d}.json", measurements[call])
                 del exact_pending  # The original Future retains the exact next batch.
         exact_pending = pending.result()
@@ -268,6 +275,9 @@ def run(
     *,
     recovery=None,
     checkpoint_writer=None,
+    calls=CALLS,
+    measure_at=MEASURE_AT,
+    extra_measure=None,
 ):
     """No model implementation here: original builders, sampler, update and Q helpers only."""
     import jax
@@ -671,7 +681,7 @@ def run(
         }
         optimizers = optimizer_state(a)
         parameters = parameters_state(a)
-        return {
+        result = {
             "call": call,
             "terminal_windows": rows,
             "calibration": summaries,
@@ -680,6 +690,14 @@ def run(
             "parameters": parameters,
             "seconds": time.monotonic() - start,
         }
+        if extra_measure is not None:
+            result["extra_diagnostics"] = extra_measure(a, call)
+            require(
+                optimizer_state(a) == optimizers and parameters_state(a) == parameters,
+                "Extra measurement changed optimizer counters or finite-state inventory",
+            )
+            result["seconds"] = time.monotonic() - start
+        return result
 
     update_seconds = []
 
@@ -725,13 +743,15 @@ def run(
         snapshot,
         labels,
         lambda name, value: probe.write_json(output / name, value),
+        calls=calls,
+        measure_at=measure_at,
     )
     after = optimizer_state(agent)
     for name, multiplier in probe.COUNTERS.items():
         require(
-            after[name]["step"] == CALLS * multiplier
+            after[name]["step"] == calls * multiplier
             and after[name]["counts"]
-            and all(x == CALLS * multiplier for x in after[name]["counts"].values()),
+            and all(x == calls * multiplier for x in after[name]["counts"].values()),
             "Final optimizer counters differ",
         )
     final_parameters = parameters_state(agent)
@@ -754,7 +774,7 @@ def run(
         "benchmark_accepted": False,
         "online_schedule_executed": False,
         "native_controls": 0,
-        "update_calls": CALLS,
+        "update_calls": calls,
         "batch_size": 64,
         "utd_ratio": 20,
         "before": measurements[0]["result"]["optimizers"],
@@ -763,7 +783,7 @@ def run(
         "measurements": measurements,
         "consumed_batches": consumed,
         "unconsumed_batches": unconsumed,
-        "sampling": accounting(10, 11),
+        "sampling": accounting(calls, calls + 1, calls=calls),
         "arrays": arrays,
         "update_seconds": sum(update_seconds),
         "update_seconds_each": update_seconds,

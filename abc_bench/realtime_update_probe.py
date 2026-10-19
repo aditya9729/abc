@@ -105,7 +105,18 @@ def fixed_phase_module(config):
         from abc_bench import historical_fixed_data_learning
 
         return historical_fixed_data_learning
+    if config.get("phase") == "historical_online_fixed_data_100":
+        from abc_bench import historical_fixed_data_100
+
+        return historical_fixed_data_100
     raise ValueError("Unknown fixed-data phase")
+
+
+def phase_deadlines(config):
+    """Only the separately sealed hundred-call phase extends the old deadlines."""
+    if config.get("phase") == "historical_online_fixed_data_100":
+        return 7200, 7300
+    return WORKER_SECONDS, PARENT_SECONDS
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -130,11 +141,12 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ValueError("Unexpected capacity-probe fields")
     if "phase" in config:
         fixed_phase_module(config).load_spec(config)
+    worker_seconds, parent_seconds = phase_deadlines(config)
     exact = {
         "schema": SCHEMA,
         "memory_environment": MEMORY_ENV,
-        "worker_seconds": WORKER_SECONDS,
-        "parent_seconds": PARENT_SECONDS,
+        "worker_seconds": worker_seconds,
+        "parent_seconds": parent_seconds,
         "minimum_start_bytes": MIN_START_BYTES,
         "minimum_run_bytes": MIN_RUN_BYTES,
     }
@@ -165,16 +177,18 @@ def validate_job(job: dict[str, Any], effective_seconds: float | None = None) ->
     if (
         job.get("module") != MODULE
         or type(job.get("max_wall_s")) is not int
-        or job["max_wall_s"] != PARENT_SECONDS
         or job.get("task") != "r1lite_remote_into_organizer"
         or job.get("embodiment") != "r1lite_2025"
         or len(job.get("arguments", [])) != 2
         or job["arguments"][0] != "--config"
     ):
         raise ValueError(
-            "Require the explicit R1 one-update diagnostic and 2400s parent"
+            "Require the explicit R1 diagnostic and declared finite parent"
         )
     config = load_config(Path(job["arguments"][1]))
+    _, parent_seconds = phase_deadlines(config)
+    if job["max_wall_s"] != parent_seconds:
+        raise ValueError("Job parent deadline differs from its sealed phase")
     online = json.loads(Path(config["online_config"]["path"]).read_text())
     expected_python = (
         config["fixed_data"]["python"]["path"]
@@ -186,7 +200,7 @@ def validate_job(job: dict[str, Any], effective_seconds: float | None = None) ->
     if effective_seconds is not None and (
         type(effective_seconds) not in (int, float)
         or not math.isfinite(effective_seconds)
-        or effective_seconds < PARENT_SECONDS
+        or effective_seconds < parent_seconds
     ):
         raise ValueError("Effective parent deadline must preserve 100s cleanup")
     if effective_seconds is not None and host_available() < MIN_START_BYTES:
@@ -593,7 +607,8 @@ def main() -> None:
     if not args.output.is_absolute() or not args.output.is_dir():
         raise ValueError("Canonical coordinator must create the output directory")
     job = json.loads((args.output / "job.json").read_text())
-    validate_job(job, PARENT_SECONDS)
+    worker_seconds, parent_seconds = phase_deadlines(config)
+    validate_job(job, parent_seconds)
     if (
         job["arguments"][1] != str(args.config)
         or (args.output / "receipt.json").exists()
@@ -645,7 +660,7 @@ def main() -> None:
             command,
             memory_environment(online),
             detail_output,
-            started + WORKER_SECONDS,
+            started + worker_seconds,
             cancelled,
         )
         receipt["lifecycle"] = lifecycle
