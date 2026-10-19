@@ -19,6 +19,7 @@ from abc_bench.resources import inspect_reserved_gpu
 
 ALLOWED_MODULES = {
     "abc_bench.wbc_program",
+    "sadhana_fasttd3_wbc.caller",
     "abc_bench.realtime_update_probe",
     "abc_bench.policy_path_probe",
     "abc_bench.author_program",
@@ -297,6 +298,11 @@ def load_job(path: Path) -> dict[str, Any]:
     maximum_allowed = (
         12600 if job["module"] == "abc_bench.fasttd3_campaign_stage" else 7200
     )
+    if job["module"] == "sadhana_fasttd3_wbc.caller":
+        from sadhana_fasttd3_wbc.caller import validate_job
+
+        cfg = validate_job(job)
+        maximum_allowed = 28900 if cfg["phase"] == "reference" else 1300
     if job["module"] == "sadhana_r1lite.fasttd3":
         config, _, _ = _r1lite_config(job)
         if (
@@ -518,6 +524,10 @@ def run_job(args: Any) -> dict[str, Any]:
     if args.training_config is None:
         raise ValueError("author-subset requires --training-config")
     job = load_job(args.training_config)
+    if job["module"] == "sadhana_fasttd3_wbc.caller":
+        from sadhana_fasttd3_wbc.caller import validate_job
+
+        validate_job(job, args.timeout_seconds)
     if job["module"] == "abc_bench.wbc_program":
         from abc_bench.wbc_program import validate_job
 
@@ -642,6 +652,7 @@ def run_job(args: Any) -> dict[str, Any]:
         subdirectory = {
             "nrh.qf3_training": "qf3",
             "expo_abc_adapter.stage": "expoft",
+            "sadhana_fasttd3_wbc.caller": "fasttd3-wbc",
         }.get(job["module"])
         worker_out = out / subdirectory if subdirectory is not None else out
         worker_arguments = job["arguments"]
@@ -683,7 +694,9 @@ def run_job(args: Any) -> dict[str, Any]:
             "schema_version": 1,
             "run_id": run_id,
             "algorithm": job["label"],
-            "phase": "original_wbc_program"
+            "phase": "original_fasttd3_wbc"
+            if job["module"] == "sadhana_fasttd3_wbc.caller"
+            else "original_wbc_program"
             if job["module"] == "abc_bench.wbc_program"
             else "original_vam_forward_qualification"
             if job["module"] == "sadhana_r1lite.vam_forward_probe"
@@ -798,6 +811,7 @@ def run_job(args: Any) -> dict[str, Any]:
                 "abc_bench.realtime_update_probe",
                 "abc_bench.wbc_program",
                 "sadhana_r1lite.vam_forward_probe",
+                "sadhana_fasttd3_wbc.caller",
             }
             and not catcher_profile
         ):
